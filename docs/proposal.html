@@ -543,14 +543,34 @@
             <td>Task grid, convert flow, before/after result; no colour literal outside <code>tokens.ts</code></td>
           </tr>
           <tr>
-            <td>Swift ConverterCore — detector and codec</td>
-            <td><span class="chip chip-ok">typechecks</span></td>
-            <td><code>swiftc -typecheck</code> clean against the real iOS 16.4 SDK</td>
+            <td>Swift ConverterCore + TurboModule bridge</td>
+            <td><span class="chip chip-ok">builds</span></td>
+            <td>iOS build succeeds; all three TurboModule classes and 555 ConverterCore symbols linked into the app</td>
+          </tr>
+          <tr>
+            <td><b>HEIC → JPEG, end to end on a device</b></td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>1600×1200 HEIC detected from magic bytes, converted in <b>0.1s</b>, saved to Photos — three taps from launch</td>
+          </tr>
+          <tr>
+            <td>Output correctness</td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>95,937-byte JPEG, sRGB, dimensions preserved, EXIF kept, <b>GPS removed</b>, written atomically to the managed directory</td>
+          </tr>
+          <tr>
+            <td>No permission prompt to pick photos</td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>PHPicker opens directly; Apple's own banner confirms the app sees only what is selected. Saving uses add-only authorisation.</td>
+          </tr>
+          <tr>
+            <td>Light and dark on device</td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>The amber takes over as the text accent on the dark ground, exactly as the token system intends</td>
           </tr>
           <tr>
             <td>Licence gate, telemetry gate, CI, Apache-2.0 attribution</td>
             <td><span class="chip chip-ok">done</span></td>
-            <td>581 production packages checked; <code>LICENSES.md</code> generated</td>
+            <td>581 production packages checked; 938 scanned for telemetry; <code>LICENSES.md</code> generated</td>
           </tr>
           <tr>
             <td>Android release ships with no INTERNET permission</td>
@@ -558,23 +578,27 @@
             <td>Config plugin verified against a real prebuild; asserted in CI</td>
           </tr>
           <tr>
-            <td><b>TurboModule registration — the ObjC++ bridge and podspec</b></td>
-            <td><span class="chip chip-gap">not done</span></td>
-            <td>The Swift is written but not yet reachable from JavaScript, so the end-to-end HEIC→JPEG conversion has not run on a device</td>
-          </tr>
-          <tr>
             <td><b>Kotlin mirror of ConverterCore</b></td>
-            <td><span class="chip chip-gap">not done</span></td>
-            <td>Blocked locally — no JDK on this machine</td>
+            <td><span class="chip chip-gap">not started</span></td>
+            <td>JDK 17 is now installed, so it is no longer blocked — but the Android engine and its TurboModule package are still to be written</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <p class="measure" style="margin-top:16px">
-      The two open items are the same piece of work seen twice: wiring native code to
-      JavaScript needs an iterate-against-the-compiler loop, and Android needs a JDK
-      before any of it can be compiled at all.
+      Two bugs surfaced only by running it, both now fixed: the status-bar Info.plist key
+      was set the way that makes React Native throw on launch, and the result screen
+      reported <code>Saved −86%</code> when the output legitimately grew. It now reads
+      <em>Larger by 86%</em> and explains that HEVC beats JPEG on smooth images — the
+      number is expected, not a defect.
+    </p>
+
+    <p class="measure">
+      Two environment constraints worth knowing: React Native's build scripts break on a
+      project path containing a space, so the checkout has to live somewhere without one;
+      and Expo SDK 57 uses Swift syntax that Xcode 26.1.1 does not implement, which a
+      self-disabling <code>postinstall</code> shim patches until Xcode catches up.
     </p>
   </section>
 
