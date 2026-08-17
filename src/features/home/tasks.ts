@@ -1,0 +1,114 @@
+// Copyright (c) 2026 Owais Khan
+// Licensed under the Apache License, Version 2.0
+
+import type { FormatId } from '@/engine/formats';
+
+/**
+ * The home screen's entry points.
+ *
+ * These are tasks, not formats. Each title is deliberately the phrase people type into
+ * the App Store and Play search — "HEIC to JPG" outranks any name we could invent — so
+ * the home screen and the store listing keyword set are the same list.
+ *
+ * `phase` records when each becomes real. Tiles beyond the current phase render in a
+ * disabled state rather than being hidden, so the information architecture is visible
+ * from the first build and the layout does not reflow as phases land.
+ */
+export type ConversionTask = {
+  id: string;
+  title: string;
+  subtitle: string;
+  from: string;
+  to: string;
+  sourceFormats: FormatId[];
+  targetFormat: FormatId;
+  phase: 1 | 2 | 3;
+};
+
+export const CONVERSION_TASKS: readonly ConversionTask[] = [
+  {
+    id: 'heic-to-jpg',
+    title: 'HEIC to JPG',
+    subtitle: 'iPhone photos anything can open',
+    from: 'HEIC',
+    to: 'JPG',
+    sourceFormats: ['heic', 'heif'],
+    targetFormat: 'jpeg',
+    phase: 1,
+  },
+  {
+    id: 'webp-to-jpg',
+    title: 'WebP to JPG',
+    subtitle: 'Saved images that will not open',
+    from: 'WEBP',
+    to: 'JPG',
+    sourceFormats: ['webp'],
+    targetFormat: 'jpeg',
+    phase: 2,
+  },
+  {
+    id: 'compress-image',
+    title: 'Compress Image',
+    subtitle: 'Hit a size limit without the guesswork',
+    from: 'ANY',
+    to: 'JPG',
+    sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
+    targetFormat: 'jpeg',
+    phase: 2,
+  },
+  {
+    id: 'resize-image',
+    title: 'Resize Image',
+    subtitle: 'Presets for social, email and print',
+    from: 'ANY',
+    to: 'ANY',
+    sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
+    targetFormat: 'jpeg',
+    phase: 2,
+  },
+  {
+    id: 'image-to-pdf',
+    title: 'Image to PDF',
+    subtitle: 'Many photos, one document',
+    from: 'IMG',
+    to: 'PDF',
+    sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
+    targetFormat: 'pdf',
+    phase: 3,
+  },
+  {
+    id: 'pdf-to-jpg',
+    title: 'PDF to JPG',
+    subtitle: 'Pages as images, at your chosen DPI',
+    from: 'PDF',
+    to: 'JPG',
+    sourceFormats: ['pdf'],
+    targetFormat: 'jpeg',
+    phase: 3,
+  },
+  {
+    id: 'merge-pdf',
+    title: 'Merge PDF',
+    subtitle: 'Combine and reorder in one pass',
+    from: 'PDF',
+    to: 'PDF',
+    sourceFormats: ['pdf'],
+    targetFormat: 'pdf',
+    phase: 3,
+  },
+  {
+    id: 'png-to-jpg',
+    title: 'PNG to JPG',
+    subtitle: 'Smaller files, with a background you pick',
+    from: 'PNG',
+    to: 'JPG',
+    sourceFormats: ['png'],
+    targetFormat: 'jpeg',
+    phase: 2,
+  },
+];
+
+/** The phase this build implements. Bumped as each phase lands. */
+export const CURRENT_PHASE = 1 as const;
+
+export const isTaskAvailable = (task: ConversionTask): boolean => task.phase <= CURRENT_PHASE;

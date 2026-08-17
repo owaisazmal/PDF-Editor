@@ -1,0 +1,1020 @@
+<title>On-Device Converter Blueprint</title>
+<style>
+  :root {
+    --ground: #FDFBD4;
+    --card: #FFFEF0;
+    --raised: #FFFFFF;
+    --sunken: #F6F2C6;
+    --line: #E4DCA8;
+    --line-strong: #C9BE86;
+    --ink: #241708;
+    --ink-2: #6F5027;
+    --ink-3: #8D5A2B;
+    --brand: #D47E30;
+    --brand-ink: #A85F1E;
+    --brand-deep: #8D5A2B;
+    --on-brand: #241708;
+    --ok: #40602A;
+    --ok-bg: #E8EDCB;
+    --gap: #8F3419;
+    --gap-bg: #F7E2D6;
+    --ask: #4E3E7C;
+    --ask-bg: #E6E1F2;
+    --shadow-1: 0 1px 2px rgba(36, 23, 8, .07), 0 2px 8px rgba(36, 23, 8, .05);
+    --shadow-2: 0 2px 4px rgba(36, 23, 8, .08), 0 12px 28px rgba(36, 23, 8, .09);
+    --sans: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --r-s: 8px;
+    --r-m: 12px;
+    --r-l: 16px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #17110A;
+      --card: #211A11;
+      --raised: #2C2317;
+      --sunken: #120D07;
+      --line: #3A2E1D;
+      --line-strong: #52412A;
+      --ink: #FDFBD4;
+      --ink-2: #D8CFA4;
+      --ink-3: #A99A6E;
+      --brand: #D47E30;
+      --brand-ink: #E39247;
+      --brand-deep: #C4762D;
+      --on-brand: #17110A;
+      --ok: #9CBE74;
+      --ok-bg: #263019;
+      --gap: #E5906E;
+      --gap-bg: #3B2016;
+      --ask: #B0A2E0;
+      --ask-bg: #262040;
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 8px rgba(0, 0, 0, .3);
+      --shadow-2: 0 2px 4px rgba(0, 0, 0, .45), 0 12px 28px rgba(0, 0, 0, .4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #17110A;
+    --card: #211A11;
+    --raised: #2C2317;
+    --sunken: #120D07;
+    --line: #3A2E1D;
+    --line-strong: #52412A;
+    --ink: #FDFBD4;
+    --ink-2: #D8CFA4;
+    --ink-3: #A99A6E;
+    --brand: #D47E30;
+    --brand-ink: #E39247;
+    --brand-deep: #C4762D;
+    --on-brand: #17110A;
+    --ok: #9CBE74;
+    --ok-bg: #263019;
+    --gap: #E5906E;
+    --gap-bg: #3B2016;
+    --ask: #B0A2E0;
+    --ask-bg: #262040;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 8px rgba(0, 0, 0, .3);
+    --shadow-2: 0 2px 4px rgba(0, 0, 0, .45), 0 12px 28px rgba(0, 0, 0, .4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 24px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .measure { max-width: 68ch; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 64px 0 40px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--brand-ink);
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(34px, 6vw, 52px);
+    line-height: 1.04;
+    letter-spacing: -.03em;
+    font-weight: 800;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 0;
+    max-width: 60ch;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  .meta-row b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- sections ---------- */
+
+  section { padding-top: 56px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  h2 {
+    font-size: 26px;
+    letter-spacing: -.02em;
+    font-weight: 750;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .sec-note {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: .02em;
+  }
+  .lede { color: var(--ink-2); margin: 0 0 24px; }
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 28px 0 6px;
+  }
+  p { margin: 0 0 14px; }
+  a { color: var(--brand-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, .card:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 3px; }
+  code {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--sunken);
+    padding: 1px 5px;
+    border-radius: 5px;
+    color: var(--ink-2);
+  }
+  strong { font-weight: 680; }
+
+  /* ---------- chips ---------- */
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .chip-ok   { background: var(--ok-bg);  color: var(--ok); }
+  .chip-gap  { background: var(--gap-bg); color: var(--gap); }
+  .chip-ask  { background: var(--ask-bg); color: var(--ask); }
+
+  /* ---------- flag cards ---------- */
+
+  .flags { display: grid; gap: 16px; }
+  .flag {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--gap);
+    border-radius: var(--r-m);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-1);
+  }
+  .flag.is-ask { border-left-color: var(--ask); }
+  .flag h3 { margin: 10px 0 8px; font-size: 19px; }
+  .flag p:last-child { margin-bottom: 0; }
+  .flag .fix {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line-strong);
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .flag .fix b { color: var(--ink); font-weight: 680; }
+
+  /* ---------- tables ---------- */
+
+  .scroller { overflow-x: auto; margin: 20px 0 4px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    font-size: 14.5px;
+  }
+  caption {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-bottom: 8px;
+  }
+  th {
+    text-align: left;
+    font-size: 11.5px;
+    font-family: var(--mono);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    padding: 0 14px 8px 0;
+    border-bottom: 1.5px solid var(--line-strong);
+    vertical-align: bottom;
+  }
+  td {
+    padding: 11px 14px 11px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .pkg { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+  .lic { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+
+  /* ---------- architecture diagram ---------- */
+
+  .stack { display: grid; gap: 10px; margin: 24px 0 8px; }
+  .layer {
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-m);
+    padding: 16px 18px;
+    background: var(--card);
+  }
+  .layer-js { background: var(--card); }
+  .layer-core {
+    background: var(--raised);
+    border-color: var(--brand);
+    border-width: 2px;
+    box-shadow: var(--shadow-2);
+  }
+  .layer-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 10px;
+  }
+  .layer-core .layer-label { color: var(--brand-ink); }
+  .boxes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .box {
+    background: var(--sunken);
+    border: 1px solid var(--line);
+    border-radius: var(--r-s);
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .box b { color: var(--ink); font-weight: 600; }
+  .box-hero {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: var(--on-brand);
+  }
+  .box-hero b { color: var(--on-brand); }
+  .boundary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .05em;
+    color: var(--ink-3);
+    padding: 2px 4px;
+  }
+  .boundary::before, .boundary::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: repeating-linear-gradient(to right, var(--line-strong) 0 6px, transparent 6px 12px);
+  }
+  .clients { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+
+  /* ---------- theme specimen (fixed, non-reactive by design) ---------- */
+
+  .specimens { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 24px; }
+  .spec {
+    border-radius: var(--r-l);
+    padding: 22px;
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-2);
+  }
+  .spec-light { background: #FDFBD4; color: #241708; }
+  .spec-dark  { background: #17110A; color: #FDFBD4; }
+  .spec-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  .spec-light .spec-title { color: #A85F1E; }
+  .spec-dark  .spec-title { color: #D47E30; }
+  .spec-sub { font-size: 13px; margin: 0 0 18px; }
+  .spec-light .spec-sub { color: #6F5027; }
+  .spec-dark  .spec-sub { color: #A99A6E; }
+
+  .swatches { display: grid; gap: 6px; }
+  .sw {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-radius: var(--r-s);
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .sw .role { font-weight: 600; letter-spacing: .02em; }
+  .sw .ratio { opacity: .85; }
+
+  /* fixed mini-UI preview inside each specimen */
+  .mini {
+    margin-top: 18px;
+    border-radius: var(--r-m);
+    padding: 16px;
+  }
+  .spec-light .mini { background: #FFFEF0; border: 1px solid #E4DCA8; }
+  .spec-dark  .mini { background: #211A11; border: 1px solid #3A2E1D; }
+  .mini-h { font-size: 16px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 2px; }
+  .mini-p { font-size: 12.5px; margin: 0 0 14px; }
+  .spec-light .mini-p { color: #6F5027; }
+  .spec-dark  .mini-p { color: #A99A6E; }
+  .mini-stat {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    padding: 5px 0;
+  }
+  .spec-light .mini-stat { border-bottom: 1px solid #E4DCA8; }
+  .spec-dark  .mini-stat { border-bottom: 1px solid #3A2E1D; }
+  .mini-stat:last-of-type { border-bottom: none; }
+  .spec-light .mini-stat .k { color: #6F5027; }
+  .spec-dark  .mini-stat .k { color: #A99A6E; }
+  .saved { font-weight: 700; }
+  .spec-light .saved { color: #A85F1E; }
+  .spec-dark  .saved { color: #D47E30; }
+  .mini-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 14px;
+    padding: 11px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+  .spec-light .mini-btn { background: #8D5A2B; color: #FFFFFF; }
+  .spec-dark  .mini-btn { background: #D47E30; color: #17110A; }
+
+  .role-note {
+    margin-top: 22px;
+    padding: 16px 18px;
+    background: var(--sunken);
+    border-radius: var(--r-m);
+    border: 1px solid var(--line);
+    font-size: 14.5px;
+    color: var(--ink-2);
+  }
+  .role-note b { color: var(--ink); }
+
+  /* ---------- phases ---------- */
+
+  .phases { display: grid; gap: 2px; margin-top: 20px; }
+  .phase {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: start;
+  }
+  .phase:last-child { border-bottom: none; }
+  .phase-n {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brand-ink);
+    padding-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .phase-t { font-weight: 680; margin: 0 0 3px; }
+  .phase-d { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  /* ---------- decisions ---------- */
+
+  .decisions { display: grid; gap: 14px; margin-top: 22px; }
+  .dec {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-m);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-1);
+  }
+  .dec-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .dec-id {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ask);
+    background: var(--ask-bg);
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+  .dec-q { font-weight: 680; margin: 0; }
+  .dec-r { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+  .dec-r b { color: var(--ink); font-weight: 680; }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 0 18px 72px; }
+    .masthead { padding-top: 44px; }
+    .phase { grid-template-columns: 34px 1fr; gap: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Architecture · decisions resolved · Phase 1 underway</p>
+    <h1>On-Device Converter Blueprint</h1>
+    <p class="standfirst">
+      A private, offline image and document converter with no backend, no account and no
+      paywall. This is the proposed architecture, the full dependency tree with licences, and
+      three things that need your decision before any code is written.
+    </p>
+    <div class="meta-row">
+      <span><b>Owais Khan</b></span>
+      <span>Apache-2.0</span>
+      <span>React Native 0.76+ · New Architecture</span>
+      <span>iOS 16+ · Android 8+</span>
+      <span><b>zero</b> network calls · <b>zero</b> tracking SDKs</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <h2>Decide these first</h2>
+      <span class="sec-note">three conflicts in the brief</span>
+    </div>
+    <p class="lede measure">
+      Each of these is a place where two of your requirements cannot both be true. I have not
+      picked a winner silently.
+    </p>
+
+    <div class="flags">
+
+      <div class="flag is-ask">
+        <span class="chip chip-ask">Blocks UI work</span>
+        <h3>The attachment is a palette, not screenshots</h3>
+        <p class="measure">
+          Four swatches and the name Manrope give me colour and typeface. They do not give me the
+          type scale, corner radii, spacing rhythm, elevation treatment, button and card anatomy,
+          icon weight, or density — the things your brief names the screenshots as the source of
+          truth for.
+        </p>
+        <p class="fix">
+          <b>What I did:</b> derived a complete token set from the palette, marked every
+          assumption, and wrote no UI code. Send the real screens and I will reconcile before
+          Phase 1 UI work begins.
+        </p>
+      </div>
+
+      <div class="flag">
+        <span class="chip chip-gap">Accessibility conflict</span>
+        <h3>The palette's orange fails AA as a text colour</h3>
+        <p class="measure">
+          <code>#D47E30</code> on the cream ground measures <strong>2.92:1</strong>. It fails AA
+          for body text (4.5:1) and fails even the 3:1 threshold for large text and UI
+          components. White text on the orange is 3.08:1 — also a fail. The two browns are fine:
+          5.49:1 and 5.54:1.
+        </p>
+        <p class="fix">
+          <b>Proposed adjustment, not a substitution:</b> keep <code>#D47E30</code> for what it is
+          good at — large fills, progress bars, selected-card backgrounds, illustration — paired
+          with <code>#241708</code> ink at 5.68:1. For orange <em>text</em>, add
+          <code>#A85F1E</code>, a darkened member of the same hue family, at 4.61:1. The
+          palette's character is unchanged; text gains a legal place to live.
+        </p>
+      </div>
+
+      <div class="flag">
+        <span class="chip chip-gap">Store compliance conflict</span>
+        <h3>"No data collected" is incompatible with the ad slot</h3>
+        <p class="measure">
+          §4 requires both privacy labels to read <em>No data collected</em>, and requires the
+          claim to be true. §2.7 requires an AdMob banner. The Google Mobile Ads SDK reads the
+          advertising identifier, device model, OS, locale and IP on every request — Play requires
+          disclosing <em>Device or other IDs</em>, Apple requires <em>Identifiers</em> and
+          <em>Usage Data</em> flagged as used for tracking, which triggers the ATT prompt.
+          Sentry adds <em>Diagnostics</em> and <em>Crash logs</em>.
+        </p>
+        <p class="fix">
+          <b>Resolved — zero third-party SDKs.</b> No ad network, no crash SDK. Crash reports still
+          arrive, free and without a line of code, through Xcode Organizer and Play Console Android
+          Vitals: the user opts in once at the OS level and the data goes to Apple and Google, not
+          to us, so it never touches our privacy label. Since an app whose whole workload is native
+          image and PDF decoding crashes as native signals, that is the telemetry that matters —
+          a JS-level SDK would see less of it. The IAP becomes a straight <b>Support
+          Development</b> non-consumable at $2.99. A CI job greps the dependency tree for known
+          ads, analytics and telemetry packages and fails the build if one appears, transitively
+          included, so this cannot regress by accident.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>One idea drives the whole design</h2>
+      <span class="sec-note">the batch queue lives in native code</span>
+    </div>
+    <p class="lede measure">
+      JavaScript submits one declarative job and then only observes. It never loops over files,
+      never holds a buffer, never schedules work. That single decision is what makes four
+      separate requirements achievable at the same time.
+    </p>
+
+    <div class="scroller">
+      <table>
+        <caption>Why the queue cannot live in JavaScript</caption>
+        <thead>
+          <tr><th>Requirement</th><th>What breaks if JS drives it</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Keep converting when backgrounded</td>
+            <td>iOS suspends the JS runtime. A JS loop stops mid-batch. A native queue under
+              <code>beginBackgroundTask</code> or an Android foreground service does not.</td>
+          </tr>
+          <tr>
+            <td>Share extension converts without launching the app</td>
+            <td>An iOS share extension has roughly a 120&nbsp;MB ceiling. Booting a React Native
+              runtime inside it is slow and risks being killed. A plain Swift class in a shared
+              framework runs zero JavaScript.</td>
+          </tr>
+          <tr>
+            <td>Cancel actually cancels</td>
+            <td>Only the owner of the operation objects can abort work already in flight. From JS,
+              "cancel" just stops enqueuing.</td>
+          </tr>
+          <tr>
+            <td>Peak memory under 400&nbsp;MB across 300 images</td>
+            <td>Per-file autorelease scoping and concurrency throttled by RAM class have to happen
+              where the allocations happen.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stack">
+      <div class="layer layer-js">
+        <div class="layer-label">JavaScript — orchestration only</div>
+        <div class="boxes">
+          <span class="box"><b>features/</b></span>
+          <span class="box"><b>store/</b> zustand</span>
+          <span class="box"><b>engine/</b> capabilities</span>
+          <span class="box"><b>engine/</b> planner</span>
+          <span class="box"><b>engine/</b> jobClient</span>
+        </div>
+      </div>
+
+      <div class="boundary">TurboModule boundary · JSON in, coalesced events out · no pixels cross this line</div>
+
+      <div class="layer layer-core">
+        <div class="layer-label">ConverterCore — Swift framework · Kotlin library</div>
+        <div class="boxes">
+          <span class="box box-hero"><b>JobQueue</b> — bounded concurrency, cancel, background lifetime</span>
+          <span class="box"><b>FormatDetector</b> magic bytes</span>
+          <span class="box"><b>RasterCodec</b></span>
+          <span class="box"><b>PdfEngine</b></span>
+          <span class="box"><b>FileGateway</b> atomic writes, SAF, iCloud</span>
+        </div>
+      </div>
+
+      <div class="boundary">same framework · no JavaScript runtime</div>
+
+      <div class="clients">
+        <div class="layer">
+          <div class="layer-label">iOS Share Extension</div>
+          <div class="boxes"><span class="box">pure Swift + SwiftUI</span></div>
+        </div>
+        <div class="layer">
+          <div class="layer-label">Android SEND target</div>
+          <div class="boxes"><span class="box">pure Kotlin + Compose</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="measure" style="margin-top:18px">
+      <code>ConverterCore</code> is a product with its own test suite, not glue behind a bridge.
+      The app, the iOS share extension and the Android share target are three peer clients of it.
+      Progress events are coalesced natively to about 10&nbsp;Hz before crossing the bridge —
+      emitting per-file events at full speed for 500 files floods the JS thread and is the usual
+      cause of stuttering progress bars in this category.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Design tokens, both themes</h2>
+      <span class="sec-note">every ratio below is measured, not estimated</span>
+    </div>
+    <p class="lede measure">
+      You asked to see the derived dark theme before I proceed. The specimens below are fixed —
+      they show each theme as it will render, regardless of how you are reading this page.
+    </p>
+
+    <div class="specimens">
+
+      <div class="spec spec-light">
+        <p class="spec-title">Light — from your palette</p>
+        <p class="spec-sub">Ground #FDFBD4. Brown carries text; orange is decorative.</p>
+        <div class="swatches">
+          <div class="sw" style="background:#241708;color:#FDFBD4">
+            <span class="role">text.primary #241708</span><span class="ratio">16.6:1</span>
+          </div>
+          <div class="sw" style="background:#6F5027;color:#FDFBD4">
+            <span class="role">text.secondary #6F5027</span><span class="ratio">6.99:1</span>
+          </div>
+          <div class="sw" style="background:#8D5A2B;color:#FFFFFF">
+            <span class="role">brand.deep #8D5A2B</span><span class="ratio">5.49:1</span>
+          </div>
+          <div class="sw" style="background:#825E34;color:#FFFFFF">
+            <span class="role">brand.warm #825E34</span><span class="ratio">5.54:1</span>
+          </div>
+          <div class="sw" style="background:#A85F1E;color:#FDFBD4">
+            <span class="role">brand.ink #A85F1E &nbsp;NEW</span><span class="ratio">4.61:1</span>
+          </div>
+          <div class="sw" style="background:#D47E30;color:#241708">
+            <span class="role">brand.fill #D47E30</span><span class="ratio">2.92:1 fill only</span>
+          </div>
+        </div>
+
+        <div class="mini">
+          <p class="mini-h">Converted 12 photos</p>
+          <p class="mini-p">HEIC → JPEG · quality 82 · GPS stripped</p>
+          <div class="mini-stat"><span class="k">Before</span><span>48.2 MB</span></div>
+          <div class="mini-stat"><span class="k">After</span><span>9.6 MB</span></div>
+          <div class="mini-stat"><span class="k">Saved</span><span class="saved">80.1%</span></div>
+          <div class="mini-btn">Save to Photos</div>
+        </div>
+      </div>
+
+      <div class="spec spec-dark">
+        <p class="spec-title">Dark — derived</p>
+        <p class="spec-sub">Ground #17110A. Orange carries text; brown steps back to surfaces.</p>
+        <div class="swatches">
+          <div class="sw" style="background:#FDFBD4;color:#17110A">
+            <span class="role">text.primary #FDFBD4</span><span class="ratio">17.78:1</span>
+          </div>
+          <div class="sw" style="background:#D8CFA4;color:#17110A">
+            <span class="role">text.secondary #D8CFA4</span><span class="ratio">11.94:1</span>
+          </div>
+          <div class="sw" style="background:#A99A6E;color:#17110A">
+            <span class="role">text.tertiary #A99A6E</span><span class="ratio">6.72:1</span>
+          </div>
+          <div class="sw" style="background:#D47E30;color:#17110A">
+            <span class="role">brand.ink #D47E30</span><span class="ratio">6.09:1</span>
+          </div>
+          <div class="sw" style="background:#8D5A2B;color:#FDFBD4">
+            <span class="role">brand.deep #8D5A2B</span><span class="ratio">surface</span>
+          </div>
+          <div class="sw" style="background:#3A2E1D;color:#A99A6E">
+            <span class="role">border.subtle #3A2E1D</span><span class="ratio">hairline</span>
+          </div>
+        </div>
+
+        <div class="mini">
+          <p class="mini-h">Converted 12 photos</p>
+          <p class="mini-p">HEIC → JPEG · quality 82 · GPS stripped</p>
+          <div class="mini-stat"><span class="k">Before</span><span>48.2 MB</span></div>
+          <div class="mini-stat"><span class="k">After</span><span>9.6 MB</span></div>
+          <div class="mini-stat"><span class="k">Saved</span><span class="saved">80.1%</span></div>
+          <div class="mini-btn">Save to Photos</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="role-note">
+      <b>The finding worth your attention:</b> the orange changes job between themes. On cream it
+      cannot pass contrast, so it stays decorative. On the dark warm ground it reaches 6.09:1 and
+      becomes the primary text accent, while the brown that carried text in light mode steps back
+      to borders and surfaces. That preserves the <em>relationships</em> in your palette rather
+      than naively inverting its values.
+      <br /><br />
+      Every ratio on this page is machine-measured from the token source by
+      <code>npm run tokens:gen</code> and enforced by a test, so it cannot drift from what ships.
+      The always-current table is <code>docs/CONTRAST.md</code>.
+    </div>
+
+    <h3>Type</h3>
+    <p class="measure">
+      Manrope for everything, per your brief. Your palette image sets its hex codes in a
+      monospace face — I read that as intentional and propose carrying it into the product:
+      <strong>all numeric and technical readouts</strong> — file sizes, pixel dimensions,
+      compression percentages, format signatures — use the platform mono with tabular figures,
+      as in the specimens above. It costs zero bytes (SF Mono and Roboto Mono are already on
+      device) and it makes the before/after comparison on the result screen line up in columns
+      instead of jittering. That screen is your stated shareable moment.
+    </p>
+    <p class="measure">
+      One licensing note: Manrope ships under <strong>SIL OFL-1.1</strong>, which is not on your
+      permitted list as written. OFL is permissive and standard for bundled fonts, but the CI
+      gate will fail on it unless the allowlist is extended deliberately — decision <b>D5</b>.
+    </p>
+
+    <h3>One source of truth, three languages</h3>
+    <p class="measure">
+      <code>src/theme/tokens.ts</code> is authored by hand; a prebuild step generates
+      <code>Tokens.swift</code> and <code>Tokens.kt</code> from it, so the share extension and the
+      Android share target render in the same system without a second copy of the palette. CI
+      fails on drift, and a Jest test asserts every foreground/background pair in the system
+      clears AA — which is how the contrast fix above stays fixed instead of regressing.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>What the operating systems cannot do</h2>
+      <span class="sec-note">named, not silently dropped</span>
+    </div>
+    <p class="lede measure">
+      Everything in your conversion matrix that is not listed here is natively supported on both
+      platforms. These are the gaps, with a proposal for each.
+    </p>
+
+    <div class="scroller">
+      <table>
+        <caption>Capability gaps and proposals</caption>
+        <thead>
+          <tr><th>Capability</th><th>iOS</th><th>Android</th><th>Proposal</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Animated WebP encode</td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td>Vendor <span class="pkg">libwebp</span> <span class="lic">BSD-3</span>. Required for GIF ⇄ animated WebP.</td>
+          </tr>
+          <tr>
+            <td>CMYK JPEG decode</td>
+            <td><span class="chip chip-ok">ImageIO</span></td>
+            <td><span class="chip chip-gap">inverts</span></td>
+            <td>Vendor <span class="pkg">libjpeg-turbo</span> <span class="lic">BSD-3</span> for the Android path only.</td>
+          </tr>
+          <tr>
+            <td>AVIF encode</td>
+            <td><span class="chip chip-ok">iOS 16+</span></td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td>Vendor <span class="pkg">libavif + libaom</span> <span class="lic">BSD-2</span>, or defer — near-zero search volume today.</td>
+          </tr>
+          <tr>
+            <td>Animated GIF encode</td>
+            <td><span class="chip chip-ok">ImageIO</span></td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td>~400 lines of LZW writer in Kotlin. No new dependency.</td>
+          </tr>
+          <tr>
+            <td>TIFF · BMP · ICO encode</td>
+            <td><span class="chip chip-ok">ImageIO</span></td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td>In-house writers. ICO is a container around PNG payloads; both are small.</td>
+          </tr>
+          <tr>
+            <td>Encrypted PDF unlock</td>
+            <td><span class="chip chip-ok">PDFKit</span></td>
+            <td><span class="chip chip-gap">no API</span></td>
+            <td>Implement the ISO 32000-2 standard security handler over <code>javax.crypto</code>. About a week with tests.</td>
+          </tr>
+          <tr>
+            <td>SVG rasterise</td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td><span class="pkg">androidsvg</span> <span class="lic">Apache-2.0</span> on Android; react-native-svg + view-shot on iOS.</td>
+          </tr>
+          <tr>
+            <td>Camera RAW — CR2, NEF, ARW</td>
+            <td><span class="chip chip-ok">ImageIO</span></td>
+            <td><span class="chip chip-gap">DNG only</span></td>
+            <td><strong>Permanent gap.</strong> Every permissive path is closed: LibRaw is LGPL/CDDL, dcraw is GPL. Ship DNG-where-available and say so in the listing.</td>
+          </tr>
+          <tr>
+            <td>PDF compress keeping text selectable</td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td><span class="chip chip-gap">none</span></td>
+            <td>Rasterise-and-recompress works but flattens text. I will warn before applying rather than surprise the user.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Dependencies and licences</h2>
+      <span class="sec-note">nothing installed yet</span>
+    </div>
+    <p class="lede measure">
+      The full tree is in <code>docs/DEPENDENCIES.md</code>. Below are the entries that carry a
+      judgement rather than being obviously fine.
+    </p>
+
+    <div class="scroller">
+      <table>
+        <caption>Entries needing a decision or carrying a caveat</caption>
+        <thead>
+          <tr><th>Package</th><th>Licence</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="pkg">Manrope</td>
+            <td class="lic">SIL OFL-1.1</td>
+            <td><span class="chip chip-ask">D5</span> Not on your permitted list. Permissive and standard for fonts, but the CI gate fails on it unless allowed deliberately.</td>
+          </tr>
+          <tr>
+            <td class="pkg">react-native-google-mobile-ads</td>
+            <td class="lic">Apache-2.0</td>
+            <td><span class="chip chip-ask">D2</span> The wrapper is Apache-2.0; the underlying <strong>Google Mobile Ads SDK is proprietary</strong>, not open source — and it collects device identifiers.</td>
+          </tr>
+          <tr>
+            <td class="pkg">@sentry/react-native</td>
+            <td class="lic">MIT</td>
+            <td><span class="chip chip-ask">D2</span> Transmits diagnostics. Recommend opt-in, default-off, to keep the privacy label clean.</td>
+          </tr>
+          <tr>
+            <td class="pkg">react-native-mmkv</td>
+            <td class="lic">MIT</td>
+            <td>Wraps Tencent MMKV, <span class="lic">BSD-3-Clause</span>. Both permitted; both go in NOTICE.</td>
+          </tr>
+          <tr>
+            <td class="pkg">libaom</td>
+            <td class="lic">BSD-2 + AOM Patent 1.0</td>
+            <td>Permitted. Only needed if you take AVIF encode on Android.</td>
+          </tr>
+          <tr>
+            <td class="pkg">expo-image-picker</td>
+            <td class="lic">MIT</td>
+            <td><span class="chip chip-gap">rejected</span> Licence is fine; <strong>correctness is not</strong>. On iOS it can hand back a transcoded JPEG instead of the original HEIC, which silently breaks the app's headline conversion. Replaced with a custom PHPicker module.</td>
+          </tr>
+          <tr>
+            <td class="pkg">FFmpeg · MuPDF · Poppler · Ghostscript · LibRaw</td>
+            <td class="lic">LGPL / AGPL / GPL</td>
+            <td><span class="chip chip-gap">excluded</span> As your brief requires. Nothing in the feature list needs the first four.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Enforcement</h3>
+    <p class="measure">
+      <code>license-checker-rseidelsohn</code> runs against an explicit allowlist as a required CI
+      job. Vendored native libraries are invisible to it, so a second script hashes each vendored
+      <code>LICENSE</code> file and fails on drift. <code>LICENSES.md</code> and the in-app Open
+      Source Licenses screen are generated from the same manifest, so they cannot disagree.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Delivery</h2>
+      <span class="sec-note">review gate at the end of each phase</span>
+    </div>
+
+    <div class="phases">
+      <div class="phase">
+        <div class="phase-n">01</div>
+        <div>
+          <p class="phase-t">Scaffold, native skeletons, one working path</p>
+          <p class="phase-d">Expo prebuild, New Architecture, TS strict. ConverterCore and the Android library wired to CI. All five TurboModule specs written; format detection complete for every format in the matrix. Tokens plus the Swift/Kotlin generator and the contrast test. One screen: pick a HEIC, convert, save to Photos, with EXIF orientation correct from day one. LICENSE, NOTICE, LICENSES.md and the licence gate.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">02</div>
+        <div>
+          <p class="phase-t">Full raster matrix, transforms, batch queue</p>
+          <p class="phase-d">Every raster pair, quality and target-size modes, resize presets, metadata policy, colour-profile conversion, background fill. The native queue with progress, cancel, continue-on-error and background continuation.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">03</div>
+        <div>
+          <p class="phase-t">PDF both directions, plus utilities</p>
+          <p class="phase-d">Image → PDF with page geometry and N-up, PDF → image with ranges and DPI, merge, split, reorder, rotate, compress, and the Android decryption work.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">04</div>
+        <div>
+          <p class="phase-t">Share extension, Open With, drag and drop</p>
+          <p class="phase-d">The highest-value retention surface. Pure native on both platforms, linking the same core.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">05</div>
+        <div>
+          <p class="phase-t">History, presets, batch rename, 9 locales, accessibility</p>
+          <p class="phase-d">Including RTL layout for Arabic, and a full VoiceOver and TalkBack pass against the acceptance criteria.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">06</div>
+        <div>
+          <p class="phase-t">Monetisation, store compliance, CI, listings, release</p>
+          <p class="phase-d">IAP with restore, privacy filings, Fastlane lanes, listing copy and screenshot specs. The Play closed-testing track opens with the first upload — 12 testers for 14 continuous days is a wall-clock cost independent of engineering.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Decisions, as resolved</h2>
+      <span class="sec-note">all five settled</span>
+    </div>
+
+    <div class="decisions">
+      <div class="dec">
+        <div class="dec-top"><span class="dec-id">D1</span><p class="dec-q">Screenshots, or a system derived from the palette?</p></div>
+        <p class="dec-r"><b>Design to suit the palette.</b> The token set above is now the source of truth. Send screenshots any time and I will reconcile against them.</p>
+      </div>
+      <div class="dec">
+        <div class="dec-top"><span class="dec-id">D2</span><p class="dec-q">Ads and crash SDK, or a truthful "No data collected" filing?</p></div>
+        <p class="dec-r"><b>Zero third-party SDKs.</b> No ads, no Sentry. Platform-native crash reporting instead — free, no code, nothing on the privacy label. IAP becomes "Support Development", $2.99, restorable.</p>
+      </div>
+      <div class="dec">
+        <div class="dec-top"><span class="dec-id">D3</span><p class="dec-q">Which native codecs to vendor?</p></div>
+        <p class="dec-r"><b>All of them.</b> libwebp, libjpeg-turbo, libavif + libaom, androidsvg. Every one is permissive and zero-cost; AAB per-ABI splits keep each install to roughly 6&nbsp;MB of codecs. The full conversion matrix ships.</p>
+      </div>
+      <div class="dec">
+        <div class="dec-top"><span class="dec-id">D4</span><p class="dec-q">Add <code>#A85F1E</code> as the text-safe orange?</p></div>
+        <p class="dec-r"><b>Approved.</b> In the palette as <code>palette.amberInk</code>, with a test that fails if a future palette change ever makes it redundant or makes it stop passing.</p>
+      </div>
+      <div class="dec">
+        <div class="dec-top"><span class="dec-id">D5</span><p class="dec-q">Allow SIL OFL-1.1 in the licence gate?</p></div>
+        <p class="dec-r"><b>Approved.</b> Allowlisted for font assets so Manrope ships, with attribution in <code>NOTICE</code> and the in-app licences screen.</p>
+      </div>
+    </div>
+
+    <p class="measure" style="margin-top:26px">
+      One environment blocker remains: <strong>no JDK is installed on this machine</strong>, so
+      Android sources can be written and reviewed but not compiled locally until JDK 17 or 21 is
+      available. Xcode 26.1.1 and Node 24.9.0 are fine, and iOS is unaffected.
+    </p>
+  </section>
+
+  <footer>
+    Copyright (c) 2026 Owais Khan · Licensed under the Apache License, Version 2.0
+  </footer>
+
+</div>

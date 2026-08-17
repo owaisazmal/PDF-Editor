@@ -1,0 +1,181 @@
+# Copyright (c) 2026 Owais Khan
+# Licensed under the Apache License, Version 2.0
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  # Fast feedback: everything that needs no platform toolchain.
+  checks:
+    name: Types, lint, tests, generated files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        # Also enforces that no colour literal appears outside src/theme/tokens.ts.
+        run: npm run lint
+
+      - name: Generated token files are current
+        # tokens.ts is the single source of truth for the app, the iOS share extension
+        # and the Android share target. A stale generated file means the three have
+        # drifted apart.
+        run: npm run tokens:check
+
+      - name: Generated format tables are current
+        run: npm run formats:check
+
+      - name: Unit and integration tests
+        run: npm run test:ci
+
+  # The two claims the store listings make, enforced rather than asserted.
+  compliance:
+    name: Licence and privacy gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: No copyleft or non-commercial dependency
+        run: npm run license:check
+
+      - name: No advertising, analytics or telemetry SDK
+        # The App Store nutrition label and Play Data Safety form both declare
+        # "No data collected". This is what keeps that filing true.
+        run: npm run telemetry:check
+
+      - name: LICENSES.md is current
+        run: |
+          npm run license:report
+          if ! git diff --quiet -- LICENSES.md; then
+            echo "::error::LICENSES.md is out of date. Run: npm run license:report"
+            git diff -- LICENSES.md
+            exit 1
+          fi
+
+  ios:
+    name: iOS build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - run: npm ci
+
+      - name: Typecheck ConverterCore against the iOS SDK
+        # Runs before prebuild so a Swift error surfaces in seconds rather than after
+        # a full pod install.
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          swiftc -typecheck -sdk "$SDK" -target arm64-apple-ios16.4 \
+            native/ios/generated/*.swift native/ios/ConverterCore/*.swift
+
+      - name: Prebuild
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Verify the privacy manifest declares no collection
+        # A dependency adding a collected-data type would otherwise be found at review.
+        run: |
+          python3 - <<'PY'
+          import plistlib, sys
+          manifest = plistlib.load(open('ios/Converter/PrivacyInfo.xcprivacy', 'rb'))
+          problems = []
+          if manifest.get('NSPrivacyTracking') is not False:
+              problems.append('NSPrivacyTracking must be false')
+          if manifest.get('NSPrivacyCollectedDataTypes'):
+              problems.append(f"NSPrivacyCollectedDataTypes must be empty, found {manifest['NSPrivacyCollectedDataTypes']}")
+          if manifest.get('NSPrivacyTrackingDomains'):
+              problems.append('NSPrivacyTrackingDomains must be empty')
+          if problems:
+              print('\n'.join(f'::error::{p}' for p in problems))
+              sys.exit(1)
+          print('Privacy manifest declares no tracking and no collected data.')
+          PY
+
+      - name: Install pods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build
+        run: |
+          cd ios
+          xcodebuild build \
+            -workspace Converter.xcworkspace \
+            -scheme Converter \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty && exit ${PIPESTATUS[0]}
+
+  android:
+    name: Android build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - run: npm ci
+
+      - name: Prebuild
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Verify no INTERNET permission ships in release
+        # The strongest possible proof of the offline claim: without this permission
+        # Android cannot make a network request at all, whatever the code does.
+        run: |
+          if grep -q 'android.permission.INTERNET' android/app/src/release/AndroidManifest.xml 2>/dev/null; then
+            echo "::error::The release manifest must remove android.permission.INTERNET"
+            exit 1
+          fi
+
+      - name: Assemble
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon

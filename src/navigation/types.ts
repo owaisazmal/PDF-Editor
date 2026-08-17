@@ -1,0 +1,16 @@
+// Copyright (c) 2026 Owais Khan
+// Licensed under the Apache License, Version 2.0
+
+export type RootStackParamList = {
+  Home: undefined;
+  Convert: { taskId: string };
+};
+
+declare global {
+  namespace ReactNavigation {
+    // React Navigation's global type registration is declaration merging, so an
+    // interface with no members of its own is exactly the intended shape here.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface RootParamList extends RootStackParamList {}
+  }
+}
