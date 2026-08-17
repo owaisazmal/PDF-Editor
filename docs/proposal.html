@@ -502,8 +502,86 @@
 
   <section>
     <div class="sec-head">
+      <h2>Phase 1 status</h2>
+      <span class="sec-note">what is verified, and what is not</span>
+    </div>
+    <p class="lede measure">
+      Everything below is committed and <code>npm run verify</code> is green: typecheck,
+      lint, generated-file freshness, licence gate, telemetry gate and 96 tests.
+    </p>
+
+    <div class="scroller">
+      <table>
+        <caption>Phase 1 deliverables</caption>
+        <thead>
+          <tr><th>Item</th><th>State</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Expo SDK 57 · RN 0.86 · New Architecture · TS strict</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td><code>tsc --noEmit</code> clean with <code>exactOptionalPropertyTypes</code> and <code>noUncheckedIndexedAccess</code></td>
+          </tr>
+          <tr>
+            <td>Design tokens, both schemes, generated into Swift and Kotlin</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td>57 contrast assertions pass; CI fails on a stale generated file</td>
+          </tr>
+          <tr>
+            <td>Magic-byte format detection, full matrix</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td>39 tests including the TIFF/DNG/NEF/ARW split and a HEIC named <code>.png</code></td>
+          </tr>
+          <tr>
+            <td>Five TurboModule specs + typed wrappers + zod validation</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td>Codegen-compatible; <code>codegenConfig</code> declared</td>
+          </tr>
+          <tr>
+            <td>Phase 1 UI on the token system</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td>Task grid, convert flow, before/after result; no colour literal outside <code>tokens.ts</code></td>
+          </tr>
+          <tr>
+            <td>Swift ConverterCore — detector and codec</td>
+            <td><span class="chip chip-ok">typechecks</span></td>
+            <td><code>swiftc -typecheck</code> clean against the real iOS 16.4 SDK</td>
+          </tr>
+          <tr>
+            <td>Licence gate, telemetry gate, CI, Apache-2.0 attribution</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td>581 production packages checked; <code>LICENSES.md</code> generated</td>
+          </tr>
+          <tr>
+            <td>Android release ships with no INTERNET permission</td>
+            <td><span class="chip chip-ok">done</span></td>
+            <td>Config plugin verified against a real prebuild; asserted in CI</td>
+          </tr>
+          <tr>
+            <td><b>TurboModule registration — the ObjC++ bridge and podspec</b></td>
+            <td><span class="chip chip-gap">not done</span></td>
+            <td>The Swift is written but not yet reachable from JavaScript, so the end-to-end HEIC→JPEG conversion has not run on a device</td>
+          </tr>
+          <tr>
+            <td><b>Kotlin mirror of ConverterCore</b></td>
+            <td><span class="chip chip-gap">not done</span></td>
+            <td>Blocked locally — no JDK on this machine</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="measure" style="margin-top:16px">
+      The two open items are the same piece of work seen twice: wiring native code to
+      JavaScript needs an iterate-against-the-compiler loop, and Android needs a JDK
+      before any of it can be compiled at all.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
       <h2>Decide these first</h2>
-      <span class="sec-note">three conflicts in the brief</span>
+      <span class="sec-note">three conflicts in the brief · all resolved</span>
     </div>
     <p class="lede measure">
       Each of these is a place where two of your requirements cannot both be true. I have not
