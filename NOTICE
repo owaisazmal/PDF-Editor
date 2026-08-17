@@ -1,0 +1,91 @@
+Converter
+Copyright (c) 2026 Owais Khan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY NOTICES
+--------------------------------------------------------------------------------
+
+This product includes software developed by third parties. The complete,
+machine-generated inventory of every transitive dependency and its license is in
+LICENSES.md, and is also reachable in the app under Settings > Open Source
+Licenses. The entries below are those whose licenses require an explicit notice
+to be reproduced in distributions.
+
+Apache License 2.0
+------------------
+
+  React Native
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+
+  Expo
+  Copyright (c) 2015-present 650 Industries, Inc. (dba Expo)
+
+  TypeScript
+  Copyright (c) Microsoft Corporation.
+
+  AndroidSVG
+  Copyright (c) 2013-2020 Paul LeBeau, Cave Rock Software Ltd.
+
+  AndroidX libraries
+  Copyright (c) The Android Open Source Project
+
+BSD 3-Clause
+------------
+
+  MMKV
+  Copyright (c) 2018 THL A29 Limited, a Tencent company.
+
+  libwebp
+  Copyright (c) 2010, Google Inc. All rights reserved.
+
+BSD 2-Clause and Alliance for Open Media Patent License 1.0
+-----------------------------------------------------------
+
+  libavif
+  Copyright (c) 2019 Joe Drago. All rights reserved.
+
+  libaom / AOMedia AV1 Codec
+  Copyright (c) 2016, Alliance for Open Media. All rights reserved.
+
+Independent JPEG Group license, BSD 3-Clause and zlib
+-----------------------------------------------------
+
+  libjpeg-turbo
+  Copyright (c) 1991-2020, Thomas G. Lane, Guido Vollbeding.
+  Copyright (c) 1999-2006, MIYASAKA Masaru.
+  Copyright (c) 2009-2024, D. R. Commander.
+
+SIL Open Font License 1.1
+-------------------------
+
+  Manrope
+  Copyright (c) 2018 Mikhail Sharanda.
+
+  Manrope is licensed under the SIL Open Font License, Version 1.1. The font
+  software is bundled with this application as an asset. It is not sold on its
+  own, and this application is not named "Manrope" or any Reserved Font Name.
+  The full license text accompanies the font files.
+
+--------------------------------------------------------------------------------
+WHAT THIS PRODUCT DOES NOT INCLUDE
+--------------------------------------------------------------------------------
+
+No advertising, analytics, attribution, or telemetry SDK is present in this
+application, and none may be added: the build fails if one appears anywhere in
+the dependency tree, including transitively. See scripts/check-no-telemetry.mjs.
+
+No copyleft-licensed component is present. GPL, AGPL, LGPL, SSPL and
+non-commercial licenses are rejected by the license gate in CI. See
+scripts/check-licenses.mjs and docs/DEPENDENCIES.md.
