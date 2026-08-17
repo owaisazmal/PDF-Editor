@@ -40,6 +40,27 @@ That is a claim, so it is enforced rather than asserted:
 This app **cannot run in Expo Go** — it ships custom native code. Use a development
 build.
 
+### Two environment gotchas
+
+**The project path must not contain a space.** React Native's own build scripts call
+`find` with the project path unquoted, so a directory like `~/Desktop/PDF Editor` fails
+during `pod install` with `find: /Users/…/PDF: No such file or directory`. This is a
+React Native limitation, not something this project can work around. Move or rename the
+checkout so the path has no spaces:
+
+```bash
+mv ~/Desktop/Projects/"PDF Editor" ~/Desktop/Projects/converter
+```
+
+**Xcode 26.1.1 needs a compatibility shim, which is applied automatically.** Expo SDK 57
+uses Swift syntax (`weak let`, SE-0481) that the Swift 6.2.1 compiler in Xcode 26.1.1
+does not implement, and calls `abs` in a way that is ambiguous under its C++ interop
+mode. `scripts/patch-expo-toolchain.mjs` runs on `postinstall`, probes the toolchain,
+and rewrites those two constructs in `expo-modules-jsi` only when needed. On a newer
+Xcode it detects support and does nothing, so it removes itself without anyone having
+to remember. If you update Xcode and the shim stops reporting, that is the expected
+outcome.
+
 ## Getting started
 
 ```bash

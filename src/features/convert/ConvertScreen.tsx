@@ -81,6 +81,12 @@ export function ConvertScreen({ route, navigation }: Props) {
   const targetSpec = FORMATS[task.targetFormat];
   const willFlatten = needsBackgroundChoice(source.hasAlpha, task.targetFormat);
 
+  // Negative when the output grew, which happens legitimately — a smooth gradient or
+  // flat artwork encodes far smaller in HEVC than in JPEG. The row below reports that
+  // as "Larger by 86%" rather than the nonsense "Saved -86%".
+  const sizeDelta = result ? percentageSaved(source.byteSize, result.byteSize) : 0;
+  const grew = sizeDelta < 0;
+
   return (
     <Screen scroll>
       <Text variant="h1">{task.title}</Text>
@@ -131,13 +137,26 @@ export function ConvertScreen({ route, navigation }: Props) {
             <StatRow label="Before" value={formatBytes(source.byteSize)} />
             <StatRow label="After" value={formatBytes(result.byteSize)} />
             <StatRow
-              label="Saved"
-              value={`${percentageSaved(source.byteSize, result.byteSize)}%`}
+              label={grew ? 'Larger by' : 'Saved'}
+              value={`${Math.abs(sizeDelta)}%`}
               emphasis
-              accessibilityLabel={`${percentageSaved(source.byteSize, result.byteSize)} percent smaller`}
+              {...(grew ? { valueColor: 'warningInk' as const } : {})}
+              accessibilityLabel={`${Math.abs(sizeDelta)} percent ${grew ? 'larger' : 'smaller'}`}
             />
             <StatRow label="Took" value={formatDuration(result.elapsedMs)} />
           </View>
+
+          {grew ? (
+            // Honest rather than flattering. A converter that reports "0% saved" when
+            // the file grew looks broken; one that explains why is useful. HEVC beats
+            // JPEG badly on smooth gradients and flat artwork, so this is expected and
+            // the user has a real choice to make.
+            <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.md }}>
+              {sourceSpec?.label} compresses this image better than {targetSpec.label} can.
+              The conversion is still correct — lower the quality if size matters more
+              than fidelity, or keep the original.
+            </Text>
+          ) : null}
         </Card>
       ) : null}
 
