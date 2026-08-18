@@ -10,7 +10,12 @@ import { Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
 import { useConversionStore } from '@/store/conversion';
 import { useTheme } from '@/theme';
-import { CONVERSION_TASKS, isTaskAvailable, type ConversionTask } from './tasks';
+import {
+  CONVERSION_TASKS,
+  isTaskAvailable,
+  isTileInteractive,
+  type ConversionTask,
+} from './tasks';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -103,7 +108,7 @@ export function HomeScreen({ navigation }: Props) {
                 subtitle={available ? task.subtitle : 'Coming in a later build'}
                 from={task.from}
                 to={task.to}
-                enabled={available && busyTaskId !== task.id}
+                enabled={isTileInteractive(task, busyTaskId)}
                 onPress={() => void startTask(task)}
               />
             </View>

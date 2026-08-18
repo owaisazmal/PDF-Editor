@@ -112,3 +112,18 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
 export const CURRENT_PHASE = 1 as const;
 
 export const isTaskAvailable = (task: ConversionTask): boolean => task.phase <= CURRENT_PHASE;
+
+/**
+ * Whether a tile should respond to a tap.
+ *
+ * Extracted and named because getting it wrong took the whole app down once: the rule
+ * used to be "no tile is interactive while any pick is in flight", so a native picker
+ * whose promise never settled left every tile dead with no way back short of
+ * relaunching. The rule is now strictly per-tile — one outstanding pick dims exactly
+ * one tile.
+ *
+ * `busyTaskId` is the id of the tile whose pick is outstanding, or null.
+ */
+export function isTileInteractive(task: ConversionTask, busyTaskId: string | null): boolean {
+  return isTaskAvailable(task) && busyTaskId !== task.id;
+}
