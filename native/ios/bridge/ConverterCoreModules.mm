@@ -187,6 +187,23 @@ RCT_EXPORT_MODULE()
   [ConverterCoreBridge releaseJob:jobId];
 }
 
+// The only two methods here that do not forward into Swift, because on iOS there is
+// nothing to forward to. A batch keeps running under `beginBackgroundTask`, which asks
+// the user for nothing, so progress is always available and no dialog exists to show.
+// Android is where this costs a permission; the shared signature is what lets the
+// JavaScript above it stay free of platform checks.
+- (void)backgroundProgressStatus:(RCTPromiseResolveBlock)resolve
+                          reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@"granted");
+}
+
+- (void)requestBackgroundProgress:(RCTPromiseResolveBlock)resolve
+                           reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@"granted");
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)
     getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
 {

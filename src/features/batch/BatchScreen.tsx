@@ -160,6 +160,33 @@ export function BatchScreen({ route, navigation }: Props) {
         ) : null}
       </Card>
 
+      {batch.status === 'cancelled' ? (
+        // A batch stopped from the notification comes back to a screen that would
+        // otherwise look like a finished one that inexplicably did 40 of 48. Saying
+        // what happened, and that the finished files are still here, is the difference
+        // between a deliberate stop and an apparent malfunction.
+        <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.md }}>
+          Stopped. The {batch.results.length}{' '}
+          {batch.results.length === 1 ? 'file' : 'files'} already converted are below —
+          the rest were left alone.
+        </Text>
+      ) : null}
+
+      {running && batch.backgroundProgress === 'blocked' ? (
+        // Stated once, quietly, and only while it is true. Notifications being off
+        // changes nothing about whether the batch finishes — saying so is the whole
+        // point of the line, because an unexplained missing notification reads as an
+        // app that quietly stopped working.
+        <Text
+          variant="caption"
+          color="textTertiary"
+          style={{ marginTop: theme.space.sm }}
+        >
+          Notifications are off, so this won’t appear in your shade. It still finishes if
+          you leave the app.
+        </Text>
+      ) : null}
+
       {finished && batch.results.length > 0 ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">
           <Text variant="label" color="textTertiary">
