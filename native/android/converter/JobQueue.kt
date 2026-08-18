@@ -3,6 +3,7 @@
 
 package com.owaiskhan.converter.core
 
+import android.content.Context
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import java.util.concurrent.ConcurrentHashMap
@@ -42,12 +43,28 @@ public object JobQueue {
   @Volatile
   private var events: Events? = null
 
+  /**
+   * The application context, kept so a running batch can claim the foreground.
+   * Application-scoped, so it outlives every activity and leaks nothing.
+   */
+  @Volatile
+  private var appContext: Context? = null
+
   private val jobs = ConcurrentHashMap<String, Job>()
 
   /** Set once by the TurboModule. The share target leaves it null; nothing listens there. */
   @JvmStatic
   public fun setEvents(events: Events?) {
     this.events = events
+  }
+
+  /**
+   * Supplies the context the foreground service is started from. Called before the
+   * first submission; a batch runs without it, it just cannot outlive the foreground.
+   */
+  @JvmStatic
+  public fun attach(context: Context) {
+    appContext = context.applicationContext
   }
 
   // ------------------------------------------------------------------ submitting --
@@ -136,7 +153,38 @@ public object JobQueue {
 
     fun start() {
       synchronized(lock) { status = "running" }
+      beginForeground()
       enqueue(spec.inputs.mapIndexed { index, input -> index to input })
+    }
+
+    // -- foreground ----------------------------------------------------------
+    //
+    // Android suspends the process shortly after the user switches away, which stops a
+    // long batch dead. A foreground service is the only way to keep converting, and
+    // `ConversionService` is where the notification that Android demands in exchange is
+    // built. None of this is load-bearing: with no context, or with the service refused
+    // a start, the batch simply runs for as long as the app is on screen.
+
+    private fun beginForeground() {
+      if (!spec.continueInBackground) return
+      val context = appContext ?: return
+      ConversionService.start(context, spec.jobId, spec.inputs.size)
+    }
+
+    private fun updateForeground() {
+      if (!spec.continueInBackground) return
+      val completed: Int
+      val name: String
+      synchronized(lock) {
+        completed = results.size + failures.size
+        name = currentDisplayName
+      }
+      ConversionService.update(spec.jobId, completed, spec.inputs.size, name)
+    }
+
+    private fun endForeground() {
+      if (!spec.continueInBackground) return
+      ConversionService.stop(spec.jobId)
     }
 
     /**
@@ -170,6 +218,7 @@ public object JobQueue {
       if (cancelling.get()) return
 
       synchronized(lock) { currentDisplayName = input.displayName }
+      updateForeground()
 
       try {
         val result = RasterCodec.convert(
@@ -203,6 +252,7 @@ public object JobQueue {
         putMap("result", result.copy())
       }) }
       emitProgressIfDue()
+      updateForeground()
     }
 
     private fun record(index: Int, input: JobSpec.Input, failure: WritableMap, bytes: Long) {
@@ -214,6 +264,7 @@ public object JobQueue {
         putMap("failure", failure.copy())
       }) }
       emitProgressIfDue()
+      updateForeground()
     }
 
     /** Throttled to PROGRESS_INTERVAL_MS; the final state is always emitted by finish(). */
@@ -234,6 +285,7 @@ public object JobQueue {
       }
       withEvents { it.onProgress(progressPayload()) }
       withEvents { it.onJobComplete(snapshot()) }
+      endForeground()
     }
 
     fun cancel(onDrained: () -> Unit) {
@@ -246,6 +298,9 @@ public object JobQueue {
         executor.shutdownNow()
         executor.awaitTermination(30, TimeUnit.SECONDS)
         synchronized(lock) { status = "cancelled" }
+        // After the drain, so the notification outlives the work it describes rather
+        // than disappearing while files are still being written.
+        endForeground()
         onDrained()
       }.apply { isDaemon = true }.start()
     }
@@ -264,6 +319,7 @@ public object JobQueue {
         finish()
         return
       }
+      beginForeground()
       enqueue(retryable)
     }
 

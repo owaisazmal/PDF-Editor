@@ -3,12 +3,16 @@
 
 package com.owaiskhan.converter.bridge
 
+import android.Manifest
+import android.content.pm.PackageManager
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.module.annotations.ReactModule
+import com.facebook.react.modules.core.PermissionAwareActivity
 import com.owaiskhan.converter.NativeJobQueueSpec
+import com.owaiskhan.converter.core.BackgroundProgress
 import com.owaiskhan.converter.core.JobQueue
 import com.owaiskhan.converter.core.JobSpec
 
@@ -24,6 +28,9 @@ public class NativeJobQueueModule(
 
   public companion object {
     public const val NAME: String = "NativeJobQueue"
+
+    /** Arbitrary, and only has to be unique among this app's own requests. */
+    private const val NOTIFICATION_REQUEST_CODE: Int = 8021
   }
 
   private val sink = object : JobQueue.Events {
@@ -35,6 +42,9 @@ public class NativeJobQueueModule(
 
   init {
     JobQueue.setEvents(sink)
+    // Handed over here rather than fetched inside the queue, so the queue itself stays
+    // free of React Native and remains testable without it.
+    JobQueue.attach(reactContext)
   }
 
   override fun submit(spec: ReadableMap, promise: Promise) {
@@ -65,6 +75,41 @@ public class NativeJobQueueModule(
 
   override fun release(jobId: String) {
     JobQueue.release(jobId)
+  }
+
+  override fun backgroundProgressStatus(promise: Promise) {
+    promise.resolve(BackgroundProgress.status(reactContext))
+  }
+
+  override fun requestBackgroundProgress(promise: Promise) {
+    val current = BackgroundProgress.status(reactContext)
+    if (current != BackgroundProgress.DENIED) {
+      // Already granted, or already refused. Android silently ignores a second ask
+      // anyway, and a user experiences a repeated one as nagging.
+      promise.resolve(current)
+      return
+    }
+
+    val activity = reactContext.currentActivity as? PermissionAwareActivity
+    if (activity == null) {
+      // No window to present a dialog over. Reported as still askable, so the next
+      // batch started with the app on screen asks properly.
+      promise.resolve(BackgroundProgress.DENIED)
+      return
+    }
+
+    // Recorded before the dialog rather than after it, so an activity torn down
+    // mid-prompt cannot leave the app asking again on every batch.
+    BackgroundProgress.markAsked(reactContext)
+
+    activity.requestPermissions(
+      arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+      NOTIFICATION_REQUEST_CODE,
+    ) { _, _, results ->
+      val granted = results.isNotEmpty() && results[0] == PackageManager.PERMISSION_GRANTED
+      promise.resolve(if (granted) BackgroundProgress.GRANTED else BackgroundProgress.BLOCKED)
+      true
+    }
   }
 
   override fun invalidate() {

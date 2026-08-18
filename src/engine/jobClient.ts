@@ -136,6 +136,21 @@ export type JobEvents = {
 
 export { JOB_STATUSES, type JobStatus } from '@/native/types';
 
+/* ------------------------------------------------------ background progress ---- */
+
+export const BACKGROUND_PROGRESS_STATUSES = ['granted', 'denied', 'blocked'] as const;
+export type BackgroundProgressStatus = (typeof BACKGROUND_PROGRESS_STATUSES)[number];
+
+/**
+ * An unrecognised value is read as `blocked`, which is the conservative half of the
+ * choice: the app declines to claim a capability it cannot confirm, and never opens a
+ * permission dialog off the back of a value it did not understand.
+ */
+const narrowBackgroundProgress = (value: unknown): BackgroundProgressStatus =>
+  (BACKGROUND_PROGRESS_STATUSES as readonly string[]).includes(value as string)
+    ? (value as BackgroundProgressStatus)
+    : 'blocked';
+
 export const jobClient = {
   /** True when this build can run batches at all. */
   isAvailable: (): boolean => jobQueue != null,
@@ -161,6 +176,19 @@ export const jobClient = {
   },
 
   retryFailed: (jobId: string): Promise<void> => required().retryFailed(jobId),
+
+  /**
+   * Whether a running batch can show its progress while the app is in the background.
+   * Always `granted` on iOS, where nothing is asked for.
+   */
+  async backgroundProgressStatus(): Promise<BackgroundProgressStatus> {
+    return narrowBackgroundProgress(await required().backgroundProgressStatus());
+  },
+
+  /** Asks once. A previous refusal resolves `blocked` without a dialog. */
+  async requestBackgroundProgress(): Promise<BackgroundProgressStatus> {
+    return narrowBackgroundProgress(await required().requestBackgroundProgress());
+  },
 
   release: (jobId: string): void => {
     jobQueue?.release(jobId);

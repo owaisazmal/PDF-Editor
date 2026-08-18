@@ -208,6 +208,32 @@ for each. Everything not listed is natively supported on both platforms.
 | **SVG rasterise** | ✗ ImageIO does not rasterise SVG | ✗ | **androidsvg** (Apache-2.0) on Android; `react-native-svg` + `react-native-view-shot` on iOS, or a WKWebView snapshot. |
 | **Live Photo → GIF/still** | PhotosUI + AVFoundation ✓ | n/a — no Live Photo concept | iOS-only feature, hidden on Android. |
 | **PDF compress preserving text** | ✗ PDFKit cannot rewrite embedded image streams in place | ✗ | The brief specifies rasterise + recompress, which works but makes text non-selectable and unsearchable. I will warn in the UI before applying, and offer "images only" vs "flatten everything" once page-content inspection lands. |
+| **Background conversion** | `beginBackgroundTask` ✓ no permission, no UI | Foreground service, which Android requires to post a notification | Implemented. See §3.1 — this is the app's only runtime permission, and refusing it costs the notification, not the conversion. |
+
+### 3.1 The one runtime permission
+
+Android suspends a process shortly after the user switches away, which stops a long batch dead.
+A foreground service is the only mechanism that grants a reprieve, and Android requires one to
+post a notification. From API 33 posting a notification requires `POST_NOTIFICATIONS`.
+
+That makes this the only runtime permission the app ever asks for, so it is worth being exact
+about what it does and does not buy:
+
+- **It is not a data permission.** It grants no access to files, contacts, location, or
+  anything about the user. It permits the app to draw a row in the notification shade.
+- **A refusal costs visibility, not capability.** `startForeground` succeeds either way and the
+  batch runs to completion either way. Without the permission Android simply does not display
+  the notification, and the job appears in the active-apps list instead. The batch screen says
+  so in one line rather than leaving an unexplained absence.
+- **It is asked for once, and late.** Never at launch. The request happens on the first batch
+  large enough that the user might plausibly switch away — five files, or 40 MB, whichever comes
+  first — and the fact that it has been asked is persisted so a refusal is never re-prompted.
+  A single-file conversion finishes before a phone can be put down and never asks.
+
+The notification is the running job rather than an advertisement for one: the count, the file
+being worked on, a determinate progress bar, and a Cancel button that works without reopening
+the app. Swiping the app out of recents cancels the batch through `onTaskRemoved` rather than
+leaving it converting with no screen to return to.
 
 Net new native dependencies proposed: **libwebp, libavif+libaom, libjpeg-turbo, androidsvg** —
 all permissively licensed, all vendored as source and built by CMake in the Android

@@ -22,6 +22,7 @@ That is a claim, so it is enforced rather than asserted:
 | No file ever leaves the device | Android release builds ship **without `android.permission.INTERNET`** — the OS makes a network request impossible. A CI job asserts the permission is absent. |
 | No tracking, no analytics | `npm run telemetry:check` fails the build if any ads, analytics or telemetry package appears in the dependency tree, transitively included. |
 | "No data collected" on both stores | The generated iOS privacy manifest is verified in CI to declare no tracking and no collected data types. Crash reports come from Xcode Organizer and Play Console Vitals, which need no SDK. |
+| One permission, asked once, refusable | The only runtime permission is `POST_NOTIFICATIONS`, requested on the first batch big enough to outlive the screen. It grants no access to any data, and refusing it does not stop a conversion — Android just does not draw the progress notification. iOS asks for nothing. |
 | No copyleft dependency | `npm run license:check` fails on GPL, AGPL, LGPL, SSPL and non-commercial terms. |
 | Accessible colour throughout | Every foreground/background pair in the design system is measured against WCAG AA by a test. |
 

@@ -45,6 +45,26 @@ export interface Spec extends TurboModule {
   /** Drops a finished job's bookkeeping. Does not touch output files. */
   release(jobId: string): void;
 
+  /**
+   * Whether a running batch can show its progress while the app is in the background.
+   *
+   * `'granted'` | `'denied'` (not asked yet) | `'blocked'` (refused, or switched off in
+   * Settings). Always `'granted'` on iOS and below Android 13, where nothing is asked.
+   *
+   * This describes visibility, not capability. Background *conversion* needs no
+   * permission on either platform — iOS gets it from `beginBackgroundTask` and Android
+   * from a foreground service. What a refusal costs is the progress notification and
+   * its cancel button.
+   */
+  backgroundProgressStatus(): Promise<string>;
+
+  /**
+   * Asks for that permission once, and resolves the status afterwards. A previous
+   * refusal resolves `'blocked'` with no dialog: Android ignores a second request
+   * anyway, and a repeated one reads as nagging.
+   */
+  requestBackgroundProgress(): Promise<string>;
+
   readonly onProgress: EventEmitter<UnsafeObject>;
   readonly onFileComplete: EventEmitter<UnsafeObject>;
   readonly onFileFailed: EventEmitter<UnsafeObject>;
