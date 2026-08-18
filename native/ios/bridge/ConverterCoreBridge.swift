@@ -184,6 +184,77 @@ public final class ConverterCoreBridge: NSObject {
         // Intentionally empty until the queue lands.
     }
 
+    // MARK: - NativeJobQueue
+
+    /// Installs the event sinks. Called once when the TurboModule is constructed; the
+    /// share extension never calls it, because nothing there is listening.
+    @objc(installJobQueueHandlersWithProgress:fileComplete:fileFailed:jobComplete:)
+    public static func installJobQueueHandlers(
+        progress: @escaping ([String: Any]) -> Void,
+        fileComplete: @escaping ([String: Any]) -> Void,
+        fileFailed: @escaping ([String: Any]) -> Void,
+        jobComplete: @escaping ([String: Any]) -> Void
+    ) {
+        JobQueue.shared.setEvents(
+            JobQueue.Events(
+                onProgress: progress,
+                onFileComplete: fileComplete,
+                onFileFailed: fileFailed,
+                onJobComplete: jobComplete
+            )
+        )
+    }
+
+    @objc(submitJob:resolve:reject:)
+    public static func submitJob(
+        _ spec: [String: Any],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        guard let parsed = JobSpec(dictionary: spec) else {
+            reject("unknown", "The job specification was missing a jobId or was malformed.", nil)
+            return
+        }
+        // Returns immediately: everything observable about the job arrives as an event.
+        JobQueue.shared.submit(parsed)
+        resolve(nil)
+    }
+
+    @objc(cancelJob:resolve:reject:)
+    public static func cancelJob(
+        _ jobId: String,
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        // Resolves once the queue has drained, so "cancelled" means nothing is still
+        // writing to disk.
+        JobQueue.shared.cancel(jobId: jobId) { resolve(nil) }
+    }
+
+    @objc(jobState:resolve:reject:)
+    public static func jobState(
+        _ jobId: String,
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        resolve(JobQueue.shared.state(jobId: jobId))
+    }
+
+    @objc(retryFailed:resolve:reject:)
+    public static func retryFailed(
+        _ jobId: String,
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        JobQueue.shared.retryFailed(jobId: jobId)
+        resolve(nil)
+    }
+
+    @objc(releaseJob:)
+    public static func releaseJob(_ jobId: String) {
+        JobQueue.shared.release(jobId: jobId)
+    }
+
     // MARK: - NativeFileGateway
 
     @objc(pickPhotos:resolve:reject:)
