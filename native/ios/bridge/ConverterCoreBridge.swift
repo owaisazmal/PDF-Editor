@@ -549,19 +549,29 @@ public final class ConverterCoreBridge: NSObject {
         }
     }
 
-    /// Files waiting from outside the app.
+    /// Files waiting from outside the app, and the queue emptied.
     ///
-    /// Empty today. On iOS an Open With arrives as a URL through `RCTLinkingManager`,
-    /// which JavaScript already observes, so there is nothing for native to hold. The
-    /// method exists now because the share extension will fill this queue from a shared
-    /// app group container, and the JavaScript above it should not have to change shape
-    /// when that lands.
+    /// On iOS an Open With arrives as a URL through `RCTLinkingManager`, which JavaScript
+    /// already observes, so the only door that fills this queue is a drop onto the window.
+    ///
+    /// The drop target is installed here rather than at construction because JavaScript
+    /// calls this at startup and on every return to the foreground — by which point a
+    /// root view certainly exists, which is not true when the module is built.
     @objc(takePendingFiles:reject:)
     public static func takePendingFiles(
         resolve: @escaping (Any?) -> Void,
         reject: @escaping (String?, String?, Error?) -> Void
     ) {
-        run(resolve: resolve, reject: reject) { [] as [[String: Any]] }
+        Task { @MainActor in
+            IncomingFiles.installDropTarget(on: topViewController()?.view)
+            resolve(IncomingFiles.take())
+        }
+    }
+
+    /// Installs the callback that tells JavaScript a drop landed.
+    @objc(installIncomingFilesHandler:)
+    public static func installIncomingFilesHandler(_ handler: @escaping () -> Void) {
+        IncomingFiles.setArrivalHandler(handler)
     }
 
     @objc(clearTemporaryFiles:reject:)

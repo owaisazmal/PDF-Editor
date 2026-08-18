@@ -12,6 +12,7 @@ import com.owaiskhan.converter.NativeFileGatewaySpec
 import com.facebook.react.bridge.ActivityEventListener
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.BaseActivityEventListener
+import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableArray
@@ -19,6 +20,7 @@ import com.facebook.react.module.annotations.ReactModule
 import com.owaiskhan.converter.core.ConversionException
 import com.owaiskhan.converter.core.FileGateway
 import com.owaiskhan.converter.core.FormatDetector
+import com.owaiskhan.converter.core.DropTarget
 import com.owaiskhan.converter.core.FormatMatcher
 import com.owaiskhan.converter.core.ReceivedFiles
 import java.io.File
@@ -100,9 +102,26 @@ public class NativeFileGatewayModule(
     }
   }
 
+  /**
+   * Installs the drop target once there is a window to install it on.
+   *
+   * Resume rather than construction: this module is built eagerly at startup, before the
+   * activity has a content view, and the activity can be recreated under it at any point.
+   */
+  private val lifecycleListener: LifecycleEventListener = object : LifecycleEventListener {
+    override fun onHostResume() {
+      val activity = currentActivity ?: return
+      DropTarget.install(activity) { emitOnFilesReceived(Arguments.createMap()) }
+    }
+
+    override fun onHostPause() = Unit
+    override fun onHostDestroy() = Unit
+  }
+
   init {
     reactContext.addActivityEventListener(activityListener)
     reactContext.addActivityEventListener(incomingListener)
+    reactContext.addLifecycleEventListener(lifecycleListener)
   }
 
 

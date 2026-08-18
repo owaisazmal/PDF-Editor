@@ -239,6 +239,32 @@ indefinitely — but for as long as a session is open, a password-protected file
 plaintext in storage no other app can read without root. The password itself is used once,
 to decrypt, and is never stored.
 
+### 3.4 Three doors, one queue
+
+Files reach the app from outside it three ways, and they converge deliberately: a share
+sheet, an Open With, and a drop onto the window all end as the same `DetectedFile` list
+the pickers produce, reaching the same screen that asks what to do with them. Nothing
+downstream learns where a file came from.
+
+| Door | iOS | Android |
+|---|---|---|
+| Share sheet | The share extension, which converts in place | `ACTION_SEND` / `ACTION_SEND_MULTIPLE` into the app |
+| Open With | A `file://` URL through the linking system | `ACTION_VIEW` into the app |
+| Drop | `UIDropInteraction` on the root view | `setOnDragListener` on the content view |
+
+Both drop paths copy into the app's own storage immediately. A dropped item's URL belongs
+to the sending app and is valid only for the drop session, so a file left as a reference
+stops being readable at the worst possible moment — usually part-way through a batch the
+user has walked away from. On Android that also needs
+`requestDragAndDropPermissions`, whose grant is deliberately **not** released: the files
+are materialised a moment later on a background thread, and releasing at the end of the
+drop would revoke access before that happens. Android drops it when the activity is
+destroyed, which is the right lifetime.
+
+Drag and drop is mostly a large-screen and multi-window gesture on both platforms, which
+is exactly where a converter earns its place: one window holding files, another
+converting them.
+
 ### 3.3 The share extension compiles the engine, not a bridge to it
 
 The extension is a second Xcode target built by `plugins/withShareExtension.js`, because

@@ -214,7 +214,10 @@ RCT_EXPORT_MODULE()
 
 #pragma mark - NativeFileGateway
 
-@interface NativeFileGateway : NSObject <NativeFileGatewaySpec>
+// Inherits the generated base class rather than plain NSObject, which is what supplies
+// the emitOn… methods and holds the callback codegen installs. Declaring the protocol
+// alone compiles right up until something tries to emit.
+@interface NativeFileGateway : NativeFileGatewaySpecBase <NativeFileGatewaySpec>
 @end
 
 @implementation NativeFileGateway
@@ -223,6 +226,19 @@ RCT_EXPORT_MODULE()
 
 // Presents PHPickerViewController, so this one genuinely does need the main queue.
 + (BOOL)requiresMainQueueSetup { return YES; }
+
+- (instancetype)init
+{
+  if (self = [super init]) {
+    // Weak, because the queue outlives this module and a strong reference here would
+    // keep a torn-down module alive across every reload.
+    __weak NativeFileGateway *weakSelf = self;
+    [ConverterCoreBridge installIncomingFilesHandler:^{
+      [weakSelf emitOnFilesReceived:@{}];
+    }];
+  }
+  return self;
+}
 
 - (void)pickPhotos:(double)limit
            resolve:(RCTPromiseResolveBlock)resolve
