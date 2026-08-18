@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Screen, Text, TaskTile } from '@/components';
@@ -28,8 +29,34 @@ export function HomeScreen({ navigation }: Props) {
   const fail = useConversionStore((s) => s.fail);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
 
+  /**
+   * Guards against opening two pickers at once. Deliberately a ref rather than the
+   * `busyTaskId` state: state is also what dims the tapped tile, and the two need to
+   * be able to diverge — see the focus effect below.
+   */
+  const pickInFlight = useRef(false);
+
+  /**
+   * Returning to this screen always restores a usable grid.
+   *
+   * A native picker that is dismissed in a way its delegate never observes leaves the
+   * promise unresolved, and the `finally` that clears the busy flag never runs. That
+   * used to disable every tile permanently, recoverable only by relaunching the app.
+   * The Swift side now guarantees its continuation resumes, and this is the belt to
+   * that pair of braces: whatever happened while the screen was away, arriving back
+   * here means nothing is in flight.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      pickInFlight.current = false;
+      setBusyTaskId(null);
+    }, []),
+  );
+
   const startTask = useCallback(
     async (task: ConversionTask) => {
+      if (pickInFlight.current) return;
+      pickInFlight.current = true;
       setBusyTaskId(task.id);
       setPicking();
       try {
@@ -48,6 +75,7 @@ export function HomeScreen({ navigation }: Props) {
           message: error instanceof Error ? error.message : String(error),
         });
       } finally {
+        pickInFlight.current = false;
         setBusyTaskId(null);
       }
     },
@@ -75,7 +103,7 @@ export function HomeScreen({ navigation }: Props) {
                 subtitle={available ? task.subtitle : 'Coming in a later build'}
                 from={task.from}
                 to={task.to}
-                enabled={available && busyTaskId === null}
+                enabled={available && busyTaskId !== task.id}
                 onPress={() => void startTask(task)}
               />
             </View>
