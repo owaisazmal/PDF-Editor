@@ -7,14 +7,16 @@
     "scheme": "converter",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "bundleIdentifier": "com.owaiskhan.converter",
       "supportsTablet": true,
       "requireFullScreen": false,
       "infoPlist": {
         "NSHumanReadableCopyright": "Copyright (c) 2026 Owais Khan. Licensed under the Apache License, Version 2.0.",
-        "NSPhotoLibraryAddUsageDescription": "Converter saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker.",
+        "NSPhotoLibraryAddUsageDescription": "Converter saves your converted images straight to your photo library. It never reads your library \u2014 you choose files through the system picker.",
         "CFBundleAllowMixedLocalizations": true,
         "UIViewControllerBasedStatusBarAppearance": false,
         "ITSAppUsesNonExemptEncryption": false
@@ -26,34 +28,55 @@
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
-            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
-            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1"
+            ]
           }
         ]
       }
     },
     "android": {
       "package": "com.owaiskhan.converter",
-      "edgeToEdgeEnabled": true,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.ACCESS_NETWORK_STATE"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FDFBD4",
+        "monochromeImage": "./assets/adaptive-icon.png"
+      }
     },
     "plugins": [
       "expo-dev-client",
       "expo-font",
       "expo-localization",
-      ["expo-splash-screen", { "backgroundColor": "#FDFBD4", "dark": { "backgroundColor": "#17110A" } }],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#FDFBD4",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#17110A"
+          }
+        }
+      ],
       "react-native-edge-to-edge",
       "./plugins/withOfflineRelease",
       "./plugins/withConverterCore",
+      "./plugins/withConverterCoreAndroid",
       [
         "expo-build-properties",
         {
@@ -72,6 +95,7 @@
     "experiments": {
       "typedRoutes": false,
       "reactCompiler": false
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }
