@@ -88,7 +88,9 @@ export function HomeScreen({ navigation }: Props) {
 
         if (picked.length === 1) {
           setSource(first);
-          navigation.navigate('Convert', { taskId: task.id });
+          // Tasks that exist to expose a setting go through it; everything else keeps
+          // the fast path, which is what holds the three-tap promise.
+          navigation.navigate(task.needsOptions ? 'Options' : 'Convert', { taskId: task.id });
           return;
         }
 
@@ -96,7 +98,7 @@ export function HomeScreen({ navigation }: Props) {
         // listening before the first progress event can arrive.
         resetBatch();
         useBatchStore.setState({ sources: picked, status: 'idle' });
-        navigation.navigate('Batch', { taskId: task.id });
+        navigation.navigate(task.needsOptions ? 'Options' : 'Batch', { taskId: task.id });
       } catch (error) {
         fail({
           code: 'unknown',

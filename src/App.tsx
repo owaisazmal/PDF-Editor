@@ -20,6 +20,7 @@ import {
 import { BatchScreen } from '@/features/batch/BatchScreen';
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
+import { OptionsScreen } from '@/features/options/OptionsScreen';
 import { ThemeProvider, useTheme, colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -60,6 +61,7 @@ function Navigation() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Convert" component={ConvertScreen} />
         <Stack.Screen name="Batch" component={BatchScreen} />
+        <Stack.Screen name="Options" component={OptionsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
