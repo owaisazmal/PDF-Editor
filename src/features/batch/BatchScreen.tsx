@@ -50,6 +50,47 @@ export function BatchScreen({ route, navigation }: Props) {
     }
   }, [batch.status]);
 
+  /**
+   * The list the user picked, in the order they picked it, with each file's outcome
+   * filled in as it arrives.
+   *
+   * Rendering results in arrival order instead means a list that reshuffles while the
+   * user is reading it — the queue is concurrent, so completion order is arbitrary and
+   * unstable between runs. Anchoring on the selection also means a file that has not
+   * been reached yet still has a row, which is better feedback than an empty space.
+   */
+  const rows = useMemo(() => {
+    const resultByIndex = new Map(batch.results.map((result) => [result.sourceIndex, result]));
+    const failureByIndex = new Map(batch.failures.map((failure) => [failure.sourceIndex, failure]));
+
+    return batch.sources.map((source, index) => {
+      const result = resultByIndex.get(index);
+      if (result) {
+        return {
+          key: `${index}-done`,
+          name: result.outputDisplayName,
+          detail: formatBytes(result.byteSize),
+          state: 'done' as const,
+        };
+      }
+      const failure = failureByIndex.get(index);
+      if (failure) {
+        return {
+          key: `${index}-failed`,
+          name: failure.displayName || source.displayName,
+          detail: errorMessage(failure.code),
+          state: 'failed' as const,
+        };
+      }
+      return {
+        key: `${index}-pending`,
+        name: source.displayName,
+        detail: formatBytes(source.byteSize),
+        state: 'pending' as const,
+      };
+    });
+  }, [batch.sources, batch.results, batch.failures]);
+
   const totals = useMemo(() => {
     const before = batch.sources.reduce((sum, source) => sum + source.byteSize, 0);
     const after = batch.results.reduce((sum, result) => sum + result.byteSize, 0);
@@ -162,21 +203,8 @@ export function BatchScreen({ route, navigation }: Props) {
         contentContainerStyle={{ paddingBottom: theme.space.xl }}
         showsVerticalScrollIndicator={false}
       >
-        {batch.failures.map((failure) => (
-          <FileRow
-            key={`fail-${failure.uri}`}
-            name={failure.displayName}
-            detail={errorMessage(failure.code)}
-            state="failed"
-          />
-        ))}
-        {batch.results.map((result) => (
-          <FileRow
-            key={`ok-${result.outputUri}`}
-            name={result.outputDisplayName}
-            detail={formatBytes(result.byteSize)}
-            state="done"
-          />
+        {rows.map((row) => (
+          <FileRow key={row.key} name={row.name} detail={row.detail} state={row.state} />
         ))}
       </ScrollView>
 

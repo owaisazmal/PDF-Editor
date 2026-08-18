@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,12 +9,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
 import { useBatchStore } from '@/store/batch';
+import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
 import { useTheme } from '@/theme';
 import {
   CONVERSION_TASKS,
-  isTaskAvailable,
   isTileInteractive,
+  unavailableReason,
   type ConversionTask,
 } from './tasks';
 import type { RootStackParamList } from '@/navigation/types';
@@ -34,6 +35,13 @@ export function HomeScreen({ navigation }: Props) {
   const setPicking = useConversionStore((s) => s.setPicking);
   const fail = useConversionStore((s) => s.fail);
   const resetBatch = useBatchStore((s) => s.reset);
+  const capabilities = useCapabilitiesStore();
+
+  // Asked once. The answer cannot change while the app is running — it is a property
+  // of the OS build, not of anything the user can do.
+  useEffect(() => {
+    if (!capabilities.isLoaded) void capabilities.load();
+  }, [capabilities]);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
 
   /**
@@ -114,16 +122,18 @@ export function HomeScreen({ navigation }: Props) {
 
       <View style={styles.grid}>
         {CONVERSION_TASKS.map((task) => {
-          const available = isTaskAvailable(task);
+          // Two different reasons a tile can be closed, and the user is told which:
+          // "not built yet" is a promise, "your device cannot" is a fact.
+          const reason = unavailableReason(task, capabilities);
           return (
             <View key={task.id} style={[styles.cell, { padding: theme.space.sm }]}>
               <TaskTile
                 testID={`task-${task.id}`}
                 title={task.title}
-                subtitle={available ? task.subtitle : 'Coming in a later build'}
+                subtitle={reason ?? task.subtitle}
                 from={task.from}
                 to={task.to}
-                enabled={isTileInteractive(task, busyTaskId)}
+                enabled={isTileInteractive(task, busyTaskId, capabilities)}
                 onPress={() => void startTask(task)}
               />
             </View>

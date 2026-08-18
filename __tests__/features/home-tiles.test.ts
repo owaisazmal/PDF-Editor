@@ -13,7 +13,14 @@
  * once, and the enabled rule is strictly per-tile. This covers the second half.
  */
 
-import { CONVERSION_TASKS, isTileInteractive, isTaskAvailable } from '@/features/home/tasks';
+import {
+  CONVERSION_TASKS,
+  CURRENT_PHASE,
+  isTaskAvailable,
+  isTaskSupported,
+  isTileInteractive,
+  unavailableReason,
+} from '@/features/home/tasks';
 
 const available = CONVERSION_TASKS.filter(isTaskAvailable);
 const heicToJpg = CONVERSION_TASKS.find((t) => t.id === 'heic-to-jpg')!;
@@ -50,5 +57,52 @@ describe('tile interactivity', () => {
     for (const task of available) {
       expect(isTileInteractive(task, 'a-task-that-no-longer-exists')).toBe(true);
     }
+  });
+});
+
+describe('capability gating', () => {
+  const loaded = (decode: string[], encode: string[]) => ({
+    decode: new Set(decode) as never,
+    encode: new Set(encode) as never,
+    isLoaded: true,
+  });
+
+  const heicToJpg = CONVERSION_TASKS.find((t) => t.id === 'heic-to-jpg')!;
+
+  it('is optimistic before the report lands, rather than flashing unsupported', () => {
+    const pending = { decode: new Set() as never, encode: new Set() as never, isLoaded: false };
+    expect(isTaskSupported(heicToJpg, pending)).toBe(true);
+    expect(unavailableReason(heicToJpg, pending)).toBeNull();
+  });
+
+  it('closes a task the device cannot decode the source of', () => {
+    // Android below API 28 is exactly this: JPEG in, JPEG out, no HEIC decoder.
+    const noHeic = loaded(['jpeg', 'png'], ['jpeg', 'png']);
+    expect(isTaskSupported(heicToJpg, noHeic)).toBe(false);
+    expect(unavailableReason(heicToJpg, noHeic)).toBe('Not supported on this device');
+  });
+
+  it('closes a task the device cannot encode the target of', () => {
+    const noJpegEncoder = loaded(['heic', 'jpeg'], ['png']);
+    expect(isTaskSupported(heicToJpg, noJpegEncoder)).toBe(false);
+  });
+
+  it('opens a task the device can do both halves of', () => {
+    expect(isTaskSupported(heicToJpg, loaded(['heic'], ['jpeg']))).toBe(true);
+  });
+
+  it('distinguishes "not built yet" from "your device cannot"', () => {
+    const capable = loaded(['jpeg', 'png', 'heic', 'webp', 'pdf'], ['jpeg', 'png', 'webp', 'pdf']);
+    const notBuilt = CONVERSION_TASKS.find((t) => t.phase > CURRENT_PHASE)!;
+    // Telling a user their phone cannot do something we simply have not written is how
+    // a bug report gets filed against the phone.
+    expect(unavailableReason(notBuilt, capable)).toBe('Coming in a later build');
+
+    const needsSettings = CONVERSION_TASKS.find((t) => t.needsOptions)!;
+    expect(unavailableReason(needsSettings, capable)).toBe('Needs the settings screen');
+  });
+
+  it('keeps a device-unsupported tile non-interactive even when nothing is busy', () => {
+    expect(isTileInteractive(heicToJpg, null, loaded(['jpeg'], ['jpeg']))).toBe(false);
   });
 });

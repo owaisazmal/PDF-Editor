@@ -75,6 +75,7 @@ function narrowProgress(raw: unknown): JobProgress {
 function narrowResult(raw: unknown): ConversionResult {
   const source = (raw ?? {}) as Record<string, unknown>;
   return {
+    sourceIndex: asNumber(source.sourceIndex, -1),
     outputUri: asString(source.outputUri),
     outputDisplayName: asString(source.outputDisplayName),
     format: asString(source.format),
@@ -89,6 +90,7 @@ function narrowResult(raw: unknown): ConversionResult {
 function narrowFailure(raw: unknown): FileFailure {
   const source = (raw ?? {}) as Record<string, unknown>;
   return {
+    sourceIndex: asNumber(source.sourceIndex, -1),
     uri: asString(source.uri),
     displayName: asString(source.displayName),
     code: asString(source.code, 'unknown'),
