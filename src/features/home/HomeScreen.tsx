@@ -8,6 +8,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
+import { useBatchStore } from '@/store/batch';
 import { useConversionStore } from '@/store/conversion';
 import { useTheme } from '@/theme';
 import {
@@ -32,6 +33,7 @@ export function HomeScreen({ navigation }: Props) {
   const setSource = useConversionStore((s) => s.setSource);
   const setPicking = useConversionStore((s) => s.setPicking);
   const fail = useConversionStore((s) => s.fail);
+  const resetBatch = useBatchStore((s) => s.reset);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
 
   /**
@@ -65,15 +67,28 @@ export function HomeScreen({ navigation }: Props) {
       setBusyTaskId(task.id);
       setPicking();
       try {
-        const picked = await fileGateway.pickPhotos(1);
+        // 0 is unlimited. The batch is the normal case; a single file is just the
+        // smallest one, and it gets the detail screen because there is room to show
+        // before-and-after properly.
+        const picked = await fileGateway.pickPhotos(0);
         const first = picked[0];
         if (!first) {
           // The user backed out of the picker. Not an error; just nothing to do.
           useConversionStore.getState().reset();
           return;
         }
-        setSource(first);
-        navigation.navigate('Convert', { taskId: task.id });
+
+        if (picked.length === 1) {
+          setSource(first);
+          navigation.navigate('Convert', { taskId: task.id });
+          return;
+        }
+
+        // Seed the sources and let the batch screen submit, so it is mounted and
+        // listening before the first progress event can arrive.
+        resetBatch();
+        useBatchStore.setState({ sources: picked, status: 'idle' });
+        navigation.navigate('Batch', { taskId: task.id });
       } catch (error) {
         fail({
           code: 'unknown',
@@ -84,7 +99,7 @@ export function HomeScreen({ navigation }: Props) {
         setBusyTaskId(null);
       }
     },
-    [navigation, setSource, setPicking, fail],
+    [navigation, setSource, setPicking, fail, resetBatch],
   );
 
   return (

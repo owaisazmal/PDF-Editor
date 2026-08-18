@@ -17,6 +17,7 @@ import {
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
 
+import { BatchScreen } from '@/features/batch/BatchScreen';
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { ThemeProvider, useTheme, colors } from '@/theme';
@@ -58,6 +59,7 @@ function Navigation() {
       >
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Convert" component={ConvertScreen} />
+        <Stack.Screen name="Batch" component={BatchScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
