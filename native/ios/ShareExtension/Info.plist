@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2026 Owais Khan
+  Licensed under the Apache License, Version 2.0
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  The identity keys have to be present for Xcode to substitute into them: it fills in
+	  existing values rather than adding missing ones, and an extension with no bundle
+	  identifier fails to embed with "not prefixed with the parent app's".
+	-->
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Convert</string>
+	<key>CFBundleName</key>
+	<string>Convert</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright (c) 2026 Owais Khan. Licensed under the Apache License, Version 2.0.</string>
+	<!-- The extension writes converted images to the library and never reads from it. -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Converter saves your converted images straight to your photo library. It never reads your library.</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>ShareViewController</string>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<!--
+			  Images and PDFs only, and a generous count because batching is the point.
+			  A predicate rather than the simpler dictionary form, because the two types
+			  need different limits and the dictionary form cannot express that.
+			-->
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>50</integer>
+				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
+				<integer>50</integer>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>
