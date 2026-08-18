@@ -255,6 +255,150 @@ public final class ConverterCoreBridge: NSObject {
         JobQueue.shared.release(jobId: jobId)
     }
 
+    // MARK: - NativePdfEngine
+
+    @objc(inspectPdf:resolve:reject:)
+    public static func inspectPdf(
+        _ uri: String,
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.inspect(url: fileURL(from: uri))
+        }
+    }
+
+    @objc(unlockPdf:password:resolve:reject:)
+    public static func unlockPdf(
+        _ uri: String,
+        password: String,
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.unlock(url: fileURL(from: uri), password: password)
+        }
+    }
+
+    @objc(renderPdfPages:sessionHandle:options:resolve:reject:)
+    public static func renderPdfPages(
+        _ uri: String,
+        sessionHandle: String,
+        options: [String: Any],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.renderPages(
+                url: fileURL(from: uri),
+                sessionHandle: sessionHandle,
+                options: PdfEngine.RenderOptions(dictionary: options)
+            )
+        }
+    }
+
+    @objc(composePdfFromImages:outputUri:options:resolve:reject:)
+    public static func composePdfFromImages(
+        _ imageUris: [String],
+        outputUri: String,
+        options: [String: Any],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.composeFromImages(
+                imageURLs: imageUris.map { fileURL(from: $0) },
+                outputURL: try pdfOutputURL(outputUri, fallbackName: "document"),
+                options: PdfEngine.ComposeOptions(dictionary: options)
+            )
+        }
+    }
+
+    @objc(mergePdfs:outputUri:resolve:reject:)
+    public static func mergePdfs(
+        _ uris: [String],
+        outputUri: String,
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.merge(
+                urls: uris.map { fileURL(from: $0) },
+                outputURL: try pdfOutputURL(outputUri, fallbackName: "merged")
+            )
+        }
+    }
+
+    @objc(splitPdf:outputDirectory:options:resolve:reject:)
+    public static func splitPdf(
+        _ uri: String,
+        outputDirectory: String,
+        options: [String: Any],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            let directory = outputDirectory.isEmpty
+                ? try RasterCodec.managedOutputDirectory()
+                : fileURL(from: outputDirectory)
+            return try PdfEngine.split(
+                url: fileURL(from: uri),
+                outputDirectory: directory,
+                options: PdfEngine.SplitOptions(dictionary: options)
+            )
+        }
+    }
+
+    @objc(editPdfPages:outputUri:operations:resolve:reject:)
+    public static func editPdfPages(
+        _ uri: String,
+        outputUri: String,
+        operations: [String: Any],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.editPages(
+                url: fileURL(from: uri),
+                outputURL: try pdfOutputURL(outputUri, fallbackName: "edited"),
+                operations: operations
+            )
+        }
+    }
+
+    @objc(compressPdf:outputUri:options:resolve:reject:)
+    public static func compressPdf(
+        _ uri: String,
+        outputUri: String,
+        options: [String: Any],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            try PdfEngine.compress(
+                url: fileURL(from: uri),
+                outputURL: try pdfOutputURL(outputUri, fallbackName: "compressed"),
+                options: PdfEngine.CompressOptions(dictionary: options)
+            )
+        }
+    }
+
+    @objc(closePdfSession:)
+    public static func closePdfSession(_ sessionHandle: String) {
+        PdfEngine.closeSession(sessionHandle)
+    }
+
+    /// An empty output URI means "choose a path in the managed output directory", which
+    /// keeps the filesystem entirely native — JavaScript never has to know where the
+    /// app's storage lives, and the chosen path comes back in the result.
+    private static func pdfOutputURL(_ uri: String, fallbackName: String) throws -> URL {
+        if !uri.isEmpty { return fileURL(from: uri) }
+        return FileGateway.resolveCollision(
+            directory: try RasterCodec.managedOutputDirectory(),
+            filename: "\(fallbackName).pdf"
+        )
+    }
+
     // MARK: - NativeFileGateway
 
     @objc(pickPhotos:resolve:reject:)

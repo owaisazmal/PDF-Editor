@@ -511,7 +511,9 @@ public enum RasterCodec {
 
     // MARK: - Format helpers
 
-    private static func utType(for formatId: String) -> UTType? {
+    /// Public because the PDF engine renders pages through the same encoders, and two
+    /// copies of this table would eventually disagree about one format.
+    public static func utType(for formatId: String) -> UTType? {
         switch formatId {
         case "jpeg": return .jpeg
         case "png": return .png

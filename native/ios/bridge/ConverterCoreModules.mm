@@ -306,3 +306,116 @@ RCT_EXPORT_MODULE()
 }
 
 @end
+
+#pragma mark - NativePdfEngine
+
+@interface NativePdfEngine : NSObject <NativePdfEngineSpec>
+@end
+
+@implementation NativePdfEngine
+
+RCT_EXPORT_MODULE()
+
+// PDFKit work happens on the bridge's own queue; nothing here presents UI.
++ (BOOL)requiresMainQueueSetup { return NO; }
+
+- (void)inspect:(NSString *)uri
+        resolve:(RCTPromiseResolveBlock)resolve
+         reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge inspectPdf:uri resolve:resolve reject:reject];
+}
+
+- (void)unlock:(NSString *)uri
+      password:(NSString *)password
+       resolve:(RCTPromiseResolveBlock)resolve
+        reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge unlockPdf:uri password:password resolve:resolve reject:reject];
+}
+
+- (void)renderPages:(NSString *)uri
+      sessionHandle:(NSString *)sessionHandle
+            options:(NSDictionary *)options
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge renderPdfPages:uri
+                        sessionHandle:sessionHandle
+                              options:options
+                              resolve:resolve
+                               reject:reject];
+}
+
+- (void)composeFromImages:(NSArray *)imageUris
+                outputUri:(NSString *)outputUri
+                  options:(NSDictionary *)options
+                  resolve:(RCTPromiseResolveBlock)resolve
+                   reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge composePdfFromImages:imageUris
+                                  outputUri:outputUri
+                                    options:options
+                                    resolve:resolve
+                                     reject:reject];
+}
+
+- (void)merge:(NSArray *)uris
+    outputUri:(NSString *)outputUri
+      resolve:(RCTPromiseResolveBlock)resolve
+       reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge mergePdfs:uris outputUri:outputUri resolve:resolve reject:reject];
+}
+
+- (void)split:(NSString *)uri
+    outputDirectory:(NSString *)outputDirectory
+            options:(NSDictionary *)options
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge splitPdf:uri
+                outputDirectory:outputDirectory
+                        options:options
+                        resolve:resolve
+                         reject:reject];
+}
+
+- (void)editPages:(NSString *)uri
+        outputUri:(NSString *)outputUri
+       operations:(NSDictionary *)operations
+          resolve:(RCTPromiseResolveBlock)resolve
+           reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge editPdfPages:uri
+                          outputUri:outputUri
+                         operations:operations
+                            resolve:resolve
+                             reject:reject];
+}
+
+- (void)compress:(NSString *)uri
+       outputUri:(NSString *)outputUri
+         options:(NSDictionary *)options
+         resolve:(RCTPromiseResolveBlock)resolve
+          reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge compressPdf:uri
+                         outputUri:outputUri
+                           options:options
+                           resolve:resolve
+                            reject:reject];
+}
+
+- (void)closeSession:(NSString *)sessionHandle
+{
+  [ConverterCoreBridge closePdfSession:sessionHandle];
+}
+
+- (std::shared_ptr<facebook::react::TurboModule>)
+    getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
+{
+  return std::make_shared<facebook::react::NativePdfEngineSpecJSI>(params);
+}
+
+@end

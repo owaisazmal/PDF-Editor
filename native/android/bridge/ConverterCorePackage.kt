@@ -24,6 +24,7 @@ public class ConverterCorePackage : BaseReactPackage() {
       NativeFormatDetectorModule.NAME -> NativeFormatDetectorModule(reactContext)
       NativeRasterCodecModule.NAME -> NativeRasterCodecModule(reactContext)
       NativeJobQueueModule.NAME -> NativeJobQueueModule(reactContext)
+      NativePdfEngineModule.NAME -> NativePdfEngineModule(reactContext)
       NativeFileGatewayModule.NAME -> NativeFileGatewayModule(reactContext)
       else -> null
     }
@@ -33,6 +34,7 @@ public class ConverterCorePackage : BaseReactPackage() {
       NativeFormatDetectorModule.NAME to info(NativeFormatDetectorModule.NAME, needsEagerInit = false),
       NativeRasterCodecModule.NAME to info(NativeRasterCodecModule.NAME, needsEagerInit = false),
       NativeJobQueueModule.NAME to info(NativeJobQueueModule.NAME, needsEagerInit = false),
+      NativePdfEngineModule.NAME to info(NativePdfEngineModule.NAME, needsEagerInit = false),
       // The gateway presents system pickers, so it is created on the main queue.
       NativeFileGatewayModule.NAME to info(NativeFileGatewayModule.NAME, needsEagerInit = true),
     )

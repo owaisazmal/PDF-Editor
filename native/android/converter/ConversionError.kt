@@ -40,6 +40,12 @@ public class ConversionException(
     public fun permissionDenied(): ConversionException =
       ConversionException("permissionDenied", "Permission to save was denied.")
 
+    public fun passwordRequired(): ConversionException =
+      ConversionException("passwordRequired", "This PDF needs a password to open.")
+
+    public fun wrongPassword(): ConversionException =
+      ConversionException("wrongPassword", "That password did not open the PDF.")
+
     public fun cancelled(): ConversionException =
       ConversionException("cancelled", "Cancelled.")
   }
