@@ -59,7 +59,19 @@ module.exports = [
     rules: { 'no-restricted-syntax': 'off' },
   },
   {
-    files: ['__tests__/**/*.{ts,tsx}', 'scripts/**/*.mjs'],
+    files: ['__tests__/**/*.{ts,tsx}', 'scripts/**/*.mjs', 'plugins/**/*.js'],
+    // Build scripts run in Node, not React Native, so they get Node's globals and are
+    // free to log and to write literal colours.
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+        __dirname: 'readonly',
+        require: 'readonly',
+        module: 'writable',
+      },
+    },
     rules: { 'no-restricted-syntax': 'off', 'no-console': 'off' },
   },
 ];

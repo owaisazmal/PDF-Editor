@@ -65,9 +65,24 @@ outcome.
 
 ```bash
 npm install
-npm run generate        # emit native token and format tables from the TS sources
+npm run generate        # emit native token and format tables, and the app icons
 npm run prebuild        # generate ios/ and android/ from app.json
 npm run ios             # or: npm run android
+```
+
+Android needs both toolchain variables set:
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+export ANDROID_HOME=$HOME/Library/Android/sdk
+```
+
+A debug APK carries every ABI and lands around 240 MB, which is enough to fail an
+install on an emulator with a default disk. Build for the one architecture you are
+running instead:
+
+```bash
+cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a
 ```
 
 `npm run verify` runs everything CI runs.

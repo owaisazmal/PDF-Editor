@@ -21,11 +21,13 @@
     "license:check": "node scripts/check-licenses.mjs",
     "license:report": "node scripts/check-licenses.mjs --write",
     "telemetry:check": "node scripts/check-no-telemetry.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run tokens:check && npm run formats:check && npm run telemetry:check && npm run license:check && npm test",
+    "verify": "npm run typecheck && npm run lint && npm run tokens:check && npm run formats:check && npm run icons:check && npm run telemetry:check && npm run license:check && npm test",
     "formats:gen": "node scripts/gen-formats.mjs",
     "formats:check": "node scripts/gen-formats.mjs --check",
-    "generate": "npm run tokens:gen && npm run formats:gen",
-    "postinstall": "node scripts/patch-expo-toolchain.mjs"
+    "generate": "npm run tokens:gen && npm run formats:gen && npm run icons:gen",
+    "postinstall": "node scripts/patch-expo-toolchain.mjs",
+    "icons:gen": "node scripts/gen-app-icons.mjs",
+    "icons:check": "node scripts/gen-app-icons.mjs --check"
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",
