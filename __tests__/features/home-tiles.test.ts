@@ -20,6 +20,7 @@ import {
   isTaskSupported,
   isTileInteractive,
   unavailableReason,
+  type ConversionTask,
 } from '@/features/home/tasks';
 
 const available = CONVERSION_TASKS.filter(isTaskAvailable);
@@ -61,16 +62,22 @@ describe('tile interactivity', () => {
 });
 
 describe('capability gating', () => {
-  const loaded = (decode: string[], encode: string[]) => ({
+  const loaded = (decode: string[], encode: string[], pdfOperations: string[] = []) => ({
     decode: new Set(decode) as never,
     encode: new Set(encode) as never,
+    pdfOperations: new Set(pdfOperations) as never,
     isLoaded: true,
   });
 
   const heicToJpg = CONVERSION_TASKS.find((t) => t.id === 'heic-to-jpg')!;
 
   it('is optimistic before the report lands, rather than flashing unsupported', () => {
-    const pending = { decode: new Set() as never, encode: new Set() as never, isLoaded: false };
+    const pending = {
+    decode: new Set() as never,
+    encode: new Set() as never,
+    pdfOperations: new Set() as never,
+    isLoaded: false,
+  };
     expect(isTaskSupported(heicToJpg, pending)).toBe(true);
     expect(unavailableReason(heicToJpg, pending)).toBeNull();
   });
@@ -92,8 +99,19 @@ describe('capability gating', () => {
   });
 
   it('distinguishes "not built yet" from "your device cannot"', () => {
-    const capable = loaded(['jpeg', 'png', 'heic', 'webp', 'pdf'], ['jpeg', 'png', 'webp', 'pdf']);
-    const notBuilt = CONVERSION_TASKS.find((t) => t.phase > CURRENT_PHASE)!;
+    const capable = loaded(
+      ['jpeg', 'png', 'heic', 'webp', 'pdf'],
+      ['jpeg', 'png', 'webp', 'pdf'],
+      ['inspect', 'render', 'compose', 'compress', 'merge', 'split', 'edit', 'unlock'],
+    );
+    // Synthetic rather than found in the list. Once the last phase opens there is no
+    // real task left beyond it, and a test that quietly stops asserting anything is
+    // worse than no test — this one has to keep failing if the rule breaks.
+    const notBuilt = {
+      ...CONVERSION_TASKS[0]!,
+      id: 'a-later-tile',
+      phase: (CURRENT_PHASE + 1) as ConversionTask['phase'],
+    };
     // Telling a user their phone cannot do something we simply have not written is how
     // a bug report gets filed against the phone.
     expect(unavailableReason(notBuilt, capable)).toBe('Coming in a later build');

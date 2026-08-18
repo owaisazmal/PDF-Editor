@@ -147,9 +147,16 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     // it is already running is picked up by the next progress update, and one refused
     // costs the batch nothing. Making the user answer a dialog before any work begins
     // would be the one version of this that is actually intrusive.
-    void resolveBackgroundProgress(sources).then((backgroundProgress) => {
-      if (get().jobId === jobId) set({ backgroundProgress });
-    });
+    //
+    // The catch is not optional. This call decides one line of UI copy, and an
+    // unawaited promise that rejects becomes an unhandled rejection the user sees on
+    // top of a conversion that is working perfectly well. Whatever went wrong here, the
+    // right answer is to say the notification will not appear and get on with it.
+    void resolveBackgroundProgress(sources)
+      .catch(() => 'blocked' as const)
+      .then((backgroundProgress) => {
+        if (get().jobId === jobId) set({ backgroundProgress });
+      });
 
     // Native keeps working while JavaScript is frozen, so the mirror is stale by the
     // time the app comes back. This is the only reliable moment to correct it.

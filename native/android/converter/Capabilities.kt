@@ -53,9 +53,23 @@ public object Capabilities {
       add("pdf")
     }
 
+    val pdfOperations = buildList {
+      // PdfRenderer reads and PdfDocument writes, which covers everything that can be
+      // expressed as painting pages.
+      addAll(listOf("inspect", "render", "compose", "compress"))
+
+      // Merge, split and page editing need to copy a page object from one document into
+      // another, and no Android API exposes one. Reported closed rather than
+      // implemented by rasterising — see PdfEngine.kt.
+
+      // A password API for PdfRenderer arrived in Android 15.
+      if (sdk >= Build.VERSION_CODES.VANILLA_ICE_CREAM) add("unlock")
+    }
+
     return Arguments.createMap().apply {
       putArray("decode", Arguments.fromList(decode.sorted()))
       putArray("encode", Arguments.fromList(encode.sorted()))
+      putArray("pdfOperations", Arguments.fromList(pdfOperations.sorted()))
     }
   }
 }

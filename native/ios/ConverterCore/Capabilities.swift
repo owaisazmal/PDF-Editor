@@ -18,11 +18,19 @@ public enum Capabilities {
     public struct Report: Sendable {
         public let decode: [String]
         public let encode: [String]
+        public let pdfOperations: [String]
 
         public var dictionaryRepresentation: [String: Any] {
-            ["decode": decode, "encode": encode]
+            ["decode": decode, "encode": encode, "pdfOperations": pdfOperations]
         }
     }
+
+    /// PDFKit is a complete object-level PDF implementation, so every operation the
+    /// engine defines is available on every supported iOS version. Android is where this
+    /// list gets shorter.
+    private static let pdfOperations = [
+        "inspect", "render", "compose", "compress", "merge", "split", "edit", "unlock",
+    ]
 
     public static func current() -> Report {
         let readable = Set((CGImageSourceCopyTypeIdentifiers() as? [String] ?? []).map { $0.lowercased() })
@@ -56,7 +64,11 @@ public enum Capabilities {
             }
         }
 
-        return Report(decode: decode.sorted(), encode: encode.sorted())
+        return Report(
+            decode: decode.sorted(),
+            encode: encode.sorted(),
+            pdfOperations: pdfOperations
+        )
     }
 
     /// Every UTI that could stand for this format. ImageIO reports the concrete system

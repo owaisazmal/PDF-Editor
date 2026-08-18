@@ -6,6 +6,8 @@ export type RootStackParamList = {
   Convert: { taskId: string };
   Batch: { taskId: string };
   Options: { taskId: string };
+  /** Every PDF task shares one screen; the id decides which options it shows. */
+  Pdf: { taskId: string };
 };
 
 declare global {

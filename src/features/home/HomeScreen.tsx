@@ -11,6 +11,7 @@ import { fileGateway } from '@/native';
 import { useBatchStore } from '@/store/batch';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
+import { usePdfStore } from '@/store/pdf';
 import { useTheme } from '@/theme';
 import {
   CONVERSION_TASKS,
@@ -19,6 +20,12 @@ import {
   type ConversionTask,
 } from './tasks';
 import type { RootStackParamList } from '@/navigation/types';
+
+/**
+ * One list for both platforms: iOS keeps the UTI, Android keeps the MIME type, and each
+ * drops the identifier it does not recognise rather than failing on it.
+ */
+const PDF_PICKER_TYPES = ['com.adobe.pdf', 'application/pdf'];
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -75,14 +82,38 @@ export function HomeScreen({ navigation }: Props) {
       setBusyTaskId(task.id);
       setPicking();
       try {
-        // 0 is unlimited. The batch is the normal case; a single file is just the
-        // smallest one, and it gets the detail screen because there is room to show
-        // before-and-after properly.
-        const picked = await fileGateway.pickPhotos(0);
+        // A PDF is never in the photo library, so a PDF task opens the document picker.
+        // Composing one is the exception: its inputs are photos.
+        const picked =
+          task.picker === 'documents'
+            ? await fileGateway.pickDocuments(PDF_PICKER_TYPES, true)
+            : // 0 is unlimited. The batch is the normal case; a single file is just the
+              // smallest one, and it gets the detail screen because there is room to
+              // show before-and-after properly.
+              await fileGateway.pickPhotos(0);
+
         const first = picked[0];
         if (!first) {
           // The user backed out of the picker. Not an error; just nothing to do.
           useConversionStore.getState().reset();
+          return;
+        }
+
+        if (task.kind === 'pdf') {
+          if (task.needsMultiple && picked.length < 2) {
+            // Said here rather than at the end: a merge of one document is not an error
+            // the engine should have to report, and the user has not lost any work yet.
+            fail({
+              code: 'unknown',
+              message: 'Merging needs at least two PDFs. Pick another and try again.',
+            });
+            return;
+          }
+          // Seeded here and inspected by the screen, so a password prompt appears over
+          // the screen it belongs to rather than over the home grid.
+          usePdfStore.getState().reset();
+          usePdfStore.setState({ sources: picked, status: 'idle' });
+          navigation.navigate('Pdf', { taskId: task.id });
           return;
         }
 

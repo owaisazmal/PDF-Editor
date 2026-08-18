@@ -21,6 +21,7 @@ import { BatchScreen } from '@/features/batch/BatchScreen';
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { OptionsScreen } from '@/features/options/OptionsScreen';
+import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { ThemeProvider, useTheme, colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -62,6 +63,7 @@ function Navigation() {
         <Stack.Screen name="Convert" component={ConvertScreen} />
         <Stack.Screen name="Batch" component={BatchScreen} />
         <Stack.Screen name="Options" component={OptionsScreen} />
+        <Stack.Screen name="Pdf" component={PdfScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

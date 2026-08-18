@@ -94,14 +94,47 @@ export function Slider({
    * the view's current props at gesture time — so closing over this render's `value`
    * and callbacks is both correct and simpler than keeping a mirror of them in refs
    * that then has to be written during render.
+   *
+   * Nothing changes on touch-down, and that is deliberate. This control lives inside a
+   * scrolling screen, and setting the value in `onPanResponderGrant` meant that merely
+   * resting a finger on the track while starting to scroll moved the slider — a swipe
+   * past the margin control silently changed the margin. The value now moves only once
+   * the gesture is clearly horizontal, or on release if the finger never travelled,
+   * which keeps tap-to-set working without hijacking a scroll.
    */
   const panHandlers = PanResponder.create({
     onStartShouldSetPanResponder: () => !disabled,
-    onMoveShouldSetPanResponder: () => !disabled,
-    onPanResponderGrant: (event) => onChange(valueFromX(event.nativeEvent.pageX - trackPageX, value)),
-    onPanResponderMove: (_event, gesture) => onChange(valueFromX(gesture.moveX - trackPageX, value)),
-    onPanResponderRelease: () => onCommit?.(value),
-    onPanResponderTerminate: () => onCommit?.(value),
+    // A vertical drag belongs to the ScrollView, not to this.
+    onMoveShouldSetPanResponder: (_event, pan) =>
+      !disabled && Math.abs(pan.dx) > Math.abs(pan.dy),
+    // Granted so a tap can be recognised on release; the ScrollView is still free to
+    // take the gesture back, and by then nothing has been changed.
+    onPanResponderTerminationRequest: () => true,
+    // Deliberately empty. Whether this is a drag or a tap is not knowable yet, and
+    // guessing is what moved the value during a scroll.
+    onPanResponderGrant: () => {},
+    onPanResponderMove: (_event, pan) => {
+      // `dx` accumulates from where the finger landed, so this needs no flag to
+      // remember what kind of gesture it is — which matters, because a flag would have
+      // to be a ref read from a function built during render.
+      if (Math.abs(pan.dx) <= TAP_SLOP) return;
+      onChange(valueFromX(pan.moveX - trackPageX, value));
+    },
+    onPanResponderRelease: (event, pan) => {
+      if (Math.abs(pan.dx) <= TAP_SLOP) {
+        // The finger never travelled: a tap on the track, so jump to where it landed.
+        const tapped = valueFromX(event.nativeEvent.pageX - trackPageX, value);
+        onChange(tapped);
+        onCommit?.(tapped);
+        return;
+      }
+      onCommit?.(value);
+    },
+    // The ScrollView took the gesture back. If nothing moved there is nothing to
+    // commit, and if something did, the value is already where the finger left it.
+    onPanResponderTerminate: (_event, pan) => {
+      if (Math.abs(pan.dx) > TAP_SLOP) onCommit?.(value);
+    },
   }).panHandlers;
 
   const onLayout = useCallback((event: LayoutChangeEvent) => {
@@ -179,6 +212,13 @@ export function Slider({
 }
 
 const THUMB = 28;
+
+/**
+ * How far sideways a finger travels before the gesture counts as a drag rather than a
+ * tap. Small enough that a deliberate drag feels immediate, large enough that the wobble
+ * in a tap does not move the value.
+ */
+const TAP_SLOP = 3;
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
