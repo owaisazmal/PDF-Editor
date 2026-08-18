@@ -125,6 +125,76 @@ RCT_EXPORT_MODULE()
 
 @end
 
+#pragma mark - NativeJobQueue
+
+// Inherits the generated base class, which supplies the emitOn… methods and holds the
+// event callback codegen installs.
+@interface NativeJobQueue : NativeJobQueueSpecBase <NativeJobQueueSpec>
+@end
+
+@implementation NativeJobQueue
+
+RCT_EXPORT_MODULE()
+
+// The queue runs its own operations; nothing here needs the main queue.
++ (BOOL)requiresMainQueueSetup { return NO; }
+
+- (instancetype)init
+{
+  if (self = [super init]) {
+    // Weak, because the queue is a process-wide singleton that outlives this module.
+    // A strong reference here would keep a torn-down module alive on every reload.
+    __weak NativeJobQueue *weakSelf = self;
+    [ConverterCoreBridge
+        installJobQueueHandlersWithProgress:^(NSDictionary *value) { [weakSelf emitOnProgress:value]; }
+                               fileComplete:^(NSDictionary *value) { [weakSelf emitOnFileComplete:value]; }
+                                 fileFailed:^(NSDictionary *value) { [weakSelf emitOnFileFailed:value]; }
+                                jobComplete:^(NSDictionary *value) { [weakSelf emitOnJobComplete:value]; }];
+  }
+  return self;
+}
+
+- (void)submit:(NSDictionary *)spec
+       resolve:(RCTPromiseResolveBlock)resolve
+        reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge submitJob:spec resolve:resolve reject:reject];
+}
+
+- (void)cancel:(NSString *)jobId
+       resolve:(RCTPromiseResolveBlock)resolve
+        reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge cancelJob:jobId resolve:resolve reject:reject];
+}
+
+- (void)getState:(NSString *)jobId
+         resolve:(RCTPromiseResolveBlock)resolve
+          reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge jobState:jobId resolve:resolve reject:reject];
+}
+
+- (void)retryFailed:(NSString *)jobId
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge retryFailed:jobId resolve:resolve reject:reject];
+}
+
+- (void)release:(NSString *)jobId
+{
+  [ConverterCoreBridge releaseJob:jobId];
+}
+
+- (std::shared_ptr<facebook::react::TurboModule>)
+    getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
+{
+  return std::make_shared<facebook::react::NativeJobQueueSpecJSI>(params);
+}
+
+@end
+
 #pragma mark - NativeFileGateway
 
 @interface NativeFileGateway : NSObject <NativeFileGatewaySpec>

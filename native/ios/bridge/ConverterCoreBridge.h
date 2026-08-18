@@ -64,6 +64,31 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (void)cancelAll;
 
+#pragma mark - Job queue
+
++ (void)installJobQueueHandlersWithProgress:(void (^)(NSDictionary *))progress
+                               fileComplete:(void (^)(NSDictionary *))fileComplete
+                                 fileFailed:(void (^)(NSDictionary *))fileFailed
+                                jobComplete:(void (^)(NSDictionary *))jobComplete;
+
++ (void)submitJob:(NSDictionary *)spec
+          resolve:(RCTPromiseResolveBlock)resolve
+           reject:(RCTPromiseRejectBlock)reject;
+
++ (void)cancelJob:(NSString *)jobId
+          resolve:(RCTPromiseResolveBlock)resolve
+           reject:(RCTPromiseRejectBlock)reject;
+
++ (void)jobState:(NSString *)jobId
+         resolve:(RCTPromiseResolveBlock)resolve
+          reject:(RCTPromiseRejectBlock)reject;
+
++ (void)retryFailed:(NSString *)jobId
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject;
+
++ (void)releaseJob:(NSString *)jobId;
+
 #pragma mark - File gateway
 
 + (void)pickPhotos:(double)limit
