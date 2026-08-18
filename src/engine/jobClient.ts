@@ -180,14 +180,24 @@ export const jobClient = {
   /**
    * Whether a running batch can show its progress while the app is in the background.
    * Always `granted` on iOS, where nothing is asked for.
+   *
+   * Both of these check that the method exists before calling it. A JavaScript bundle
+   * reloads instantly while the native binary does not, so during development the JS can
+   * be a build ahead of the module it is talking to — and the failure mode was calling
+   * `undefined` from a promise nobody was awaiting, which surfaced as an unhandled
+   * rejection over a running conversion.
    */
   async backgroundProgressStatus(): Promise<BackgroundProgressStatus> {
-    return narrowBackgroundProgress(await required().backgroundProgressStatus());
+    const native = required();
+    if (typeof native.backgroundProgressStatus !== 'function') return 'blocked';
+    return narrowBackgroundProgress(await native.backgroundProgressStatus());
   },
 
   /** Asks once. A previous refusal resolves `blocked` without a dialog. */
   async requestBackgroundProgress(): Promise<BackgroundProgressStatus> {
-    return narrowBackgroundProgress(await required().requestBackgroundProgress());
+    const native = required();
+    if (typeof native.requestBackgroundProgress !== 'function') return 'blocked';
+    return narrowBackgroundProgress(await native.requestBackgroundProgress());
   },
 
   release: (jobId: string): void => {

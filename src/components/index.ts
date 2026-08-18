@@ -12,3 +12,5 @@ export { FileRow, type FileRowProps, type FileRowState } from './FileRow';
 export { Slider, type SliderProps } from './Slider';
 export { SegmentedControl, type SegmentedControlProps, type Segment } from './SegmentedControl';
 export { Toggle, type ToggleProps } from './Toggle';
+export { TextField, type TextFieldProps } from './TextField';
+export { ChipRow, type ChipRowProps, type Chip } from './ChipRow';

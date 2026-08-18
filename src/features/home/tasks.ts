@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import type { FormatId } from '@/engine/formats';
-import { canConvert, type CapabilitiesState } from '@/store/capabilities';
+import { canConvert, canDoPdf, type CapabilitiesState, type PdfOperation } from '@/store/capabilities';
 
 /**
  * The home screen's entry points.
@@ -23,13 +23,30 @@ export type ConversionTask = {
   to: string;
   sourceFormats: FormatId[];
   targetFormat: FormatId;
-  phase: 1 | 2 | 3;
+  /** The brief defines six; the union is all of them so a later tile needs no edit here. */
+  phase: 1 | 2 | 3 | 4 | 5 | 6;
   /**
    * True when the task is only meaningful with settings the user chooses — a
    * "Compress Image" that silently picks a quality is not compressing to anything in
    * particular. These stay closed until the transform options screen exists.
    */
   needsOptions?: boolean;
+  /**
+   * Which engine runs it. PDF tasks take a different route through the app: a document
+   * picker rather than a photo picker, their own options, and results that are documents
+   * or page images rather than converted files.
+   */
+  kind?: 'raster' | 'pdf';
+  /**
+   * The PDF capability this task needs. Checked separately from the format matrix
+   * because "can read PDF" and "can merge PDFs" are different questions, and Android
+   * answers them differently.
+   */
+  pdfOperation?: PdfOperation;
+  /** Where the input comes from. PDFs are never in the photo library. */
+  picker?: 'photos' | 'documents';
+  /** True when the task is meaningless with one file. */
+  needsMultiple?: boolean;
 };
 
 export const CONVERSION_TASKS: readonly ConversionTask[] = [
@@ -84,6 +101,9 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
     targetFormat: 'pdf',
     phase: 3,
+    kind: 'pdf',
+    pdfOperation: 'compose',
+    picker: 'photos',
   },
   {
     id: 'pdf-to-jpg',
@@ -94,6 +114,9 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     sourceFormats: ['pdf'],
     targetFormat: 'jpeg',
     phase: 3,
+    kind: 'pdf',
+    pdfOperation: 'render',
+    picker: 'documents',
   },
   {
     id: 'merge-pdf',
@@ -104,6 +127,36 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     sourceFormats: ['pdf'],
     targetFormat: 'pdf',
     phase: 3,
+    kind: 'pdf',
+    pdfOperation: 'merge',
+    picker: 'documents',
+    needsMultiple: true,
+  },
+  {
+    id: 'split-pdf',
+    title: 'Split PDF',
+    subtitle: 'Pull out pages, or break it up',
+    from: 'PDF',
+    to: 'PDF',
+    sourceFormats: ['pdf'],
+    targetFormat: 'pdf',
+    phase: 3,
+    kind: 'pdf',
+    pdfOperation: 'split',
+    picker: 'documents',
+  },
+  {
+    id: 'compress-pdf',
+    title: 'Compress PDF',
+    subtitle: 'Smaller file, at a cost worth knowing',
+    from: 'PDF',
+    to: 'PDF',
+    sourceFormats: ['pdf'],
+    targetFormat: 'pdf',
+    phase: 3,
+    kind: 'pdf',
+    pdfOperation: 'compress',
+    picker: 'documents',
   },
   {
     id: 'png-to-jpg',
@@ -118,7 +171,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
 ];
 
 /** The phase this build implements. Bumped as each phase lands. */
-export const CURRENT_PHASE = 2 as const;
+export const CURRENT_PHASE = 3 as const;
 
 /** Set once the transform options screen exists; until then, see `needsOptions`. */
 export const HAS_TRANSFORM_OPTIONS = true;
@@ -139,14 +192,27 @@ export const isTaskAvailable = (task: ConversionTask): boolean => {
 /** Whether the device can actually perform it. */
 export const isTaskSupported = (
   task: ConversionTask,
-  capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'isLoaded'>,
-): boolean => canConvert(capabilities, task.sourceFormats, task.targetFormat);
+  capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'pdfOperations' | 'isLoaded'>,
+): boolean => {
+  if (!canConvert(capabilities, task.sourceFormats, task.targetFormat)) return false;
+  // A PDF task can clear the format matrix and still be impossible: Android reads and
+  // writes PDF but cannot move a page between two of them.
+  if (task.pdfOperation && !canDoPdf(capabilities, task.pdfOperation)) return false;
+  return true;
+};
 
 /** Why a tile is closed, in the user's terms. Null when it is open. */
 export function unavailableReason(
   task: ConversionTask,
-  capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'isLoaded'>,
+  capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'pdfOperations' | 'isLoaded'>,
 ): string | null {
+  // Checked before the device reason, because it is a different claim. "Not supported on
+  // this device" says the hardware or OS cannot; a missing PDF operation says this build
+  // cannot, on this platform. Telling a user the first when the second is true is how a
+  // bug report gets filed against a phone that is working fine.
+  if (task.pdfOperation && !canDoPdf(capabilities, task.pdfOperation)) {
+    return 'Not available on this platform yet';
+  }
   if (!isTaskSupported(task, capabilities)) return 'Not supported on this device';
   if (task.needsOptions && !HAS_TRANSFORM_OPTIONS) return 'Needs the settings screen';
   if (task.phase > CURRENT_PHASE) return 'Coming in a later build';
@@ -167,7 +233,7 @@ export function unavailableReason(
 export function isTileInteractive(
   task: ConversionTask,
   busyTaskId: string | null,
-  capabilities?: Pick<CapabilitiesState, 'decode' | 'encode' | 'isLoaded'>,
+  capabilities?: Pick<CapabilitiesState, 'decode' | 'encode' | 'pdfOperations' | 'isLoaded'>,
 ): boolean {
   if (busyTaskId === task.id) return false;
   if (!isTaskAvailable(task)) return false;

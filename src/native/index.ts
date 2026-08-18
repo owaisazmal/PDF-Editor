@@ -81,12 +81,22 @@ export const formatDetector = {
     return normaliseDetection(await native.detectBase64(base64, filename));
   },
 
-  async supportedFormats(): Promise<{ decode: FormatId[]; encode: FormatId[] }> {
+  async supportedFormats(): Promise<{
+    decode: FormatId[];
+    encode: FormatId[];
+    pdfOperations: string[];
+  }> {
     const native = require_(NativeFormatDetector, 'NativeFormatDetector');
     const raw = await native.supportedFormats();
     const keep = (list: string[]): FormatId[] =>
       list.map(asFormatId).filter((id): id is FormatId => id !== null);
-    return { decode: keep(raw.decode), encode: keep(raw.encode) };
+    return {
+      decode: keep(raw.decode),
+      encode: keep(raw.encode),
+      // Left as plain strings here; the store is what knows which operation names this
+      // build has code paths for, and filters against that.
+      pdfOperations: Array.isArray(raw.pdfOperations) ? raw.pdfOperations : [],
+    };
   },
 };
 

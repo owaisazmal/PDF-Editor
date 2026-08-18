@@ -210,6 +210,31 @@ for each. Everything not listed is natively supported on both platforms.
 | **PDF compress preserving text** | ✗ PDFKit cannot rewrite embedded image streams in place | ✗ | The brief specifies rasterise + recompress, which works but makes text non-selectable and unsearchable. I will warn in the UI before applying, and offer "images only" vs "flatten everything" once page-content inspection lands. |
 | **Background conversion** | `beginBackgroundTask` ✓ no permission, no UI | Foreground service, which Android requires to post a notification | Implemented. See §3.1 — this is the app's only runtime permission, and refusing it costs the notification, not the conversion. |
 
+### 3.2 Merge, split and page editing are iOS-only for now
+
+PDFKit is a complete object-level PDF implementation, so on iOS these operations copy
+page objects: text stays selectable, searchable and readable by a screen reader, and
+pulling one page out of a 40 MB scan does not rasterise the other 399.
+
+Android provides two halves and no middle. `PdfRenderer` reads a document by painting
+pages into bitmaps; `PdfDocument` writes one by recording canvas drawing. Nothing exposes
+a page object, so the only implementation available with platform APIs alone would repaint
+every page — turning a 2 MB text document into a 40 MB one whose text can no longer be
+selected, searched, or read aloud. These operations therefore **refuse** on Android rather
+than silently producing that, and the capability matrix closes the tiles with "Not
+available on this platform yet" rather than blaming the device.
+
+Everything else is complete on both: inspection, page rendering at a chosen density,
+composition from images, and compression — which is defined as rasterise-and-re-encode on
+both platforms anyway, so Android loses nothing there.
+
+**The permissive way to close the gap is Apache PDFBox** (`pdfbox-android`, Apache-2.0,
+~5 MB of Java bytecode with no native code). It would deliver merge, split, page editing
+*and* password unlock on every Android version rather than only Android 15+. The
+copyleft alternatives the brief rules out — MuPDF, Poppler, Ghostscript — are exactly
+what most competitors use and exactly why most competitors cannot ship under a permissive
+licence. This is the same trade as D3, and needs the same decision.
+
 ### 3.1 The one runtime permission
 
 Android suspends a process shortly after the user switches away, which stops a long batch dead.

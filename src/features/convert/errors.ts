@@ -40,3 +40,18 @@ const MESSAGES: Record<string, string> = {
 export function errorMessage(code: string): string {
   return MESSAGES[code] ?? MESSAGES[ConversionErrorCode.UNKNOWN]!;
 }
+
+/**
+ * The message for a rejected native call.
+ *
+ * A TurboModule rejection arrives as an `Error` carrying the code it was rejected with,
+ * so the translated message above is available. A JavaScript error thrown before the
+ * call ever crossed has no code, and its own message — a zod validation failure, say —
+ * is the more useful thing to show than a generic apology.
+ */
+export function errorMessageFor(error: unknown): string {
+  const code = (error as { code?: unknown } | null | undefined)?.code;
+  if (typeof code === 'string' && code in MESSAGES) return errorMessage(code);
+  if (error instanceof Error && error.message.length > 0) return error.message;
+  return errorMessage(ConversionErrorCode.UNKNOWN);
+}

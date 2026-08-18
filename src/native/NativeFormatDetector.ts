@@ -56,7 +56,17 @@ export interface Spec extends TurboModule {
    * `{ decode: string[], encode: string[] }`. The engine's capability matrix is
    * built from this at startup rather than from hardcoded version checks.
    */
-  supportedFormats(): Promise<{ decode: string[]; encode: string[] }>;
+  supportedFormats(): Promise<{
+    decode: string[];
+    encode: string[];
+    /**
+     * Which PDF operations this platform can perform. Reported separately from the
+     * format lists because "can read PDF" and "can merge PDFs" are different questions:
+     * Android can do the first and not the second, and a matrix built from formats alone
+     * would offer a merge that cannot work.
+     */
+    pdfOperations: string[];
+  }>;
 }
 
 // `get` rather than `getEnforcing`: importing a spec must not throw in Jest or on a

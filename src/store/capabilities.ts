@@ -18,9 +18,29 @@ import { formatDetector, isNativeAvailable } from '@/native';
  * Until the report arrives, `isLoaded` is false and callers should treat capability as
  * unknown rather than absent, so the grid does not flash "unsupported" on launch.
  */
+/**
+ * The PDF operations a platform may or may not offer.
+ *
+ * Kept separate from the format lists because "can read PDF" and "can merge PDFs" are
+ * different questions. Android answers yes to the first and no to the second, and a
+ * matrix built from formats alone would offer a merge that cannot work.
+ */
+export const PDF_OPERATIONS = [
+  'inspect',
+  'render',
+  'compose',
+  'compress',
+  'merge',
+  'split',
+  'edit',
+  'unlock',
+] as const;
+export type PdfOperation = (typeof PDF_OPERATIONS)[number];
+
 export type CapabilitiesState = {
   decode: ReadonlySet<FormatId>;
   encode: ReadonlySet<FormatId>;
+  pdfOperations: ReadonlySet<PdfOperation>;
   isLoaded: boolean;
   /** Set when the report could not be fetched at all, as opposed to reporting nothing. */
   error: string | null;
@@ -31,6 +51,7 @@ export type CapabilitiesState = {
 export const useCapabilitiesStore = create<CapabilitiesState>((set) => ({
   decode: new Set<FormatId>(),
   encode: new Set<FormatId>(),
+  pdfOperations: new Set<PdfOperation>(),
   isLoaded: false,
   error: null,
 
@@ -46,6 +67,14 @@ export const useCapabilitiesStore = create<CapabilitiesState>((set) => ({
       set({
         decode: new Set(report.decode),
         encode: new Set(report.encode),
+        // Filtered rather than trusted: an operation name this build does not know is
+        // one it has no code path for, so treating it as available would offer a button
+        // that leads nowhere.
+        pdfOperations: new Set(
+          (report.pdfOperations ?? []).filter((operation): operation is PdfOperation =>
+            (PDF_OPERATIONS as readonly string[]).includes(operation),
+          ),
+        ),
         isLoaded: true,
         error: null,
       });
@@ -71,4 +100,19 @@ export function canConvert(
 
   if (!capabilities.encode.has(targetFormat)) return false;
   return sourceFormats.some((format) => capabilities.decode.has(format));
+}
+
+/**
+ * Whether a specific PDF operation is available here.
+ *
+ * Same optimism as `canConvert` before the report lands, and for the same reason: a tile
+ * that flashes "unsupported" on launch and then corrects itself reads as a broken app.
+ */
+export function canDoPdf(
+  capabilities: Pick<CapabilitiesState, 'pdfOperations' | 'isLoaded'>,
+  operation: PdfOperation,
+): boolean {
+  if (!capabilities.isLoaded) return true;
+  if (capabilities.pdfOperations.size === 0) return true;
+  return capabilities.pdfOperations.has(operation);
 }
