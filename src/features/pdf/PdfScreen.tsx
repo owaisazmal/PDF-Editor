@@ -473,7 +473,9 @@ export function PdfScreen({ route, navigation }: Props) {
                   key={source.uri}
                   name={`${index + 1}. ${source.displayName}`}
                   detail={formatBytes(source.byteSize)}
-                  state="pending"
+                  // These are inputs, not outputs, so they are only ever waiting or
+                  // finished — a merge that has happened should not still say WAITING.
+                  state={pdf.status === 'done' ? 'done' : 'pending'}
                 />
               ))}
             </View>

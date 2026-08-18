@@ -24,25 +24,32 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import androidx.exifinterface.media.ExifInterface
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.io.MemoryUsageSetting
+import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * PDF in both directions, plus the page utilities Android's platform APIs can express.
+ * PDF in both directions, plus the page utilities.
  *
- * Android gives two halves of a PDF implementation and no middle: `PdfRenderer` reads a
- * document by painting pages into bitmaps, and `PdfDocument` writes one by recording
- * canvas drawing. Neither offers access to page objects, so anything that needs to move a
- * page from one document to another without repainting it — merge, split, reorder — has
- * no platform answer. Those throw here rather than quietly rasterising, because a merge
- * that turns selectable text into photographs is a worse outcome than a merge that says
- * it cannot do it. See `docs/ARCHITECTURE.md` §3.2.
+ * Two engines, each doing what it is best at. Android's own `PdfRenderer` and
+ * `PdfDocument` paint pages and record canvas drawing, which is exactly right for
+ * rendering pages to images, composing a document from photos, and compressing one.
+ * Neither exposes a page object, so anything that has to move a page between documents
+ * without repainting it — merge, split, reorder — goes through **PDFBox** instead, which
+ * works on the page objects themselves. Text stays selectable, searchable and readable
+ * by a screen reader, and pulling one page out of a 40 MB scan does not rasterise the
+ * other 399.
  *
- * What is here is complete: inspection, page rendering at a chosen density, composition
- * from images, and compression — which is defined as rasterise-and-re-encode on both
- * platforms anyway, so Android loses nothing on that one.
+ * PDFBox also removes the password problem. `PdfRenderer` gained a password API only in
+ * Android 15; PDFBox decrypts on every version this app supports, so an encrypted
+ * document behaves the same on a five-year-old phone as on a new one.
  *
  * Mirrors `PdfEngine.swift`.
  */
@@ -52,59 +59,118 @@ public object PdfEngine {
   private const val MAX_DPI: Double = 600.0
   private const val MIN_DPI: Double = 36.0
 
+  /** Names every decrypted copy, so a stale one can be recognised and removed. */
+  private const val DECRYPTED_PREFIX: String = "unlocked-"
+
+  /** Beyond this a merge spills to temporary files rather than growing the heap. */
+  private const val MERGE_HEAP_BYTES: Long = 32L * 1024 * 1024
+
   // ------------------------------------------------------------------- sessions --
 
   /**
-   * A verified password, held for as long as the user is working with the document.
+   * An unlocked document, held for as long as the user is working with it.
    *
-   * iOS can keep the unlocked `PDFDocument` itself; Android cannot hold a `PdfRenderer`
-   * open across calls, because it owns a file descriptor and permits only one page at a
-   * time. So what is retained here is the password, in memory, for the lifetime of the
-   * session. It is never written to disk, to the history store, or to a log, and
-   * `closeSession` drops it.
+   * What is retained is a **decrypted copy in the app's own cache directory**, not the
+   * password. That is worth being plain about, because it is a real trade: a
+   * password-protected file the user opens here exists in plaintext, in storage no other
+   * app can read without root, until the session closes. It buys the thing that matters —
+   * every operation downstream works on an ordinary PDF, on every Android version, with
+   * no special case — and the copy is deleted when the session closes and again on the
+   * next launch, so a crash cannot leave one behind indefinitely.
+   *
+   * The password itself is used once, to decrypt, and never stored anywhere.
    */
   private val sessions = ConcurrentHashMap<String, Session>()
 
-  private data class Session(val uri: String, val password: String)
+  private data class Session(val uri: String, val decrypted: File)
+
+  private val resourcesReady = AtomicBoolean(false)
+
+  /** PDFBox ships its font metrics as Android assets and has to be pointed at them. */
+  private fun prepare(context: Context) {
+    if (resourcesReady.compareAndSet(false, true)) {
+      PDFBoxResourceLoader.init(context.applicationContext)
+      purgeDecryptedCopies(context)
+    }
+  }
+
+  /**
+   * Removes decrypted copies left behind by a previous run.
+   *
+   * Called once per process rather than on a timer: if the app died mid-session, this is
+   * the first moment it can tidy up, and it is also the last moment anything could still
+   * be using them.
+   */
+  private fun purgeDecryptedCopies(context: Context) {
+    FileGateway.temporaryDirectory(context)
+      .listFiles { file -> file.name.startsWith(DECRYPTED_PREFIX) }
+      ?.forEach { it.delete() }
+  }
 
   @JvmStatic
-  public fun unlock(file: File, password: String): String {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-      throw ConversionException(
-        "passwordRequired",
-        "Opening password-protected PDFs needs Android 15 or newer on this device.",
-      )
+  public fun unlock(context: Context, file: File, password: String): String {
+    prepare(context)
+
+    val decrypted = File(
+      FileGateway.temporaryDirectory(context),
+      "$DECRYPTED_PREFIX${UUID.randomUUID()}.pdf",
+    )
+
+    try {
+      PDDocument.load(file, password).use { document ->
+        if (!document.isEncrypted) {
+          // Not encrypted after all — a session would be a decrypted copy of a document
+          // that was never locked, which is a plaintext file for nothing.
+          return handleFor(file, file)
+        }
+        document.isAllSecurityToBeRemoved = true
+        document.save(decrypted)
+      }
+    } catch (error: InvalidPasswordException) {
+      decrypted.delete()
+      throw ConversionException.wrongPassword()
+    } catch (error: IOException) {
+      decrypted.delete()
+      throw ConversionException.corrupt(file.name)
     }
 
-    // Opened once purely to verify: a wrong password throws before any work is queued,
-    // so the user finds out at the prompt rather than at the end of a long export.
-    open(file, password).use { }
+    return handleFor(file, decrypted)
+  }
 
+  private fun handleFor(original: File, usable: File): String {
     val handle = "pdf-" + UUID.randomUUID()
-    sessions[handle] = Session(FileGateway.fileUri(file), password)
+    sessions[handle] = Session(FileGateway.fileUri(original), usable)
     return handle
   }
 
   @JvmStatic
   public fun closeSession(handle: String) {
-    sessions.remove(handle)
-  }
-
-  /** The password for a file the user has already unlocked, by handle or by path. */
-  private fun password(file: File, sessionHandle: String): String {
-    sessions[sessionHandle]?.let { return it.password }
-    val uri = FileGateway.fileUri(file)
-    return sessions.values.firstOrNull { it.uri == uri }?.password ?: ""
+    val session = sessions.remove(handle) ?: return
+    // Only a copy we made is ours to delete; a session over an unencrypted file points
+    // at the user's own document.
+    if (session.decrypted.name.startsWith(DECRYPTED_PREFIX)) session.decrypted.delete()
   }
 
   /**
-   * The one way a document is opened.
+   * The file an operation should actually open.
    *
-   * `PdfRenderer` reports an encrypted file by throwing `SecurityException`, which is
-   * translated here into the two states the UI can act on: needs a password, or the
-   * password given was wrong.
+   * An unlocked session resolves to its decrypted copy, so nothing downstream — not
+   * `PdfRenderer`, not the merger — ever has to know the original was encrypted.
    */
-  private fun open(file: File, password: String = ""): PdfRenderer {
+  private fun resolve(file: File, sessionHandle: String = ""): File {
+    sessions[sessionHandle]?.let { return it.decrypted }
+    val uri = FileGateway.fileUri(file)
+    return sessions.values.firstOrNull { it.uri == uri }?.decrypted ?: file
+  }
+
+  /**
+   * Opens a document for painting.
+   *
+   * By the time anything reaches here the file is unencrypted — an encrypted one was
+   * decrypted into a session copy first — so a `SecurityException` means that step was
+   * skipped, and is reported as a document that still needs a password.
+   */
+  private fun open(file: File): PdfRenderer {
     if (!file.exists()) throw ConversionException.unreadable(file.name)
 
     val descriptor = try {
@@ -114,20 +180,24 @@ public object PdfEngine {
     }
 
     return try {
-      if (password.isNotEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-        PdfRenderer(descriptor, android.graphics.pdf.LoadParams.Builder().setPassword(password).build())
-      } else {
-        PdfRenderer(descriptor)
-      }
+      PdfRenderer(descriptor)
     } catch (error: SecurityException) {
       descriptor.close()
-      throw if (password.isEmpty()) {
-        ConversionException.passwordRequired()
-      } else {
-        ConversionException.wrongPassword()
-      }
+      throw ConversionException.passwordRequired()
     } catch (error: IOException) {
       descriptor.close()
+      throw ConversionException.corrupt(file.name)
+    }
+  }
+
+  /** Opens a document for page-level work, through the session copy when there is one. */
+  private fun load(context: Context, file: File, sessionHandle: String = ""): PDDocument {
+    prepare(context)
+    return try {
+      PDDocument.load(resolve(file, sessionHandle))
+    } catch (error: InvalidPasswordException) {
+      throw ConversionException.passwordRequired()
+    } catch (error: IOException) {
       throw ConversionException.corrupt(file.name)
     }
   }
@@ -137,47 +207,59 @@ public object PdfEngine {
   /**
    * Page count, page sizes, and whether a password is required.
    *
-   * Safe on a locked document: the encryption state is what the UI needs in order to
-   * decide whether to ask for a password, and it is readable without one.
+   * Read through PDFBox rather than `PdfRenderer`, which cannot open an encrypted file
+   * at all below Android 15 — and the encryption state is the one thing the UI must know
+   * before it can decide whether to ask for a password.
    */
   @JvmStatic
-  public fun inspect(file: File): WritableMap {
+  public fun inspect(context: Context, file: File): WritableMap {
+    prepare(context)
+
     val result = Arguments.createMap()
     result.putString("uri", FileGateway.fileUri(file))
-    result.putString("title", "")
 
-    val known = password(file, "")
+    val usable = resolve(file)
+    val unlocked = usable !== file
 
-    try {
-      open(file, known).use { renderer ->
-        result.putInt("pageCount", renderer.pageCount)
-        result.putBoolean("isEncrypted", known.isNotEmpty())
-        result.putBoolean("needsPassword", false)
-
-        val pages = Arguments.createArray()
-        for (index in 0 until renderer.pageCount) {
-          // Only one page may be open at a time, so this cannot be hoisted.
-          renderer.openPage(index).use { page ->
-            pages.pushMap(
-              Arguments.createMap().apply {
-                putInt("index", index)
-                putDouble("widthPoints", page.width.toDouble())
-                putDouble("heightPoints", page.height.toDouble())
-                // PdfRenderer applies page rotation when it paints, so by the time a
-                // page reaches us it is already upright and has none left to report.
-                putInt("rotation", 0)
-              },
-            )
-          }
-        }
-        result.putArray("pages", pages)
-      }
-    } catch (error: ConversionException) {
-      if (error.code != "passwordRequired") throw error
+    val document = try {
+      PDDocument.load(usable)
+    } catch (error: InvalidPasswordException) {
+      // Locked and not yet unlocked. Everything the prompt needs, and nothing it does not.
       result.putInt("pageCount", 0)
       result.putBoolean("isEncrypted", true)
       result.putBoolean("needsPassword", true)
       result.putArray("pages", Arguments.createArray())
+      result.putString("title", "")
+      return result
+    } catch (error: IOException) {
+      throw ConversionException.corrupt(file.name)
+    }
+
+    document.use { pdf ->
+      result.putInt("pageCount", pdf.numberOfPages)
+      result.putBoolean("isEncrypted", unlocked || pdf.isEncrypted)
+      result.putBoolean("needsPassword", false)
+      result.putString("title", pdf.documentInformation?.title ?: "")
+
+      val pages = Arguments.createArray()
+      for (index in 0 until pdf.numberOfPages) {
+        val page = pdf.getPage(index)
+        val box = page.mediaBox
+        val rotation = ((page.rotation % 360) + 360) % 360
+        // Reported the way the page will actually be painted. A page rotated a quarter
+        // turn is taller than it is wide once drawn, and a UI told otherwise would offer
+        // the wrong paper size for it.
+        val quarterTurned = rotation == 90 || rotation == 270
+        pages.pushMap(
+          Arguments.createMap().apply {
+            putInt("index", index)
+            putDouble("widthPoints", (if (quarterTurned) box.height else box.width).toDouble())
+            putDouble("heightPoints", (if (quarterTurned) box.width else box.height).toDouble())
+            putInt("rotation", rotation)
+          },
+        )
+      }
+      result.putArray("pages", pages)
     }
 
     return result
@@ -231,7 +313,7 @@ public object PdfEngine {
 
     val results = Arguments.createArray()
 
-    open(file, password(file, sessionHandle)).use { renderer ->
+    open(resolve(file, sessionHandle)).use { renderer ->
       val indices = PdfPageGeometry.expand(options.pageRanges, renderer.pageCount)
       if (indices.isEmpty()) throw ConversionException.corrupt("No pages matched that range.")
 
@@ -453,7 +535,7 @@ public object PdfEngine {
     var pageNumber = 0
 
     try {
-      open(file, password(file, sessionHandle)).use { renderer ->
+      open(resolve(file, sessionHandle)).use { renderer ->
         if (renderer.pageCount == 0) throw ConversionException.corrupt(file.name)
 
         for (index in 0 until renderer.pageCount) {
@@ -524,35 +606,176 @@ public object PdfEngine {
     return output
   }
 
-  // --------------------------------------------------- not expressible on Android --
+  // ------------------------------------------------------------- page-level work --
+  //
+  // Everything below moves page objects between documents rather than repainting them.
+  // That is the whole reason PDFBox is here: text stays selectable, searchable and
+  // readable by a screen reader, links survive, and a page pulled out of a 40 MB scan
+  // costs the size of that page rather than a fresh rasterisation of the whole file.
 
   /**
-   * Merge, split and page editing all need one thing Android does not provide: the
-   * ability to copy a page object from one document into another. `PdfDocument` can only
-   * record canvas drawing, so the only implementation available here would repaint each
-   * page as a bitmap — turning a 2 MB text document into a 40 MB one whose text can no
-   * longer be selected, searched, or read aloud.
+   * Concatenates documents.
    *
-   * That is a worse outcome than a clear refusal, so these refuse. The capability matrix
-   * reports them closed on Android, and the UI dims the tiles with this reason rather
-   * than blaming the device.
+   * `PDFMergerUtility` rather than a hand-rolled page copy, because merging is where the
+   * details live: shared resources, name collisions between the two documents' object
+   * trees, and outlines that have to be rebuilt. Its scratch space is capped so a merge
+   * of several large scans spills to disk instead of growing the heap until it dies.
    */
-  private fun needsObjectLevelAccess(operation: String): Nothing = throw ConversionException(
-    "unsupportedTarget",
-    "$operation is not available on Android yet — it needs page-level PDF editing that " +
-      "the platform does not provide.",
-  )
-
   @JvmStatic
-  public fun merge(inputs: List<File>, output: File): WritableMap = needsObjectLevelAccess("Merging PDFs")
+  public fun merge(context: Context, inputs: List<File>, output: File): WritableMap {
+    prepare(context)
+    val started = System.nanoTime()
+    if (inputs.size < 2) throw ConversionException.corrupt("Merging needs at least two documents.")
 
-  @JvmStatic
-  public fun split(file: File, outputDirectory: File, options: ReadableMap?): WritableMap =
-    needsObjectLevelAccess("Splitting a PDF")
+    val temporary = File(output.parentFile, ".${UUID.randomUUID()}.pdf")
+    try {
+      val merger = PDFMergerUtility()
+      merger.destinationFileName = temporary.absolutePath
+      inputs.forEach { merger.addSource(resolve(it)) }
+      merger.mergeDocuments(MemoryUsageSetting.setupMixed(MERGE_HEAP_BYTES))
 
+      val pageCount = PDDocument.load(temporary).use { it.numberOfPages }
+      moveIntoPlace(temporary, output)
+      return result(output, pageCount, started)
+    } catch (error: InvalidPasswordException) {
+      temporary.delete()
+      throw ConversionException.passwordRequired()
+    } catch (error: IOException) {
+      temporary.delete()
+      throw ConversionException.diskFull()
+    }
+  }
+
+  /**
+   * Splits by explicit ranges, or every N pages when none are given.
+   *
+   * `1-3,7,9-` produces three documents, in the order written. Ranges are how people
+   * think about pulling a chapter out; every-N is how they think about breaking a scan
+   * into single sheets.
+   */
   @JvmStatic
-  public fun editPages(file: File, output: File, operations: ReadableMap?): WritableMap =
-    needsObjectLevelAccess("Editing PDF pages")
+  public fun split(
+    context: Context,
+    file: File,
+    outputDirectory: File,
+    options: ReadableMap?,
+  ): WritableMap {
+    val started = System.nanoTime()
+    val ranges = options.string("ranges")
+    val everyN = max(options.int("everyNPages", 1), 1)
+    val stem = options.string("namePrefix").ifEmpty { file.nameWithoutExtension }
+
+    val outputs = Arguments.createArray()
+
+    load(context, file).use { source ->
+      if (source.numberOfPages == 0) throw ConversionException.corrupt(file.name)
+
+      val groups = if (ranges.isBlank()) {
+        (0 until source.numberOfPages).chunked(everyN)
+      } else {
+        ranges.split(",")
+          .map { PdfPageGeometry.expand(it, source.numberOfPages) }
+          .filter { it.isNotEmpty() }
+      }
+
+      if (groups.isEmpty()) throw ConversionException.corrupt("No pages matched that range.")
+
+      groups.forEachIndexed { position, pages ->
+        val part = PDDocument()
+        try {
+          // The source stays open for the save: an imported page still points at the
+          // resources it came from until the new document is written.
+          pages.forEach { part.importPage(source.getPage(it)) }
+          if (part.numberOfPages == 0) return@forEachIndexed
+
+          val name = FileGateway.sanitise("$stem-%03d".format(position + 1))
+          val output = FileGateway.resolveCollision(outputDirectory, "$name.pdf")
+          part.save(output)
+
+          outputs.pushMap(
+            Arguments.createMap().apply {
+              putString("outputUri", FileGateway.fileUri(output))
+              putString("outputDisplayName", output.name)
+              putInt("pageCount", part.numberOfPages)
+              putDouble("byteSize", output.length().toDouble())
+              // The pages this part came from, one-based, so the UI can say
+              // "pages 4-6" rather than "part 2".
+              putArray(
+                "sourcePages",
+                Arguments.createArray().apply { pages.forEach { pushInt(it + 1) } },
+              )
+            },
+          )
+        } finally {
+          part.close()
+        }
+      }
+    }
+
+    return Arguments.createMap().apply {
+      putArray("results", outputs)
+      putDouble("elapsedMs", elapsedMs(started))
+    }
+  }
+
+  /**
+   * Deletes, rotates and reorders in one pass.
+   *
+   * One pass matters: applied separately, a delete would invalidate the indices the
+   * rotate and reorder were written against. Everything here is resolved against the
+   * original page numbering, which is the numbering the user was looking at.
+   */
+  @JvmStatic
+  public fun editPages(
+    context: Context,
+    file: File,
+    output: File,
+    operations: ReadableMap?,
+  ): WritableMap {
+    val started = System.nanoTime()
+
+    val deleted = operations.intList("delete").toSet()
+    val requestedOrder = operations.intList("order")
+    val rotations = operations?.takeIf { it.hasKey("rotate") }?.getMap("rotate")
+
+    load(context, file).use { source ->
+      // An explicit order wins; anything it omits keeps its original position after the
+      // pages it does mention, so a partial reorder is not a silent delete.
+      val mentioned = requestedOrder.filter { it in 0 until source.numberOfPages }
+      val order = mentioned + (0 until source.numberOfPages).filterNot { it in mentioned.toSet() }
+
+      val edited = PDDocument()
+      try {
+        for (index in order) {
+          if (index in deleted) continue
+          val page = edited.importPage(source.getPage(index))
+          val delta = rotations?.takeIf { it.hasKey("$index") }?.getDouble("$index")?.toInt()
+          if (delta != null) {
+            // Normalised into 0/90/180/270: readers are entitled to reject anything
+            // else, and a negative rotation is a common way to say "anticlockwise".
+            page.rotation = (((page.rotation + delta) % 360) + 360) % 360
+          }
+        }
+
+        if (edited.numberOfPages == 0) {
+          throw ConversionException.corrupt("That would delete every page.")
+        }
+
+        val temporary = File(output.parentFile, ".${UUID.randomUUID()}.pdf")
+        try {
+          edited.save(temporary)
+          moveIntoPlace(temporary, output)
+        } catch (error: IOException) {
+          temporary.delete()
+          throw ConversionException.diskFull()
+        }
+
+        return result(output, edited.numberOfPages, started)
+      } finally {
+        edited.close()
+      }
+    }
+  }
 
   // -------------------------------------------------------------------- helpers --
 
@@ -631,9 +854,16 @@ public object PdfEngine {
     val temporary = File(output.parentFile, ".${UUID.randomUUID()}.pdf")
     try {
       FileOutputStream(temporary).use { document.writeTo(it) }
-      if (output.exists()) output.delete()
-      if (!temporary.renameTo(output)) throw ConversionException.diskFull()
+      moveIntoPlace(temporary, output)
     } catch (error: IOException) {
+      temporary.delete()
+      throw ConversionException.diskFull()
+    }
+  }
+
+  private fun moveIntoPlace(temporary: File, output: File) {
+    if (output.exists()) output.delete()
+    if (!temporary.renameTo(output)) {
       temporary.delete()
       throw ConversionException.diskFull()
     }
@@ -664,3 +894,9 @@ private fun ReadableMap?.int(key: String, fallback: Int): Int =
 
 private fun ReadableMap?.boolean(key: String, fallback: Boolean): Boolean =
   if (this != null && hasKey(key)) getBoolean(key) else fallback
+
+/** Numbers cross the bridge as doubles even when they were written as integers. */
+private fun ReadableMap?.intList(key: String): List<Int> {
+  val array = this?.takeIf { it.hasKey(key) }?.getArray(key) ?: return emptyList()
+  return (0 until array.size()).map { array.getDouble(it).toInt() }
+}

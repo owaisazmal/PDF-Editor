@@ -33,8 +33,30 @@ const SOURCE_MAP = [
   ['bridge', 'com.owaiskhan.converter.bridge'],
 ];
 
-/** Apache-2.0, and the only way to read and write EXIF reliably across formats. */
-const EXIF_DEPENDENCY = 'androidx.exifinterface:exifinterface:1.4.1';
+/**
+ * Every Maven dependency this app adds, and why each one is here.
+ *
+ * Both are Apache-2.0, which is on the permitted list in docs/DEPENDENCIES.md. The npm
+ * licence gate cannot see Maven coordinates, so these are the two that have to be
+ * checked by reading rather than by CI — and recorded in NOTICE, which Apache-2.0
+ * requires.
+ */
+const DEPENDENCIES = [
+  {
+    coordinate: 'androidx.exifinterface:exifinterface:1.4.1',
+    reason: 'Reads and writes EXIF across formats, which the platform APIs cannot.',
+  },
+  {
+    // Android exposes no page-level PDF API: PdfRenderer only paints pages into
+    // bitmaps and PdfDocument only records canvas drawing, so merging, splitting or
+    // reordering with platform APIs alone would repaint every page and destroy its
+    // text. PDFBox works on the page objects themselves. The copyleft alternatives —
+    // MuPDF, Poppler, Ghostscript — are what most competitors use, and are exactly why
+    // most competitors cannot ship under a permissive licence.
+    coordinate: 'com.tom-roush:pdfbox-android:2.0.27.0',
+    reason: 'Page-level PDF work: merge, split, reorder, and decryption on every API level.',
+  },
+];
 
 const PACKAGE_IMPORT = 'import com.owaiskhan.converter.bridge.ConverterCorePackage';
 const PACKAGE_REGISTRATION = 'add(ConverterCorePackage())';
@@ -150,15 +172,20 @@ module.exports = function withConverterCoreAndroid(config) {
     },
   ]);
 
-  // 2. Add the ExifInterface dependency.
+  // 2. Add the Maven dependencies.
   config = withAppBuildGradle(config, (modConfig) => {
-    if (modConfig.modResults.contents.includes(EXIF_DEPENDENCY)) return modConfig;
+    const missing = DEPENDENCIES.filter(
+      (entry) => !modConfig.modResults.contents.includes(entry.coordinate),
+    );
+    if (missing.length === 0) return modConfig;
+
+    const block = missing
+      .map((entry) => `\n    // ${entry.reason}\n    implementation("${entry.coordinate}")`)
+      .join('');
 
     modConfig.modResults.contents = modConfig.modResults.contents.replace(
       /dependencies\s*\{/,
-      (match) =>
-        `${match}\n    // Reads and writes EXIF across formats, which the platform APIs cannot.\n` +
-        `    implementation("${EXIF_DEPENDENCY}")\n`,
+      (match) => `${match}${block}\n`,
     );
     return modConfig;
   });
