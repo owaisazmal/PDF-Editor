@@ -47,6 +47,22 @@ export const imageDefaults = {
    * category. The user can override it per conversion.
    */
   backgroundFill: '#FFFFFF',
+
+  /**
+   * The fills offered when flattening transparency.
+   *
+   * Deliberately short. This is a decision the user makes once per conversion, usually
+   * without much thought, and a full colour picker turns a two-second choice into a
+   * task. White covers almost everything; black and mid-grey cover artwork; the two
+   * warm tones exist because a logo dropped onto a document is the other common case.
+   */
+  backgroundChoices: [
+    { id: 'white', label: 'White', color: '#FFFFFF' },
+    { id: 'black', label: 'Black', color: '#000000' },
+    { id: 'grey', label: 'Grey', color: '#8A8A8E' },
+    { id: 'cream', label: 'Cream', color: '#FDFBD4' },
+    { id: 'sand', label: 'Sand', color: '#E8DCC0' },
+  ],
 } as const;
 
 export type ColorSchemeName = 'light' | 'dark';

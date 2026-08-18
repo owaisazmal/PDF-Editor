@@ -9,3 +9,6 @@ export { TaskTile, type TaskTileProps } from './TaskTile';
 export { StatRow, type StatRowProps } from './StatRow';
 export { ProgressBar, type ProgressBarProps } from './ProgressBar';
 export { FileRow, type FileRowProps, type FileRowState } from './FileRow';
+export { Slider, type SliderProps } from './Slider';
+export { SegmentedControl, type SegmentedControlProps, type Segment } from './SegmentedControl';
+export { Toggle, type ToggleProps } from './Toggle';

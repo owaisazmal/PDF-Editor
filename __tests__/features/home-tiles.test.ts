@@ -98,8 +98,11 @@ describe('capability gating', () => {
     // a bug report gets filed against the phone.
     expect(unavailableReason(notBuilt, capable)).toBe('Coming in a later build');
 
+    // The settings screen now exists, so the tasks that were waiting on it are open.
+    // Kept as an assertion rather than deleted: if HAS_TRANSFORM_OPTIONS is ever
+    // flipped back, this is the test that says what that costs the user.
     const needsSettings = CONVERSION_TASKS.find((t) => t.needsOptions)!;
-    expect(unavailableReason(needsSettings, capable)).toBe('Needs the settings screen');
+    expect(unavailableReason(needsSettings, capable)).toBeNull();
   });
 
   it('keeps a device-unsupported tile non-interactive even when nothing is busy', () => {

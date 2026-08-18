@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Home: undefined;
   Convert: { taskId: string };
   Batch: { taskId: string };
+  Options: { taskId: string };
 };
 
 declare global {

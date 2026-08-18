@@ -121,7 +121,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
 export const CURRENT_PHASE = 2 as const;
 
 /** Set once the transform options screen exists; until then, see `needsOptions`. */
-export const HAS_TRANSFORM_OPTIONS = false;
+export const HAS_TRANSFORM_OPTIONS = true;
 
 /**
  * Whether this build offers the task at all — before the device is consulted.
