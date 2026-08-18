@@ -8,10 +8,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
-import { useBatchStore } from '@/store/batch';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
-import { usePdfStore } from '@/store/pdf';
 import { useTheme } from '@/theme';
 import {
   CONVERSION_TASKS,
@@ -19,6 +17,7 @@ import {
   unavailableReason,
   type ConversionTask,
 } from './tasks';
+import { blockedReason, routeToTask } from './routing';
 import type { RootStackParamList } from '@/navigation/types';
 
 /**
@@ -38,10 +37,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
  */
 export function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
-  const setSource = useConversionStore((s) => s.setSource);
   const setPicking = useConversionStore((s) => s.setPicking);
   const fail = useConversionStore((s) => s.fail);
-  const resetBatch = useBatchStore((s) => s.reset);
   const capabilities = useCapabilitiesStore();
 
   // Asked once. The answer cannot change while the app is running — it is a property
@@ -99,37 +96,15 @@ export function HomeScreen({ navigation }: Props) {
           return;
         }
 
-        if (task.kind === 'pdf') {
-          if (task.needsMultiple && picked.length < 2) {
-            // Said here rather than at the end: a merge of one document is not an error
-            // the engine should have to report, and the user has not lost any work yet.
-            fail({
-              code: 'unknown',
-              message: 'Merging needs at least two PDFs. Pick another and try again.',
-            });
-            return;
-          }
-          // Seeded here and inspected by the screen, so a password prompt appears over
-          // the screen it belongs to rather than over the home grid.
-          usePdfStore.getState().reset();
-          usePdfStore.setState({ sources: picked, status: 'idle' });
-          navigation.navigate('Pdf', { taskId: task.id });
+        const blocked = blockedReason(task, picked);
+        if (blocked) {
+          fail({ code: 'unknown', message: blocked });
           return;
         }
 
-        if (picked.length === 1) {
-          setSource(first);
-          // Tasks that exist to expose a setting go through it; everything else keeps
-          // the fast path, which is what holds the three-tap promise.
-          navigation.navigate(task.needsOptions ? 'Options' : 'Convert', { taskId: task.id });
-          return;
-        }
-
-        // Seed the sources and let the batch screen submit, so it is mounted and
-        // listening before the first progress event can arrive.
-        resetBatch();
-        useBatchStore.setState({ sources: picked, status: 'idle' });
-        navigation.navigate(task.needsOptions ? 'Options' : 'Batch', { taskId: task.id });
+        // The same route a shared file takes, so a share cannot skip a settings screen
+        // that a picked file gets.
+        routeToTask(navigation, task, picked);
       } catch (error) {
         fail({
           code: 'unknown',
@@ -140,7 +115,7 @@ export function HomeScreen({ navigation }: Props) {
         setBusyTaskId(null);
       }
     },
-    [navigation, setSource, setPicking, fail, resetBatch],
+    [navigation, setPicking, fail],
   );
 
   return (

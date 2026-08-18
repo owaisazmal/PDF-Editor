@@ -299,6 +299,12 @@ RCT_EXPORT_MODULE()
   [ConverterCoreBridge clearTemporaryFiles:resolve reject:reject];
 }
 
+- (void)takePendingFiles:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge takePendingFiles:resolve reject:reject];
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)
     getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
 {

@@ -549,6 +549,21 @@ public final class ConverterCoreBridge: NSObject {
         }
     }
 
+    /// Files waiting from outside the app.
+    ///
+    /// Empty today. On iOS an Open With arrives as a URL through `RCTLinkingManager`,
+    /// which JavaScript already observes, so there is nothing for native to hold. The
+    /// method exists now because the share extension will fill this queue from a shared
+    /// app group container, and the JavaScript above it should not have to change shape
+    /// when that lands.
+    @objc(takePendingFiles:reject:)
+    public static func takePendingFiles(
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) { [] as [[String: Any]] }
+    }
+
     @objc(clearTemporaryFiles:reject:)
     public static func clearTemporaryFiles(
         _ resolve: @escaping (Any?) -> Void,

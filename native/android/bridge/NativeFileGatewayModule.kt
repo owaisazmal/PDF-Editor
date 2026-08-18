@@ -20,6 +20,7 @@ import com.owaiskhan.converter.core.ConversionException
 import com.owaiskhan.converter.core.FileGateway
 import com.owaiskhan.converter.core.FormatDetector
 import com.owaiskhan.converter.core.FormatMatcher
+import com.owaiskhan.converter.core.ReceivedFiles
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
@@ -80,9 +81,30 @@ public class NativeFileGatewayModule(
     }
   }
 
+  /**
+   * A share arriving at an app that is already running.
+   *
+   * The activity is `singleTask`, so a second share does not start a second copy — it is
+   * delivered here instead, and the UI has to be told, because nothing is going to ask.
+   *
+   * Declared before `init`, which is not a style choice: Kotlin initialises properties in
+   * source order, so a listener declared after it would still be null when `init` tried
+   * to register it.
+   */
+  private val incomingListener: ActivityEventListener = object : BaseActivityEventListener() {
+    override fun onNewIntent(intent: Intent) {
+      if (!ReceivedFiles.offer(intent)) return
+      // Only a nudge: the payload is fetched with `takePendingFiles`, on a background
+      // thread, because materialising a content URI reads the whole file.
+      emitOnFilesReceived(Arguments.createMap())
+    }
+  }
+
   init {
     reactContext.addActivityEventListener(activityListener)
+    reactContext.addActivityEventListener(incomingListener)
   }
+
 
   private fun extractUris(data: Intent): List<Uri> {
     val clip = data.clipData
@@ -237,6 +259,18 @@ public class NativeFileGatewayModule(
           ),
         )
       }
+        .onSuccess(promise::resolve)
+        .onFailure { promise.rejectConversion(it) }
+    }
+  }
+
+  override fun takePendingFiles(promise: Promise) {
+    // The launching intent is examined here rather than in `init`, because a cold start
+    // from a share constructs this module before the activity has one to give.
+    ReceivedFiles.offer(currentActivity?.intent)
+
+    executor.execute {
+      runCatching { ReceivedFiles.take(reactContext) }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
     }

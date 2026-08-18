@@ -169,6 +169,28 @@ export const fileGateway = {
 
   clearTemporaryFiles: (): Promise<void> =>
     require_(NativeFileGateway, 'NativeFileGateway').clearTemporaryFiles(),
+
+  /**
+   * Files handed to the app from outside it, and the queue emptied.
+   *
+   * Returns nothing rather than throwing when the native module predates the method: a
+   * JavaScript bundle reloads instantly while a native binary does not, and an app that
+   * simply has no shares waiting is the right reading of "this build cannot tell me".
+   */
+  async takePendingFiles(): Promise<DetectedFile[]> {
+    const native = require_(NativeFileGateway, 'NativeFileGateway');
+    if (typeof native.takePendingFiles !== 'function') return [];
+    const received = (await native.takePendingFiles()) as unknown as DetectedFileSpec[];
+    return received.map(normaliseDetection);
+  },
+
+  /** Fires when a share reaches an app that is already running. Returns an unsubscribe. */
+  onFilesReceived(listener: () => void): () => void {
+    const native = NativeFileGateway;
+    if (native?.onFilesReceived == null) return () => {};
+    const subscription = native.onFilesReceived(() => listener());
+    return () => subscription.remove();
+  },
 };
 
 /* ---------------------------------------------------------- queue and PDF (P2/P3) -- */

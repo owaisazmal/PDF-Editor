@@ -19,7 +19,37 @@
         "NSPhotoLibraryAddUsageDescription": "Converter saves your converted images straight to your photo library. It never reads your library \u2014 you choose files through the system picker.",
         "CFBundleAllowMixedLocalizations": true,
         "UIViewControllerBasedStatusBarAppearance": false,
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Image",
+            "LSHandlerRank": "Alternate",
+            "CFBundleTypeRole": "Editor",
+            "LSItemContentTypes": [
+              "public.image",
+              "public.heic",
+              "public.heif",
+              "public.jpeg",
+              "public.png",
+              "com.compuserve.gif",
+              "org.webmproject.webp",
+              "public.tiff",
+              "com.microsoft.bmp",
+              "public.avif",
+              "com.microsoft.ico",
+              "public.camera-raw-image"
+            ]
+          },
+          {
+            "CFBundleTypeName": "PDF",
+            "LSHandlerRank": "Alternate",
+            "CFBundleTypeRole": "Editor",
+            "LSItemContentTypes": [
+              "com.adobe.pdf"
+            ]
+          }
+        ],
+        "LSSupportsOpeningDocumentsInPlace": false
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,

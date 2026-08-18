@@ -1,11 +1,15 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  useNavigationContainerRef,
+  type Theme as NavTheme,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -21,7 +25,9 @@ import { BatchScreen } from '@/features/batch/BatchScreen';
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { OptionsScreen } from '@/features/options/OptionsScreen';
+import { IncomingScreen } from '@/features/incoming/IncomingScreen';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
+import { useIncomingStore, watchIncomingFiles } from '@/store/incoming';
 import { ThemeProvider, useTheme, colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -32,6 +38,24 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function Navigation() {
   const theme = useTheme();
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const incomingCount = useIncomingStore((state) => state.files.length);
+
+  /**
+   * Files can arrive before anything is on screen — a share sheet launches the app cold,
+   * which is the normal case rather than the exception — so the check runs once here and
+   * then listens, rather than being tied to any screen's lifecycle.
+   */
+  useEffect(() => {
+    void useIncomingStore.getState().collect();
+    return watchIncomingFiles();
+  }, []);
+
+  useEffect(() => {
+    // Guarded on readiness: on a cold start the files are usually resolved before the
+    // navigator has mounted, and navigating then is silently dropped.
+    if (incomingCount > 0 && navigationRef.isReady()) navigationRef.navigate('Incoming');
+  }, [incomingCount, navigationRef]);
 
   const navTheme: NavTheme = {
     dark: theme.isDark,
@@ -52,7 +76,7 @@ function Navigation() {
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -64,6 +88,7 @@ function Navigation() {
         <Stack.Screen name="Batch" component={BatchScreen} />
         <Stack.Screen name="Options" component={OptionsScreen} />
         <Stack.Screen name="Pdf" component={PdfScreen} />
+        <Stack.Screen name="Incoming" component={IncomingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
