@@ -18,6 +18,8 @@ import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
  * with zod before it crosses, so the boundary is checked — just not by codegen.
  */
 export type ConversionResultSpec = {
+  /** -1 for a single-file conversion; the job queue overwrites it for a batch. */
+  sourceIndex: number;
   outputUri: string;
   outputDisplayName: string;
   format: string;

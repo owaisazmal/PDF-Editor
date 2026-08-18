@@ -93,6 +93,9 @@ public enum RasterCodec {
 
         public var dictionaryRepresentation: [String: Any] {
             [
+                // Overwritten by the job queue with the file's position in the user's
+                // selection. -1 means "converted on its own, not part of a batch".
+                "sourceIndex": -1,
                 "outputUri": outputURL.absoluteString,
                 "outputDisplayName": outputURL.lastPathComponent,
                 "format": format,

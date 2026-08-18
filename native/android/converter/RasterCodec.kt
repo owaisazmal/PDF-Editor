@@ -114,6 +114,9 @@ public object RasterCodec {
     val elapsedMs: Double,
   ) {
     public fun toWritableMap(): WritableMap = Arguments.createMap().apply {
+      // Overwritten by the job queue with the file's position in the user's selection.
+      // -1 means "converted on its own, not part of a batch".
+      putInt("sourceIndex", -1)
       putString("outputUri", FileGateway.fileUri(outputFile))
       putString("outputDisplayName", outputFile.name)
       putString("format", format)

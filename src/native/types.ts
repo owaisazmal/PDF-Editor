@@ -103,6 +103,15 @@ export type ConversionOptions = {
 };
 
 export type ConversionResult = {
+  /**
+   * The file's position in what the user picked. Set by the job queue; -1 for a
+   * single-file conversion, which has no selection to be positioned within.
+   *
+   * The queue is concurrent, so completion order is arbitrary. Presenting results in
+   * that order means a list that reshuffles as it fills, which reads as instability
+   * rather than progress.
+   */
+  sourceIndex: number;
   outputUri: string;
   outputDisplayName: string;
   format: string;
@@ -140,6 +149,8 @@ export type ConversionErrorCodeValue =
   (typeof ConversionErrorCode)[keyof typeof ConversionErrorCode];
 
 export type FileFailure = {
+  /** The file's position in what the user picked. See ConversionResult.sourceIndex. */
+  sourceIndex: number;
   uri: string;
   displayName: string;
   /** One of {@link ConversionErrorCode}. */

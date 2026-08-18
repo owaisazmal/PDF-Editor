@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import type { FormatId } from '@/engine/formats';
+import { canConvert, type CapabilitiesState } from '@/store/capabilities';
 
 /**
  * The home screen's entry points.
@@ -23,6 +24,12 @@ export type ConversionTask = {
   sourceFormats: FormatId[];
   targetFormat: FormatId;
   phase: 1 | 2 | 3;
+  /**
+   * True when the task is only meaningful with settings the user chooses — a
+   * "Compress Image" that silently picks a quality is not compressing to anything in
+   * particular. These stay closed until the transform options screen exists.
+   */
+  needsOptions?: boolean;
 };
 
 export const CONVERSION_TASKS: readonly ConversionTask[] = [
@@ -55,6 +62,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
     targetFormat: 'jpeg',
     phase: 2,
+    needsOptions: true,
   },
   {
     id: 'resize-image',
@@ -65,6 +73,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
     targetFormat: 'jpeg',
     phase: 2,
+    needsOptions: true,
   },
   {
     id: 'image-to-pdf',
@@ -109,9 +118,40 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
 ];
 
 /** The phase this build implements. Bumped as each phase lands. */
-export const CURRENT_PHASE = 1 as const;
+export const CURRENT_PHASE = 2 as const;
 
-export const isTaskAvailable = (task: ConversionTask): boolean => task.phase <= CURRENT_PHASE;
+/** Set once the transform options screen exists; until then, see `needsOptions`. */
+export const HAS_TRANSFORM_OPTIONS = false;
+
+/**
+ * Whether this build offers the task at all — before the device is consulted.
+ *
+ * Kept separate from the capability check so the two reasons a tile can be closed stay
+ * distinguishable: "not built yet" is a promise, "your device cannot do this" is a fact,
+ * and telling a user the wrong one is how a bug report gets filed against a phone.
+ */
+export const isTaskAvailable = (task: ConversionTask): boolean => {
+  if (task.phase > CURRENT_PHASE) return false;
+  if (task.needsOptions && !HAS_TRANSFORM_OPTIONS) return false;
+  return true;
+};
+
+/** Whether the device can actually perform it. */
+export const isTaskSupported = (
+  task: ConversionTask,
+  capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'isLoaded'>,
+): boolean => canConvert(capabilities, task.sourceFormats, task.targetFormat);
+
+/** Why a tile is closed, in the user's terms. Null when it is open. */
+export function unavailableReason(
+  task: ConversionTask,
+  capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'isLoaded'>,
+): string | null {
+  if (!isTaskSupported(task, capabilities)) return 'Not supported on this device';
+  if (task.needsOptions && !HAS_TRANSFORM_OPTIONS) return 'Needs the settings screen';
+  if (task.phase > CURRENT_PHASE) return 'Coming in a later build';
+  return null;
+}
 
 /**
  * Whether a tile should respond to a tap.
@@ -124,6 +164,12 @@ export const isTaskAvailable = (task: ConversionTask): boolean => task.phase <= 
  *
  * `busyTaskId` is the id of the tile whose pick is outstanding, or null.
  */
-export function isTileInteractive(task: ConversionTask, busyTaskId: string | null): boolean {
-  return isTaskAvailable(task) && busyTaskId !== task.id;
+export function isTileInteractive(
+  task: ConversionTask,
+  busyTaskId: string | null,
+  capabilities?: Pick<CapabilitiesState, 'decode' | 'encode' | 'isLoaded'>,
+): boolean {
+  if (busyTaskId === task.id) return false;
+  if (!isTaskAvailable(task)) return false;
+  return capabilities ? isTaskSupported(task, capabilities) : true;
 }

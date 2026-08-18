@@ -107,6 +107,9 @@ public object JobQueue {
 
   // ------------------------------------------------------------------------ job --
 
+  /** A failed file, with enough context to retry it in its original position. */
+  private data class Failure(val index: Int, val input: JobSpec.Input, val payload: WritableMap)
+
   private class Job(
     private val spec: JobSpec,
     private val withEvents: ((Events) -> Unit) -> Unit,
@@ -127,20 +130,26 @@ public object JobQueue {
     private val lock = Any()
     private var status: String = "queued"
     private val results = mutableListOf<WritableMap>()
-    private val failures = mutableListOf<Pair<JobSpec.Input, WritableMap>>()
+    private val failures = mutableListOf<Failure>()
     private var currentDisplayName: String = ""
     private var remaining: CountDownLatch? = null
 
     fun start() {
       synchronized(lock) { status = "running" }
-      enqueue(spec.inputs)
+      enqueue(spec.inputs.mapIndexed { index, input -> index to input })
     }
 
-    private fun enqueue(inputs: List<JobSpec.Input>) {
-      val latch = CountDownLatch(inputs.size)
+    /**
+     * Takes `(sourceIndex, input)` pairs rather than a bare list: the index is the
+     * file's position in what the user picked, and it has to survive a retry.
+     * Re-enumerating on retry would renumber the retried files into positions belonging
+     * to files that already succeeded.
+     */
+    private fun enqueue(items: List<Pair<Int, JobSpec.Input>>) {
+      val latch = CountDownLatch(items.size)
       synchronized(lock) { remaining = latch }
 
-      inputs.forEachIndexed { index, input ->
+      items.forEach { (index, input) ->
         executor.execute {
           try {
             process(input, index)
@@ -175,10 +184,13 @@ public object JobQueue {
           result.outputFile.delete()
           return
         }
-        record(result.toWritableMap(), input.byteSize)
+        // The file's position in the user's selection, so the UI can present results in
+        // the order they picked rather than the order a concurrent queue finished them.
+        record(result.toWritableMap().apply { putInt("sourceIndex", index) }, input.byteSize)
       } catch (error: Throwable) {
         // One corrupt file must never end the batch.
-        record(input, JobSpec.failurePayload(input, error), input.byteSize)
+        val failure = JobSpec.failurePayload(input, error).apply { putInt("sourceIndex", index) }
+        record(index, input, failure, input.byteSize)
       }
     }
 
@@ -193,8 +205,8 @@ public object JobQueue {
       emitProgressIfDue()
     }
 
-    private fun record(input: JobSpec.Input, failure: WritableMap, bytes: Long) {
-      synchronized(lock) { failures.add(input to failure) }
+    private fun record(index: Int, input: JobSpec.Input, failure: WritableMap, bytes: Long) {
+      synchronized(lock) { failures.add(Failure(index, input, failure)) }
       completedBytes.addAndGet(bytes)
 
       withEvents { it.onFileFailed(Arguments.createMap().apply {
@@ -239,10 +251,12 @@ public object JobQueue {
     }
 
     fun retryFailed() {
-      val retryable: List<JobSpec.Input>
+      val retryable: List<Pair<Int, JobSpec.Input>>
       synchronized(lock) {
-        retryable = failures.map { it.first }
-        completedBytes.addAndGet(-retryable.sumOf { it.byteSize })
+        // Keyed by the original index so a retried file keeps the position it was
+        // picked in.
+        retryable = failures.map { it.index to it.input }
+        completedBytes.addAndGet(-retryable.sumOf { it.second.byteSize })
         failures.clear()
         status = "running"
       }
@@ -265,7 +279,7 @@ public object JobQueue {
         putString("status", status)
         putMap("progress", progressPayload())
         putArray("results", Arguments.createArray().apply { results.forEach { pushMap(it.copy()) } })
-        putArray("failures", Arguments.createArray().apply { failures.forEach { pushMap(it.second.copy()) } })
+        putArray("failures", Arguments.createArray().apply { failures.forEach { pushMap(it.payload.copy()) } })
       }
     }
 

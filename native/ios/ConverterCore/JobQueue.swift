@@ -186,13 +186,17 @@ public final class JobQueue: @unchecked Sendable {
             status = "running"
             lock.unlock()
 
-            enqueue(spec.inputs, emit: emit)
+            enqueue(Array(spec.inputs.enumerated()).map { (index: $0.offset, input: $0.element) }, emit: emit)
         }
 
-        private func enqueue(_ inputs: [JobSpec.Input], emit: @escaping (Event) -> Void) {
-            for (index, input) in inputs.enumerated() {
+        /// Takes `(sourceIndex, input)` pairs rather than a bare array: the index is the
+        /// file's position in what the user picked, and it has to survive a retry.
+        /// Re-enumerating on retry would renumber the retried files into positions
+        /// belonging to files that already succeeded.
+        private func enqueue(_ items: [(index: Int, input: JobSpec.Input)], emit: @escaping (Event) -> Void) {
+            for item in items {
                 queue.addOperation { [weak self] in
-                    self?.process(input: input, index: index, emit: emit)
+                    self?.process(input: item.input, index: item.index, emit: emit)
                 }
             }
 
@@ -225,13 +229,16 @@ public final class JobQueue: @unchecked Sendable {
                         try? FileManager.default.removeItem(at: result.outputURL)
                         return
                     }
-                    record(result: result.dictionaryRepresentation, bytes: input.byteSize, emit: emit)
+                    var payload = result.dictionaryRepresentation
+                    // The file's position in the user's selection, so the UI can present
+                    // results in the order they picked rather than the order a concurrent
+                    // queue happened to finish them.
+                    payload["sourceIndex"] = index
+                    record(result: payload, bytes: input.byteSize, emit: emit)
                 } catch {
-                    record(
-                        failure: JobSpec.failurePayload(for: input, error: error),
-                        bytes: input.byteSize,
-                        emit: emit
-                    )
+                    var payload = JobSpec.failurePayload(for: input, error: error)
+                    payload["sourceIndex"] = index
+                    record(failure: payload, bytes: input.byteSize, emit: emit)
                 }
             }
         }
@@ -310,12 +317,15 @@ public final class JobQueue: @unchecked Sendable {
 
         func retryFailed(emit: @escaping (Event) -> Void) {
             lock.lock()
-            let retryable = failures.compactMap { failure -> JobSpec.Input? in
-                guard let uri = failure["uri"] as? String else { return nil }
-                return spec.inputs.first { $0.url.absoluteString == uri }
+            // Recovered from the failure payload rather than by matching URIs, so a
+            // retried file keeps the position it was picked in.
+            let retryable = failures.compactMap { failure -> (index: Int, input: JobSpec.Input)? in
+                guard let index = failure["sourceIndex"] as? Int,
+                      index >= 0, index < spec.inputs.count else { return nil }
+                return (index: index, input: spec.inputs[index])
             }
             failures.removeAll()
-            completedBytes = max(0, completedBytes - retryable.reduce(0) { $0 + $1.byteSize })
+            completedBytes = max(0, completedBytes - retryable.reduce(0) { $0 + $1.input.byteSize })
             status = "running"
             lock.unlock()
 
