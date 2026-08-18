@@ -181,10 +181,27 @@ export type JobProgress = {
   currentDisplayName: string;
 };
 
+/**
+ * Statuses the native queue can report.
+ *
+ * Declared here rather than in the client because it is a domain fact, not a transport
+ * detail — and because typing `status` as a bare `string` pushes the narrowing burden
+ * onto every screen that renders it.
+ */
+export const JOB_STATUSES = [
+  'queued',
+  'running',
+  'cancelling',
+  'completed',
+  'cancelled',
+  'failed',
+] as const;
+
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
 export type JobState = {
   jobId: string;
-  /** 'queued' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed'. */
-  status: string;
+  status: JobStatus;
   progress: JobProgress;
   results: ConversionResult[];
   failures: FileFailure[];

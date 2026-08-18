@@ -7,3 +7,5 @@ export { Button, type ButtonProps, type ButtonVariant } from './Button';
 export { Card, type CardProps } from './Card';
 export { TaskTile, type TaskTileProps } from './TaskTile';
 export { StatRow, type StatRowProps } from './StatRow';
+export { ProgressBar, type ProgressBarProps } from './ProgressBar';
+export { FileRow, type FileRowProps, type FileRowState } from './FileRow';

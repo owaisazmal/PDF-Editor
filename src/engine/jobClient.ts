@@ -17,7 +17,14 @@ import { z } from 'zod';
 
 import { jobQueue } from '@/native';
 import { conversionOptionsSchema } from './options';
-import type { ConversionResult, FileFailure, JobProgress, JobState } from '@/native/types';
+import {
+  JOB_STATUSES,
+  type ConversionResult,
+  type FileFailure,
+  type JobProgress,
+  type JobState,
+  type JobStatus,
+} from '@/native/types';
 
 /* ------------------------------------------------------------------ outbound ---- */
 
@@ -40,21 +47,9 @@ export type JobSpecInput = z.input<typeof jobSpecSchema>;
 /* ------------------------------------------------------------------- inbound ---- */
 
 /**
- * Statuses native can report. Anything unrecognised is treated as `failed` rather than
- * passed through, so a future native status cannot leave the UI in a state it has no
- * rendering for.
+ * Anything unrecognised is treated as `failed` rather than passed through, so a future
+ * native status cannot leave the UI in a state it has no rendering for.
  */
-export const JOB_STATUSES = [
-  'queued',
-  'running',
-  'cancelling',
-  'completed',
-  'cancelled',
-  'failed',
-] as const;
-
-export type JobStatus = (typeof JOB_STATUSES)[number];
-
 const isJobStatus = (value: unknown): value is JobStatus =>
   typeof value === 'string' && (JOB_STATUSES as readonly string[]).includes(value);
 
@@ -136,6 +131,8 @@ export type JobEvents = {
   onFileFailed: (jobId: string, failure: FileFailure) => void;
   onJobComplete: (state: JobState) => void;
 };
+
+export { JOB_STATUSES, type JobStatus } from '@/native/types';
 
 export const jobClient = {
   /** True when this build can run batches at all. */
