@@ -60,6 +60,20 @@ public object ReceivedFiles {
   }
 
   /**
+   * Queues URIs that did not arrive in an intent — a drop, for instance.
+   *
+   * Returns whether anything usable was added, so the caller can decide whether the UI
+   * is worth telling.
+   */
+  @JvmStatic
+  public fun offer(uris: List<Uri>): Boolean {
+    val usable = uris.filter { it.scheme == "content" || it.scheme == "file" }.distinct()
+    if (usable.isEmpty()) return false
+    queue.addAll(usable)
+    return true
+  }
+
+  /**
    * Drains the queue into detected files.
    *
    * Content URIs are copied into the app's own storage first. A URI from a share is

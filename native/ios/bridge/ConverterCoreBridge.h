@@ -178,6 +178,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)takePendingFiles:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject;
 
++ (void)installIncomingFilesHandler:(void (^)(void))handler;
+
 + (void)clearTemporaryFiles:(RCTPromiseResolveBlock)resolve
                      reject:(RCTPromiseRejectBlock)reject;
 
