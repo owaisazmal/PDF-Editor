@@ -239,6 +239,39 @@ indefinitely — but for as long as a session is open, a password-protected file
 plaintext in storage no other app can read without root. The password itself is used once,
 to decrypt, and is never stored.
 
+### 3.3 The share extension compiles the engine, not a bridge to it
+
+The extension is a second Xcode target built by `plugins/withShareExtension.js`, because
+`ios/` is regenerated on every prebuild and a target created by hand in Xcode would not
+survive. It links `RasterCodec`, `PdfEngine` and `FormatDetector` directly and runs **no
+JavaScript at all** — the reason the engine lives in native code rather than behind the
+bridge that drives it. A share extension has a hard memory ceiling around 120 MB and has
+to feel instant; booting a React Native runtime inside one is slow and risks being
+jetsammed part-way through a conversion.
+
+`JobQueue.swift` is the one file held back. It keeps a batch alive with
+`UIApplication.shared.beginBackgroundTask`, and `UIApplication.shared` is unavailable to
+app extensions — using it is grounds for rejection, not merely a compile error. The
+extension converts sequentially instead, one file per pass, which is the right shape for
+a 120 MB ceiling anyway. `APPLICATION_EXTENSION_API_ONLY = YES` on the target makes that
+a compiler guarantee rather than a convention.
+
+Four things about assembling an Xcode target from a plugin are worth recording, because
+each cost a build cycle and none is discoverable from the error alone:
+
+- `addTarget` already creates the copy-files phase that embeds the `.appex`. Adding
+  another produces "Unexpected duplicate tasks".
+- A build phase given a filename mints a second, unparented file reference for the same
+  product, which CocoaPods rejects as a consistency issue. Reference the target's own
+  `productReference` instead.
+- A group carrying a `path` resolves its children against it, and a group given an
+  undefined path serialises that literally as a folder named `undefined`. Shared sources
+  belong in a group with no path at all.
+- `addPbxGroup` creates file references for whatever it is given, and `addSourceFile`
+  then silently does nothing for a path that already exists. The result builds cleanly
+  and produces an extension whose principal class is not in its own binary — visible only
+  as a share sheet entry that does nothing when tapped.
+
 ### 3.1 The one runtime permission
 
 Android suspends a process shortly after the user switches away, which stops a long batch dead.

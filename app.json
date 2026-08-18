@@ -106,6 +106,7 @@
       "react-native-edge-to-edge",
       "./plugins/withOfflineRelease",
       "./plugins/withConverterCore",
+      "./plugins/withShareExtension",
       "./plugins/withConverterCoreAndroid",
       [
         "expo-build-properties",
