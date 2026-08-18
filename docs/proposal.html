@@ -578,20 +578,47 @@
             <td>Config plugin verified against a real prebuild; asserted in CI</td>
           </tr>
           <tr>
-            <td><b>Kotlin mirror of ConverterCore</b></td>
-            <td><span class="chip chip-gap">not started</span></td>
-            <td>JDK 17 is now installed, so it is no longer blocked — but the Android engine and its TurboModule package are still to be written</td>
+            <td>Kotlin ConverterCore + TurboModules</td>
+            <td><span class="chip chip-ok">builds</span></td>
+            <td>All engine and bridge classes present in the APK; package registered through a lazy <code>BaseReactPackage</code></td>
+          </tr>
+          <tr>
+            <td><b>HEIC → JPEG on Android, end to end</b></td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>API 36 emulator: 51&nbsp;KB → 32&nbsp;KB in <b>0.1s</b>, saved into MediaStore at <code>Pictures/Converter</code></td>
+          </tr>
+          <tr>
+            <td>Android output correctness</td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>1600×1200 JPEG, RGB, EXIF preserved, <b>GPS removed</b>, written atomically — matching iOS</td>
+          </tr>
+          <tr>
+            <td>No runtime permission on Android</td>
+            <td><span class="chip chip-ok">verified</span></td>
+            <td>Photo Picker opens with no prompt; Android's own banner confirms it. Saving through MediaStore needs none either.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <p class="measure" style="margin-top:16px">
-      Two bugs surfaced only by running it, both now fixed: the status-bar Info.plist key
-      was set the way that makes React Native throw on launch, and the result screen
-      reported <code>Saved −86%</code> when the output legitimately grew. It now reads
-      <em>Larger by 86%</em> and explains that HEVC beats JPEG on smooth images — the
-      number is expected, not a defect.
+      <b>Five bugs surfaced only by running it</b>, all fixed. On iOS: the status-bar
+      Info.plist key was set the way that makes React Native throw on launch, and the
+      result screen reported <code>Saved −86%</code> when the output legitimately grew
+      (now <em>Larger by 86%</em>, with an explanation that HEVC beats JPEG on smooth
+      images). On Android: a config plugin of mine overwrote Expo's generated debug
+      manifest and broke every development build's Metro connection;
+      <code>File.toURI()</code> emits <code>file:/path</code> with one slash, so a
+      <code>startsWith("file://")</code> check silently missed and every conversion
+      failed; and alpha was read from the decoder's target config rather than the source,
+      so Android warned about flattening transparency on an opaque HEIC while iOS
+      stayed quiet.
+    </p>
+
+    <p class="measure">
+      One honest platform difference remains, and it is not a defect: the same file
+      converts to 96&nbsp;KB on iOS and 32&nbsp;KB on Android at the same quality
+      setting, because ImageIO and Skia make different chroma-subsampling choices.
     </p>
 
     <p class="measure">
