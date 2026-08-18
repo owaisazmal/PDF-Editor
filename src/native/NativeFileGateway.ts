@@ -3,7 +3,7 @@
 
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
-import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
+import type { EventEmitter, UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
 
 /**
  * Everything that touches the filesystem or the system pickers.
@@ -67,6 +67,27 @@ export interface Spec extends TurboModule {
 
   /** Deletes the app's temporary working directory. Safe to call at any time. */
   clearTemporaryFiles(): Promise<void>;
+
+  /* ------------------------------------------------------------ incoming ---- */
+
+  /**
+   * Files handed to the app from outside it — a share, an Open With, or a drop.
+   *
+   * Emitted when they arrive at a running app. A cold start does not get this event,
+   * because the files were already waiting before JavaScript existed; that case is what
+   * {@link takePendingFiles} is for.
+   */
+  readonly onFilesReceived: EventEmitter<UnsafeObject>;
+
+  /**
+   * Takes whatever arrived before JavaScript was listening, and empties the queue.
+   *
+   * A cold start from a share sheet is the normal case rather than the exception, so the
+   * files have to survive between the intent arriving and the UI being ready to show
+   * them. Taking rather than reading means a reload cannot resurrect a share the user
+   * already dealt with.
+   */
+  takePendingFiles(): Promise<UnsafeObject[]>;
 }
 
 // `get` rather than `getEnforcing`: importing a spec must not throw in Jest or on a

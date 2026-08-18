@@ -64,6 +64,16 @@ const PACKAGE_REGISTRATION = 'add(ConverterCorePackage())';
 const SERVICE_NAME = 'com.owaiskhan.converter.core.ConversionService';
 
 /**
+ * The MIME types the app will accept from a share sheet or an Open With.
+ *
+ * `image/*` rather than a list of subtypes: Android matches these literally, and a
+ * sending app that labels a HEIC as `image/heic` and one that labels the same file
+ * `image/*` would otherwise get different answers. The detector decides what a file
+ * actually is once it arrives — an extension is a claim, and so is a MIME type.
+ */
+const RECEIVED_MIME_TYPES = ['image/*', 'application/pdf'];
+
+/**
  * The three permissions a foreground service costs, and the only ones this app has.
  *
  * The first two are install-time declarations with no dialog. `POST_NOTIFICATIONS` is
@@ -196,6 +206,48 @@ module.exports = function withConverterCoreAndroid(config) {
 
     for (const permission of PERMISSIONS) {
       AndroidConfig.Permissions.ensurePermission(manifest, permission);
+    }
+
+    // Share and Open With. Added to the launcher activity rather than a separate one,
+    // so a share lands in the app the user already knows rather than a stub that then
+    // has to hand over.
+    const activity = AndroidConfig.Manifest.getMainActivityOrThrow(manifest);
+    activity['intent-filter'] = activity['intent-filter'] ?? [];
+
+    const filters = [
+      // One file shared.
+      ...RECEIVED_MIME_TYPES.map((mimeType) => ({
+        action: [{ $: { 'android:name': 'android.intent.action.SEND' } }],
+        category: [{ $: { 'android:name': 'android.intent.category.DEFAULT' } }],
+        data: [{ $: { 'android:mimeType': mimeType } }],
+      })),
+      // Several at once — the case a batch converter exists for.
+      ...RECEIVED_MIME_TYPES.map((mimeType) => ({
+        action: [{ $: { 'android:name': 'android.intent.action.SEND_MULTIPLE' } }],
+        category: [{ $: { 'android:name': 'android.intent.category.DEFAULT' } }],
+        data: [{ $: { 'android:mimeType': mimeType } }],
+      })),
+      // Open With, from a file manager or another app's document view.
+      ...RECEIVED_MIME_TYPES.map((mimeType) => ({
+        action: [{ $: { 'android:name': 'android.intent.action.VIEW' } }],
+        category: [
+          { $: { 'android:name': 'android.intent.category.DEFAULT' } },
+          { $: { 'android:name': 'android.intent.category.BROWSABLE' } },
+        ],
+        data: [
+          { $: { 'android:scheme': 'content', 'android:mimeType': mimeType } },
+          { $: { 'android:scheme': 'file', 'android:mimeType': mimeType } },
+        ],
+      })),
+    ];
+
+    for (const filter of filters) {
+      const already = activity['intent-filter'].some(
+        (existing) =>
+          existing.action?.[0]?.$['android:name'] === filter.action[0].$['android:name'] &&
+          existing.data?.[0]?.$['android:mimeType'] === filter.data[0].$['android:mimeType'],
+      );
+      if (!already) activity['intent-filter'].push(filter);
     }
 
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);

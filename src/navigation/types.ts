@@ -8,6 +8,8 @@ export type RootStackParamList = {
   Options: { taskId: string };
   /** Every PDF task shares one screen; the id decides which options it shows. */
   Pdf: { taskId: string };
+  /** Files handed over by another app, before a task has been chosen. */
+  Incoming: undefined;
 };
 
 declare global {
