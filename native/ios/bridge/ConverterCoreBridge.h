@@ -89,6 +89,54 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (void)releaseJob:(NSString *)jobId;
 
+#pragma mark - PDF engine
+
++ (void)inspectPdf:(NSString *)uri
+           resolve:(RCTPromiseResolveBlock)resolve
+            reject:(RCTPromiseRejectBlock)reject;
+
++ (void)unlockPdf:(NSString *)uri
+         password:(NSString *)password
+          resolve:(RCTPromiseResolveBlock)resolve
+           reject:(RCTPromiseRejectBlock)reject;
+
++ (void)renderPdfPages:(NSString *)uri
+         sessionHandle:(NSString *)sessionHandle
+               options:(NSDictionary *)options
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject;
+
++ (void)composePdfFromImages:(NSArray *)imageUris
+                   outputUri:(NSString *)outputUri
+                     options:(NSDictionary *)options
+                     resolve:(RCTPromiseResolveBlock)resolve
+                      reject:(RCTPromiseRejectBlock)reject;
+
++ (void)mergePdfs:(NSArray *)uris
+        outputUri:(NSString *)outputUri
+          resolve:(RCTPromiseResolveBlock)resolve
+           reject:(RCTPromiseRejectBlock)reject;
+
++ (void)splitPdf:(NSString *)uri
+ outputDirectory:(NSString *)outputDirectory
+         options:(NSDictionary *)options
+         resolve:(RCTPromiseResolveBlock)resolve
+          reject:(RCTPromiseRejectBlock)reject;
+
++ (void)editPdfPages:(NSString *)uri
+           outputUri:(NSString *)outputUri
+          operations:(NSDictionary *)operations
+             resolve:(RCTPromiseResolveBlock)resolve
+              reject:(RCTPromiseRejectBlock)reject;
+
++ (void)compressPdf:(NSString *)uri
+          outputUri:(NSString *)outputUri
+            options:(NSDictionary *)options
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject;
+
++ (void)closePdfSession:(NSString *)sessionHandle;
+
 #pragma mark - File gateway
 
 + (void)pickPhotos:(double)limit
