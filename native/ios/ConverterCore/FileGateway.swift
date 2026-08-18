@@ -33,6 +33,9 @@ public enum FileGateway {
             let picker = PHPickerViewController(configuration: configuration)
             let delegate = PickerDelegate { picked in continuation.resume(returning: picked) }
             picker.delegate = delegate
+            // A sheet swiped away does not always deliver didFinishPicking, so the
+            // dismissal is observed too.
+            picker.presentationController?.delegate = delegate
             objc_setAssociatedObject(picker, &PickerDelegate.associationKey, delegate, .OBJC_ASSOCIATION_RETAIN)
             presenter.present(picker, animated: true)
         }
@@ -94,10 +97,19 @@ public enum FileGateway {
         return try FormatDetector.detect(url: url)
     }
 
-    private final class PickerDelegate: NSObject, PHPickerViewControllerDelegate {
+    /**
+     A continuation that never resumes is worse than an error: the JavaScript promise
+     hangs forever, and any UI waiting on it stays disabled with no way back short of
+     relaunching the app. So this delegate guarantees exactly one resume through three
+     paths — the picker finishing, the sheet being dismissed some other way, and the
+     delegate being deallocated with neither having happened.
+     */
+    private final class PickerDelegate: NSObject, PHPickerViewControllerDelegate,
+                                        UIAdaptivePresentationControllerDelegate {
         nonisolated(unsafe) static var associationKey: UInt8 = 0
-        private let completion: ([PHPickerResult]) -> Void
-        private var hasCompleted = false
+
+        /// Cleared on the first resume, which is what makes "exactly once" hold.
+        private var completion: (([PHPickerResult]) -> Void)?
 
         init(completion: @escaping ([PHPickerResult]) -> Void) {
             self.completion = completion
@@ -106,8 +118,22 @@ public enum FileGateway {
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
             // Backing out of the picker delivers an empty array, which is not an error.
-            guard !hasCompleted else { return }
-            hasCompleted = true
+            finish(results)
+        }
+
+        /// Swipe-to-dismiss, which does not route through didFinishPicking.
+        func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+            finish([])
+        }
+
+        /// Last line of defence: the picker went away without telling anyone.
+        deinit {
+            finish([])
+        }
+
+        private func finish(_ results: [PHPickerResult]) {
+            guard let completion else { return }
+            self.completion = nil
             completion(results)
         }
     }
