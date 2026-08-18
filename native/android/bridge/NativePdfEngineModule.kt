@@ -36,7 +36,7 @@ public class NativePdfEngineModule(
 
   override fun inspect(uri: String, promise: Promise) {
     executor.execute {
-      runCatching { PdfEngine.inspect(resolve(uri)) }
+      runCatching { PdfEngine.inspect(reactApplicationContext, resolve(uri)) }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
     }
@@ -44,7 +44,7 @@ public class NativePdfEngineModule(
 
   override fun unlock(uri: String, password: String, promise: Promise) {
     executor.execute {
-      runCatching { PdfEngine.unlock(resolve(uri), password) }
+      runCatching { PdfEngine.unlock(reactApplicationContext, resolve(uri), password) }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
     }
@@ -90,7 +90,9 @@ public class NativePdfEngineModule(
   override fun merge(uris: ReadableArray, outputUri: String, promise: Promise) {
     val inputs = uris.toStringList()
     executor.execute {
-      runCatching { PdfEngine.merge(inputs.map { resolve(it) }, output(outputUri, "merged")) }
+      runCatching {
+        PdfEngine.merge(reactApplicationContext, inputs.map { resolve(it) }, output(outputUri, "merged"))
+      }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
     }
@@ -100,6 +102,7 @@ public class NativePdfEngineModule(
     executor.execute {
       runCatching {
         PdfEngine.split(
+          context = reactApplicationContext,
           file = resolve(uri),
           outputDirectory = if (outputDirectory.isEmpty()) {
             FileGateway.outputDirectory(reactApplicationContext)
@@ -121,7 +124,14 @@ public class NativePdfEngineModule(
     promise: Promise,
   ) {
     executor.execute {
-      runCatching { PdfEngine.editPages(resolve(uri), output(outputUri, "edited"), operations) }
+      runCatching {
+        PdfEngine.editPages(
+          reactApplicationContext,
+          resolve(uri),
+          output(outputUri, "edited"),
+          operations,
+        )
+      }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
     }

@@ -145,3 +145,21 @@ blocks install.
 ---
 
 *Copyright (c) 2026 Owais Khan. Licensed under the Apache License, Version 2.0.*
+
+---
+
+## Maven dependencies (Android)
+
+The licence gate reads the npm tree, so it cannot see Maven coordinates. These two are
+checked by reading, declared in `plugins/withConverterCoreAndroid.js`, and attributed in
+NOTICE as Apache-2.0 requires.
+
+| Coordinate | License | Size | Why |
+|---|---|---|---|
+| `androidx.exifinterface:exifinterface` | Apache-2.0 | negligible | Reads and writes EXIF across formats, which the platform APIs cannot. |
+| `com.tom-roush:pdfbox-android` | Apache-2.0 | 3.1 MB AAR, no native code | Page-level PDF work. Android exposes no page object: `PdfRenderer` only paints pages into bitmaps and `PdfDocument` only records canvas drawing, so merge, split and reorder with platform APIs alone would repaint every page and destroy its text. PDFBox also decrypts on every API level, where `PdfRenderer` gained a password API only in Android 15. |
+
+**Why not the usual answer.** MuPDF, Poppler and Ghostscript are what most PDF apps use,
+and all three are GPL or AGPL. That is the single reason most competitors either charge
+for a commercial licence or cannot publish their source. PDFBox is the permissive
+equivalent and costs nothing on either count.

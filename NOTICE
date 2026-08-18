@@ -41,6 +41,13 @@ Apache License 2.0
   AndroidX libraries
   Copyright (c) The Android Open Source Project
 
+  Apache PDFBox, via PdfBox-Android
+  Copyright (c) The Apache Software Foundation.
+  PdfBox-Android port copyright (c) Tom Roush.
+
+  This product includes software developed by The Apache Software Foundation
+  (http://www.apache.org/).
+
 BSD 3-Clause
 ------------
 
