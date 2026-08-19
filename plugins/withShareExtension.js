@@ -50,13 +50,34 @@ module.exports = function withShareExtension(config) {
     }
 
     // Already added on a previous pass through the mod chain.
-    if (project.pbxTargetByName(TARGET_NAME)) return modConfig;
+    //
+    // Checked both quoted and bare: `addTarget` stores the name wrapped in literal quote
+    // characters, while `pbxTargetByName` compares against the raw string — so this guard
+    // never actually saw the target it had created, and only ran once by luck of the mod
+    // order.
+    if (project.pbxTargetByName(TARGET_NAME) ?? project.pbxTargetByName(`"${TARGET_NAME}"`)) {
+      return modConfig;
+    }
 
     // 1. Copy the extension's own sources next to the app's.
     const source = path.join(projectRoot, 'native', 'ios', TARGET_NAME);
     const destination = path.join(platformRoot, TARGET_NAME);
-    fs.rmSync(destination, { recursive: true, force: true });
     fs.mkdirSync(destination, { recursive: true });
+
+    /**
+     * Only the files this plugin owns are cleared, not the whole directory.
+     *
+     * `withLocalizations` writes the extension's `xx.lproj` folders into this same place,
+     * and a blanket `rmSync` deleted them — leaving a project that referenced nine
+     * localisation folders which were not on disk. Which plugin wins depended on the order
+     * they happen to be listed in `app.json`, which is not a thing anybody should have to
+     * know.
+     */
+    for (const entry of fs.readdirSync(destination)) {
+      if (entry.endsWith('.swift') || entry === 'Info.plist') {
+        fs.rmSync(path.join(destination, entry), { force: true });
+      }
+    }
 
     const ownFiles = [];
     for (const entry of fs.readdirSync(source)) {

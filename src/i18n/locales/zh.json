@@ -5,8 +5,6 @@
     "done": "完成",
     "notNow": "暂不",
     "remove": "移除",
-    "file_one": "个文件",
-    "file_other": "个文件",
     "before": "转换前",
     "after": "转换后",
     "size": "大小",
@@ -14,24 +12,39 @@
     "saved": "节省",
     "largerBy": "增大",
     "aboutTheSame": "大小基本相同",
-    "pages_one": "页",
+    "unrecognised": "无法识别",
+    "file_other": "个文件",
     "pages_other": "页"
+  },
+  "a11y": {
+    "labelledDetail": "{{label}}。{{detail}}",
+    "fileRow": "{{name}}。{{state}}。{{detail}}",
+    "stat": "{{label}}：{{value}}",
+    "percentSmaller": "缩小 {{percent}}%",
+    "percentLarger": "增大 {{percent}}%",
+    "state": {
+      "waiting": "等待",
+      "done": "完成",
+      "failed": "失败"
+    }
   },
   "home": {
     "title": "转换",
     "promise": "一切都在你的设备上完成。不上传、不追踪，也没有次数限制。",
-    "history": "历史",
-    "historyLabel_one": "历史，{{count}} 次转换",
-    "historyLabel_other": "历史，{{count}} 次转换",
+    "history": "历史记录",
+    "historyLabel_other": "历史记录，{{count}} 次转换",
     "unavailable": {
       "platform": "此平台尚不支持",
       "device": "此设备不支持",
       "settings": "需要设置页面",
       "later": "将在后续版本中推出"
     },
+    "nothingSelected": "未选择任何文件。",
     "mergeNeedsTwo": "合并至少需要两个 PDF。再选一个后重试。"
   },
   "tasks": {
+    "hint": "将 {{from}} 文件转换为 {{to}}",
+    "unavailableHint": "此设备不支持",
     "heic-to-jpg": {
       "title": "HEIC 转 JPG",
       "subtitle": "让 iPhone 照片到哪都能打开"
@@ -45,7 +58,7 @@
       "subtitle": "不用猜，也能压到大小限制以内"
     },
     "resize-image": {
-      "title": "调整尺寸",
+      "title": "调整图片尺寸",
       "subtitle": "社交、邮件与打印的预设"
     },
     "image-to-pdf": {
@@ -71,76 +84,148 @@
     "png-to-jpg": {
       "title": "PNG 转 JPG",
       "subtitle": "更小的文件，背景由你选"
+    },
+    "badge": {
+      "any": "任意",
+      "img": "图片"
     }
   },
   "convert": {
     "selectedFile": "已选文件",
+    "result": "结果",
     "dimensions": "尺寸",
     "format": "格式",
-    "nothingSelected": "未选择任何文件",
+    "nothingSelected": "未选择文件",
     "pickToStart": "在主页选择一个文件即可开始。",
     "failed": "无法转换此文件",
     "convertAnother": "转换其他文件",
+    "convertTo": "转换为 {{format}}",
     "saveToPhotos": "保存到照片",
     "savedToPhotos": "已保存到照片",
-    "gpsFound": "检测到位置信息。转换后的文件中会被移除。"
+    "gpsFound": "检测到位置信息。转换后的文件中会被移除。",
+    "claimedMismatch": "此文件名标示为 {{claimed}}，但内容实际是 {{actual}}。将按实际格式转换。",
+    "willFlatten": "{{format}} 不支持透明，透明区域会变成白色。",
+    "grewExplanation": "{{source}} 对这张图片的压缩效果好于 {{target}}。转换结果本身没有问题——如果大小比画质更重要，可以降低画质，或者保留原文件。",
+    "announceDone": "转换完成。",
+    "announceFailed": "转换失败。"
   },
   "batch": {
-    "summary": "{{count}} 个文件 → {{format}}",
+    "summary_other": "{{count}} 个文件 → {{format}}",
     "converting": "正在转换。已完成 {{done}}/{{total}}。",
     "finished": "已完成。已转换 {{done}}/{{total}}。",
     "finishingCurrent": "正在完成当前文件…",
-    "failedCount": "{{count}} 个失败",
+    "failedCount_other": "{{count}} 个失败",
     "total": "合计",
     "couldNotStart": "无法开始",
     "notificationsOff": "通知已关闭，因此不会出现在通知栏中。即使离开应用，转换仍会完成。",
-    "stopped_one": "已停止。已转换的 {{count}} 个文件在下方，其余未做处理。",
     "stopped_other": "已停止。已转换的 {{count}} 个文件在下方，其余未做处理。",
     "cancelling": "正在取消…",
     "nothingToConvert": "没有可转换的内容",
-    "saveAll_one": "保存 {{count}} 个到照片",
-    "saveAll_other": "保存 {{count}} 个到照片"
+    "saveAll_other": "保存 {{count}} 个到照片",
+    "retry_other": "重试 {{count}} 个失败的文件",
+    "announceFinished": "已转换 {{done}}/{{total}}。",
+    "announceFailures_other": "{{count}} 个文件转换失败。",
+    "progressCount": "{{done}} / {{total}}",
+    "percentDone": "{{percent}}%",
+    "savedAll_other": "已保存 {{count}} 个到照片"
   },
   "options": {
     "title": "设置",
+    "summary_other": "{{count}} 个文件 → {{format}}",
     "estimatedOutput": "预计大小",
+    "measuring": "正在测量…",
     "measured": "实测，而非估算",
     "measuredOn": "基于 {{name}} 实测",
+    "each": "每个 {{size}}",
     "aimForSize": "指定文件大小",
     "aimForSizeHint": "寻找刚好低于上限的画质",
-    "maximumSize": "最大大小",
+    "maximumSize": "大小上限",
     "quality": "画质",
     "size": "尺寸",
     "customSize": "自定义尺寸",
     "rotate": "旋转",
+    "rotateNone": "无",
+    "rotateDegrees": "{{degrees}} 度",
     "flipHorizontally": "水平翻转",
     "flipVertically": "垂直翻转",
     "metadata": "元数据",
     "metadataNoLocation": "不含位置",
+    "metadataNoLocationLabel": "保留位置以外的全部信息",
     "metadataKeepAll": "全部保留",
     "metadataStripAll": "全部清除",
-    "metadataHint": "相机与日期保留，你去过哪里不会保留。",
+    "metadataHint": {
+      "keepExceptGps": "相机与日期保留，你去过哪里不会保留。",
+      "keepAll": "全部信息都会保留，包括位置。",
+      "stripAll": "任何信息都不会保留。"
+    },
     "convertToSrgb": "转换为 sRGB",
     "convertToSrgbHint": "广色域照片在忽略色彩描述文件的应用里会显得过饱和",
     "background": "背景",
-    "backgroundHint": "此格式不支持透明。请选择用什么替代。",
+    "backgroundHint": "{{format}} 不支持透明。透明区域会变成这个颜色。",
+    "backgroundColors": {
+      "white": "白色",
+      "black": "黑色",
+      "grey": "灰色",
+      "cream": "米白色",
+      "sand": "沙色"
+    },
     "convertTo": "转换为 {{format}}",
     "rename": "重命名",
     "pattern": "命名模式",
     "keepOriginalNames": "保留原文件名",
     "namesKept": "文件名保持不变",
+    "namePreview": "{{names}}",
+    "namePreviewMore": "{{names}}、…",
     "wouldCollide": "所有文件会重名。请加入 {name} 或 {index}。",
     "tokens": {
-      "name": "名称",
-      "nameDetail": "不含扩展名的原文件名",
-      "index": "序号",
-      "indexDetail": "在批次中的位置，从 001 开始",
-      "date": "日期",
-      "dateDetail": "今天的日期，格式为 2026-08-18",
-      "format": "格式",
-      "formatDetail": "将要写入的格式"
+      "insert": "插入命名标记",
+      "name": {
+        "label": "名称",
+        "detail": "不含扩展名的原文件名"
+      },
+      "index": {
+        "label": "序号",
+        "detail": "在批次中的位置，从 001 开始"
+      },
+      "date": {
+        "label": "日期",
+        "detail": "今天的日期，格式为 2026-08-18"
+      },
+      "format": {
+        "label": "格式",
+        "detail": "将要写入的格式"
+      }
     },
-    "insertToken": "插入命名元素",
+    "resizePresets": {
+      "original": {
+        "label": "原始尺寸",
+        "detail": "保持现有的尺寸"
+      },
+      "email": {
+        "label": "邮件",
+        "detail": "小于 1 MB，符合各种附件限制"
+      },
+      "instagram-square": {
+        "label": "方形",
+        "detail": "1080 × 1080，用于信息流帖子"
+      },
+      "instagram-story": {
+        "label": "快拍",
+        "detail": "1080 × 1920，全屏"
+      },
+      "hd": {
+        "label": "1080p",
+        "detail": "1920 × 1080，适合屏幕与幻灯片"
+      },
+      "uhd": {
+        "label": "4K",
+        "detail": "3840 × 2160，用于打印也绰绰有余"
+      },
+      "passport": {
+        "label": "证件照",
+        "detail": "600 × 600，300 dpi"
+      }
+    },
     "presets": "预设",
     "presetsEmpty": "保存当前设置，下次无需重新调整。",
     "applyPreset": "应用已保存的预设",
@@ -159,23 +244,30 @@
     "orientation": "方向",
     "fit": "适配",
     "margin": "页边距",
+    "marginInches": "{{inches}} 英寸",
     "imagesPerPage": "每页图片数",
     "pagesLabel": "页面",
     "allPages": "全部页面",
     "pagesHint": "留空表示全部页面，也可以写成 1-3, 7, 9-",
+    "noPages": "无页面",
+    "allNPages_other": "全部 {{count}} 页",
+    "pagesSelected_other": "{{total}} 页中的 {{count}} 页",
     "rangeMatchesNothing": "该范围没有匹配到任何页面",
     "resolution": "分辨率",
     "format": "格式",
+    "quality": "画质",
     "pngLossless": "PNG 是无损格式，因此无需选择画质。文件更大，像素精确。",
     "order": "顺序",
     "orderHint": "文档将按你选择的顺序合并。",
+    "orderedFile": "{{index}}. {{name}}",
     "splitBy": "拆分方式",
     "splitRanges": "页面范围",
     "splitEvery": "每 N 页",
     "ranges": "范围",
+    "rangesPlaceholder": "1-3, 4-8",
     "rangesHint": "每个范围会成为一个独立文档",
     "pagesPerDocument": "每个文档的页数",
-    "documentsFrom": "由 {{pages}} 页生成 {{documents}} 个文档",
+    "documentsFrom_other": "由 {{pages}} 页生成 {{count}} 个文档",
     "flattensTitle": "这会把文字变成图片",
     "flattensBody": "每一页都会被重绘为图片，因此结果无法选中、搜索或朗读。两个平台都无法在不这样做的情况下压缩 PDF。如果你在意这些，请保留原文件。",
     "grayscale": "灰度",
@@ -185,6 +277,9 @@
     "images": "图片",
     "couldNotFinish": "无法完成",
     "nothingToDo": "没有可执行的操作",
+    "savedButton": "已保存",
+    "imageDetail": "{{width}} × {{height}} · {{size}}",
+    "partDetail": "{{pages}} · {{size}}",
     "actions": {
       "compose": "生成 PDF",
       "render": "导出页面",
@@ -194,46 +289,122 @@
       "run": "执行"
     },
     "summary": {
-      "compose": "{{count}} 个文件 → PDF",
-      "merge": "{{count}} 个文件 → 一个 PDF"
+      "compose_other": "{{count}} 个文件 → PDF",
+      "merge_other": "{{count}} 个文件 → 一个 PDF",
+      "pages_other": "{{count}} 页",
+      "files_other": "{{count}} 个文件"
     },
-    "saveToPhotos_one": "保存 {{count}} 个到照片",
     "saveToPhotos_other": "保存 {{count}} 个到照片",
-    "saveToFiles_one": "保存 {{count}} 个到文件",
     "saveToFiles_other": "保存 {{count}} 个到文件",
-    "page_one": "第 {{first}} 页",
-    "pageRange": "第 {{first}}–{{last}} 页"
+    "singlePage": "第 {{first}} 页",
+    "pageRange": "第 {{first}}-{{last}} 页",
+    "announceFinished": "已完成。",
+    "announceFailed": "无法完成。",
+    "announceLocked": "此 PDF 需要密码。",
+    "pageSizes": {
+      "fit": {
+        "label": "适配图片",
+        "detail": "每一页采用其图片的形状"
+      },
+      "a4": {
+        "label": "A4",
+        "detail": "几乎各地通用的标准"
+      },
+      "letter": {
+        "label": "Letter",
+        "detail": "美国与加拿大的标准"
+      },
+      "legal": {
+        "label": "Legal",
+        "detail": "比 Letter 更长"
+      },
+      "a5": {
+        "label": "A5",
+        "detail": "A4 的一半"
+      },
+      "a3": {
+        "label": "A3",
+        "detail": "A4 的两倍"
+      },
+      "tabloid": {
+        "label": "Tabloid",
+        "detail": "Letter 的两倍"
+      }
+    },
+    "orientations": {
+      "auto": "自动",
+      "portrait": "纵向",
+      "landscape": "横向"
+    },
+    "fitModes": {
+      "fit": {
+        "label": "适配",
+        "hint": "完整显示整张图片，形状不同时四周留白"
+      },
+      "fill": {
+        "label": "填充",
+        "hint": "填满页面，放不下的部分被裁掉"
+      },
+      "stretch": {
+        "label": "拉伸",
+        "hint": "拉伸图片以填满页面"
+      }
+    },
+    "nUp": {
+      "single": "每页 1 张",
+      "many": "每页 {{count}} 张"
+    },
+    "dpi": {
+      "screen": {
+        "label": "屏幕",
+        "detail": "每英寸 {{dpi}} 点"
+      },
+      "good": {
+        "label": "良好",
+        "detail": "每英寸 {{dpi}} 点"
+      },
+      "print": {
+        "label": "打印",
+        "detail": "每英寸 {{dpi}} 点"
+      },
+      "archive": {
+        "label": "存档",
+        "detail": "每英寸 {{dpi}} 点，文件很大"
+      }
+    },
+    "renderFormats": {
+      "jpeg": "JPG",
+      "png": "PNG"
+    }
   },
   "incoming": {
-    "title": "从其他应用发来",
-    "subtitle_one": "来自其他应用的 {{count}} 个文件",
+    "title": "收到的文件",
     "subtitle_other": "来自其他应用的 {{count}} 个文件",
     "whatToDo": "你想做什么？",
-    "partial": "{{total}} 个中的 {{count}} 个",
-    "unreadable_one": "有 1 个文件无法识别，将被排除。",
+    "partial_other": "{{total}} 个中的 {{count}} 个",
+    "fileDetail": "{{format}} · {{size}}",
     "unreadable_other": "有 {{count}} 个文件无法识别，将被排除。",
     "nothingUsable": "这里没有可转换的内容",
-    "nothingUsableBody": "这些文件不是本应用能读取的格式。图片和 PDF 都可以。",
-    "unrecognised": "无法识别"
+    "nothingUsableBody": "这些文件不是本应用能读取的格式。图片和 PDF 都可以。"
   },
   "history": {
-    "title": "历史",
+    "title": "历史记录",
     "empty": "还没有转换过任何文件",
-    "count_one": "{{count}} 次转换，仅保存在本设备",
     "count_other": "{{count}} 次转换，仅保存在本设备",
     "allTime": "累计",
     "emptyTitle": "这里还没有内容",
     "emptyBody": "你执行的转换会记录在本设备上。不会上传，也不会分享。",
-    "clear": "清除历史",
+    "clear": "清除历史记录",
     "clearConfirm": "再次点按以全部清除",
-    "andMore": " 等 {{count}} 个",
+    "names": "{{names}}",
+    "namesAndMore_other": "{{names}} 等 {{count}} 个",
     "justNow": "刚刚",
-    "minutesAgo": "{{count}} 分钟前",
-    "hoursAgo_one": "{{count}} 小时前",
+    "minutesAgo_other": "{{count}} 分钟前",
     "hoursAgo_other": "{{count}} 小时前",
-    "daysAgo_one": "{{count}} 天前",
     "daysAgo_other": "{{count}} 天前",
-    "entryLabel": "{{task}}，{{count}} 个文件，{{when}}",
+    "rowDetail_other": "{{when}} · {{count}} 个文件",
+    "rowDetailFailed_other": "{{when}} · {{count}} 个文件 · {{failed}} 个失败",
+    "entryLabel_other": "{{task}}，{{count}} 个文件，{{when}}",
     "entryHint": "显示文件名，并可移除此记录"
   },
   "errors": {
@@ -249,5 +420,34 @@
     "downloadFailed": "此文件存储在云端且无法下载。请检查网络连接后重试。",
     "cancelled": "转换已取消。",
     "unknown": "转换此文件时出现问题。请重试。"
+  },
+  "notification": {
+    "channelName": "转换进度",
+    "channelDescription": "显示应用在后台时，批量转换的进度。",
+    "progress": "正在转换 {{done}}/{{total}}",
+    "preparing": "正在准备转换",
+    "cancelling": "正在取消",
+    "cancel": "取消"
+  },
+  "share": {
+    "reading": "正在读取…",
+    "nothingShared": "未收到任何文件。",
+    "unreadable": "这些文件无法读取。",
+    "title_other": "转换 {{count}} 个文件",
+    "ready": "就绪",
+    "saveAsJpg": "保存为 JPG",
+    "saveAsPng": "保存为 PNG",
+    "makePdf": "生成 PDF",
+    "cancel": "取消",
+    "converting": "正在转换…",
+    "makingPdf": "正在生成 PDF…",
+    "pdfFailed": "无法生成该 PDF。",
+    "nothingConverted": "没有可转换的内容。",
+    "savedToPhotos_other": "已将 {{count}} 个保存到照片",
+    "photosDenied": "已转换。但不允许保存到照片。",
+    "someUnreadable_other": "有 {{count}} 个无法读取。"
+  },
+  "permissions": {
+    "photoLibraryAdd": "Converter 会把转换后的图片直接保存到你的照片图库。它从不读取你的图库——文件由你通过系统选择器来选。"
   }
 }

@@ -13,6 +13,17 @@ export type Segment<T extends string> = {
   accessibilityLabel?: string;
 };
 
+/**
+ * Stands in for a missing `testID` when building each segment's own id.
+ *
+ * The visible `label` used to fill that slot, and it comes from the catalogue now: the
+ * ids would change with the language, so a test looking for `Rotate-90` would find
+ * `Rotar-90` on a Spanish build and nothing at all on an Arabic one. Callers that want
+ * to be findable pass `testID`; this only keeps the ids of the ones that do not from
+ * being written in whatever language the app happens to be running in.
+ */
+const TEST_ID_FALLBACK = 'segmented';
+
 export type SegmentedControlProps<T extends string> = {
   label: string;
   segments: readonly Segment<T>[];
@@ -63,7 +74,7 @@ export function SegmentedControl<T extends string>({
           return (
             <Pressable
               key={segment.value}
-              testID={`${testID ?? label}-${segment.value}`}
+              testID={`${testID ?? TEST_ID_FALLBACK}-${segment.value}`}
               onPress={() => onChange(segment.value)}
               accessibilityRole="button"
               accessibilityLabel={segment.accessibilityLabel ?? segment.label}

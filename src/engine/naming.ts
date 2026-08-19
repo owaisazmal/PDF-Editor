@@ -12,10 +12,10 @@
  */
 
 export type NameToken = {
+  /** The literal typed into the pattern. Never translated: `expandName` matches it. */
   token: string;
-  label: string;
-  /** What it expands to, in the words of someone who has not read the code. */
-  detail: string;
+  /** Also the catalogue key: `options.tokens.<id>.label` and `.detail`. */
+  id: 'name' | 'index' | 'date' | 'format';
 };
 
 /**
@@ -26,10 +26,10 @@ export type NameToken = {
  * language, and a language in a text field is a support burden.
  */
 export const NAME_TOKENS: readonly NameToken[] = [
-  { token: '{name}', label: 'Name', detail: 'The original name, without its extension' },
-  { token: '{index}', label: 'Number', detail: 'Position in the batch, from 001' },
-  { token: '{date}', label: 'Date', detail: "Today's date, as 2026-08-18" },
-  { token: '{format}', label: 'Format', detail: 'The format being written' },
+  { token: '{name}', id: 'name' },
+  { token: '{index}', id: 'index' },
+  { token: '{date}', id: 'date' },
+  { token: '{format}', id: 'format' },
 ];
 
 export type NameInputs = {

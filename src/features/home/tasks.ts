@@ -11,14 +11,18 @@ import { canConvert, canDoPdf, type CapabilitiesState, type PdfOperation } from 
  * the App Store and Play search — "HEIC to JPG" outranks any name we could invent — so
  * the home screen and the store listing keyword set are the same list.
  *
+ * The words themselves are not here. `id` doubles as the catalogue key, so a tile reads
+ * its title from `tasks.<id>.title` and there is exactly one copy of each string in the
+ * repository. Holding the English here as well would mean nine files plus this one, and
+ * this one would win silently.
+ *
  * `phase` records when each becomes real. Tiles beyond the current phase render in a
  * disabled state rather than being hidden, so the information architecture is visible
  * from the first build and the layout does not reflow as phases land.
  */
 export type ConversionTask = {
+  /** Also the catalogue key: `tasks.<id>.title` and `tasks.<id>.subtitle`. */
   id: string;
-  title: string;
-  subtitle: string;
   from: string;
   to: string;
   sourceFormats: FormatId[];
@@ -52,8 +56,6 @@ export type ConversionTask = {
 export const CONVERSION_TASKS: readonly ConversionTask[] = [
   {
     id: 'heic-to-jpg',
-    title: 'HEIC to JPG',
-    subtitle: 'iPhone photos anything can open',
     from: 'HEIC',
     to: 'JPG',
     sourceFormats: ['heic', 'heif'],
@@ -62,8 +64,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'webp-to-jpg',
-    title: 'WebP to JPG',
-    subtitle: 'Saved images that will not open',
     from: 'WEBP',
     to: 'JPG',
     sourceFormats: ['webp'],
@@ -72,8 +72,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'compress-image',
-    title: 'Compress Image',
-    subtitle: 'Hit a size limit without the guesswork',
     from: 'ANY',
     to: 'JPG',
     sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
@@ -83,8 +81,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'resize-image',
-    title: 'Resize Image',
-    subtitle: 'Presets for social, email and print',
     from: 'ANY',
     to: 'ANY',
     sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
@@ -94,8 +90,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'image-to-pdf',
-    title: 'Image to PDF',
-    subtitle: 'Many photos, one document',
     from: 'IMG',
     to: 'PDF',
     sourceFormats: ['jpeg', 'png', 'heic', 'webp'],
@@ -107,8 +101,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'pdf-to-jpg',
-    title: 'PDF to JPG',
-    subtitle: 'Pages as images, at your chosen DPI',
     from: 'PDF',
     to: 'JPG',
     sourceFormats: ['pdf'],
@@ -120,8 +112,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'merge-pdf',
-    title: 'Merge PDF',
-    subtitle: 'Combine and reorder in one pass',
     from: 'PDF',
     to: 'PDF',
     sourceFormats: ['pdf'],
@@ -134,8 +124,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'split-pdf',
-    title: 'Split PDF',
-    subtitle: 'Pull out pages, or break it up',
     from: 'PDF',
     to: 'PDF',
     sourceFormats: ['pdf'],
@@ -147,8 +135,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'compress-pdf',
-    title: 'Compress PDF',
-    subtitle: 'Smaller file, at a cost worth knowing',
     from: 'PDF',
     to: 'PDF',
     sourceFormats: ['pdf'],
@@ -160,8 +146,6 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
   },
   {
     id: 'png-to-jpg',
-    title: 'PNG to JPG',
-    subtitle: 'Smaller files, with a background you pick',
     from: 'PNG',
     to: 'JPG',
     sourceFormats: ['png'],
@@ -201,21 +185,29 @@ export const isTaskSupported = (
   return true;
 };
 
-/** Why a tile is closed, in the user's terms. Null when it is open. */
+/**
+ * Why a tile is closed. Null when it is open.
+ *
+ * An identifier rather than a sentence, because this is a plain module and cannot reach
+ * `t`. The four values are exactly the four `home.unavailable.*` keys, so the screen
+ * translates it with a lookup and the compiler checks the set is covered.
+ */
+export type UnavailableReason = 'platform' | 'device' | 'settings' | 'later';
+
 export function unavailableReason(
   task: ConversionTask,
   capabilities: Pick<CapabilitiesState, 'decode' | 'encode' | 'pdfOperations' | 'isLoaded'>,
-): string | null {
+): UnavailableReason | null {
   // Checked before the device reason, because it is a different claim. "Not supported on
   // this device" says the hardware or OS cannot; a missing PDF operation says this build
   // cannot, on this platform. Telling a user the first when the second is true is how a
   // bug report gets filed against a phone that is working fine.
   if (task.pdfOperation && !canDoPdf(capabilities, task.pdfOperation)) {
-    return 'Not available on this platform yet';
+    return 'platform';
   }
-  if (!isTaskSupported(task, capabilities)) return 'Not supported on this device';
-  if (task.needsOptions && !HAS_TRANSFORM_OPTIONS) return 'Needs the settings screen';
-  if (task.phase > CURRENT_PHASE) return 'Coming in a later build';
+  if (!isTaskSupported(task, capabilities)) return 'device';
+  if (task.needsOptions && !HAS_TRANSFORM_OPTIONS) return 'settings';
+  if (task.phase > CURRENT_PHASE) return 'later';
   return null;
 }
 

@@ -4,11 +4,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
-import { Button, Card, Screen, StatRow, Text } from '@/components';
+import { Button, Card, Screen, SectionLabel, StatRow, Text } from '@/components';
+import { CONVERSION_TASKS } from '@/features/home/tasks';
+import { activeLocale } from '@/i18n';
 import { useHistoryStore, totalSaved, type HistoryEntry } from '@/store/history';
 import { useTheme } from '@/theme';
-import { describeSizeChange, formatBytes } from '@/utils/format';
+import { describeSizeChange, formatBytes, formatList, formatNumber } from '@/utils/format';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'History'>;
@@ -27,6 +31,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'History'>;
  */
 export function HistoryScreen({ navigation }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const entries = useHistoryStore((state) => state.entries);
   const clear = useHistoryStore((state) => state.clear);
   const [confirmingClear, setConfirmingClear] = useState(false);
@@ -47,23 +52,19 @@ export function HistoryScreen({ navigation }: Props) {
 
   return (
     <Screen>
-      <Text variant="h1">History</Text>
+      <Text variant="h1">{t('history.title')}</Text>
       <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-        {entries.length === 0
-          ? 'Nothing converted yet'
-          : `${entries.length} ${entries.length === 1 ? 'conversion' : 'conversions'}, on this device only`}
+        {entries.length === 0 ? t('history.empty') : t('history.count', { count: entries.length })}
       </Text>
 
       {entries.length > 0 && totals.before > 0 ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">
-          <Text variant="label" color="textTertiary" heading>
-            ALL TIME
-          </Text>
+          <SectionLabel color="textTertiary">{t('history.allTime')}</SectionLabel>
           <View style={{ marginTop: theme.space.sm }}>
-            <StatRow label="Before" value={formatBytes(totals.before)} />
-            <StatRow label="After" value={formatBytes(totals.after)} />
+            <StatRow label={t('common.before')} value={formatBytes(totals.before)} />
+            <StatRow label={t('common.after')} value={formatBytes(totals.after)} />
             <StatRow
-              label={change.label}
+              label={t(change.labelKey)}
               value={change.value}
               emphasis
               {...(change.grew ? { valueColor: 'warningInk' as const } : {})}
@@ -79,10 +80,9 @@ export function HistoryScreen({ navigation }: Props) {
       >
         {entries.length === 0 ? (
           <Card>
-            <Text variant="h3">Nothing here yet</Text>
+            <Text variant="h3">{t('history.emptyTitle')}</Text>
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-              Conversions you run will be listed here, on this device. Nothing is uploaded
-              and nothing is shared.
+              {t('history.emptyBody')}
             </Text>
           </Card>
         ) : (
@@ -93,12 +93,12 @@ export function HistoryScreen({ navigation }: Props) {
       <View style={{ paddingTop: theme.space.md, gap: theme.space.sm }}>
         {entries.length > 0 ? (
           <Button
-            label={confirmingClear ? 'Tap again to clear everything' : 'Clear history'}
+            label={confirmingClear ? t('history.clearConfirm') : t('history.clear')}
             variant="ghost"
             onPress={onClear}
           />
         ) : null}
-        <Button label="Done" variant="ghost" onPress={() => navigation.popToTop()} />
+        <Button label={t('common.done')} variant="ghost" onPress={() => navigation.popToTop()} />
       </View>
     </Screen>
   );
@@ -106,29 +106,47 @@ export function HistoryScreen({ navigation }: Props) {
 
 function HistoryRow({ entry }: { entry: HistoryEntry }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const removeEntry = useHistoryStore((state) => state.removeEntry);
   const [expanded, setExpanded] = useState(false);
 
   const change = describeSizeChange(entry.bytesBefore, entry.bytesAfter);
+
+  // Resolved from the id, so the row is in whatever language is running now. The stored
+  // title is only reached for rows written before the catalogue covered this screen, and
+  // the id is the last resort: a row that says `merge-pdf` is still better than a blank.
+  const task = CONVERSION_TASKS.find((candidate) => candidate.id === entry.taskId);
+  const title = task ? t(`tasks.${task.id}.title`) : (entry.taskTitle ?? entry.taskId);
+
+  const whenText = when(entry.at, t, activeLocale());
+  const hiddenNames = entry.fileCount - entry.outputNames.length;
 
   return (
     <Card style={{ marginBottom: theme.space.md }}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${entry.taskTitle}, ${entry.fileCount} files, ${when(entry.at)}`}
-        accessibilityHint="Shows the file names and lets you remove this entry"
+        accessibilityLabel={t('history.entryLabel', {
+          task: title,
+          count: entry.fileCount,
+          when: whenText,
+        })}
+        accessibilityHint={t('history.entryHint')}
         onPress={() => setExpanded((open) => !open)}
       >
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text variant="h3" numberOfLines={1}>
-              {entry.taskTitle}
+              {title}
             </Text>
             <Text variant="caption" color="textTertiary" style={{ marginTop: 2 }}>
-              {when(entry.at)} · {entry.fileCount}{' '}
-              {entry.fileCount === 1 ? 'file' : 'files'}
-              {entry.failedCount > 0 ? ` · ${entry.failedCount} failed` : ''}
+              {entry.failedCount > 0
+                ? t('history.rowDetailFailed', {
+                    when: whenText,
+                    count: entry.fileCount,
+                    failed: formatNumber(entry.failedCount),
+                  })
+                : t('history.rowDetail', { when: whenText, count: entry.fileCount })}
             </Text>
           </View>
           {change.value ? (
@@ -142,24 +160,22 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
 
       {expanded ? (
         <View style={{ marginTop: theme.space.md }}>
-          <StatRow label="Before" value={formatBytes(entry.bytesBefore)} />
-          <StatRow label="After" value={formatBytes(entry.bytesAfter)} />
+          <StatRow label={t('common.before')} value={formatBytes(entry.bytesBefore)} />
+          <StatRow label={t('common.after')} value={formatBytes(entry.bytesAfter)} />
 
           {entry.outputNames.length > 0 ? (
-            <Text
-              variant="caption"
-              color="textTertiary"
-              style={{ marginTop: theme.space.sm }}
-            >
-              {entry.outputNames.join(', ')}
-              {entry.fileCount > entry.outputNames.length
-                ? ` and ${entry.fileCount - entry.outputNames.length} more`
-                : ''}
+            <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
+              {hiddenNames > 0
+                ? t('history.namesAndMore', {
+                    names: formatList(entry.outputNames),
+                    count: hiddenNames,
+                  })
+                : t('history.names', { names: formatList(entry.outputNames) })}
             </Text>
           ) : null}
 
           <Button
-            label="Remove"
+            label={t('common.remove')}
             variant="ghost"
             onPress={() => removeEntry(entry.id)}
             style={{ marginTop: theme.space.sm }}
@@ -175,20 +191,25 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
  *
  * "3 hours ago" is how someone thinks about a conversion they are still looking for;
  * a date is how they think about one from last month.
+ *
+ * `t` and the locale are handed in rather than read here: this sits in module scope and
+ * cannot call a hook. The locale is the app's rather than the device's, because
+ * `toLocaleDateString()` left to itself prints an English date in the middle of a French
+ * row the moment someone sets a per-app language.
  */
-function when(at: number): string {
+function when(at: number, t: TFunction, locale: string): string {
   const elapsed = Date.now() - at;
   const minutes = Math.round(elapsed / 60_000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return t('history.justNow');
+  if (minutes < 60) return t('history.minutesAgo', { count: minutes });
 
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+  if (hours < 24) return t('history.hoursAgo', { count: hours });
 
   const days = Math.round(hours / 24);
-  if (days <= 7) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+  if (days <= 7) return t('history.daysAgo', { count: days });
 
-  return new Date(at).toLocaleDateString();
+  return new Date(at).toLocaleDateString(locale);
 }
 
 const styles = StyleSheet.create({

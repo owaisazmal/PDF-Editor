@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Text } from './Text';
 import { useTheme } from '@/theme';
@@ -39,6 +40,7 @@ export function ChipRow<T extends string | number>({
   style,
 }: ChipRowProps<T>) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel} style={[styles.row, style]}>
@@ -49,7 +51,9 @@ export function ChipRow<T extends string | number>({
             key={String(chip.value)}
             {...(testIDPrefix ? { testID: `${testIDPrefix}-${chip.value}` } : {})}
             accessibilityRole="radio"
-            accessibilityLabel={chip.detail ? `${chip.label}. ${chip.detail}` : chip.label}
+            accessibilityLabel={
+              chip.detail ? t('a11y.labelledDetail', { label: chip.label, detail: chip.detail }) : chip.label
+            }
             accessibilityState={{ selected }}
             onPress={() => onChange(chip.value)}
             style={({ pressed }) => [

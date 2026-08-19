@@ -8,7 +8,9 @@
  * four hundred files at once.
  */
 
-import { appendToken, collides, expandName, previewNames } from '@/engine/naming';
+import en from '@/i18n/locales/en.json';
+import { NAME_TOKENS, appendToken, collides, expandName, previewNames } from '@/engine/naming';
+import { RESIZE_PRESETS } from '@/engine/presets';
 
 /** Fixed, because a test that changes meaning at midnight is not a test. */
 const today = new Date(2026, 7, 18);
@@ -107,6 +109,54 @@ describe('previewing what a batch will be called', () => {
 
   it('handles a batch shorter than the preview limit', () => {
     expect(previewNames('{name}', ['only.jpg'], 'png', today)).toEqual(['only.png']);
+  });
+});
+
+describe('the tokens the chip row offers', () => {
+  it('offers only tokens that expandName actually substitutes', () => {
+    // The literal and the catalogue key are two fields now, and nothing but this stops
+    // them drifting apart: a chip that inserts `{filename}` puts the token itself into
+    // every name in the batch, and the preview says so far too quietly.
+    for (const { token } of NAME_TOKENS) {
+      expect(expandName(token, inputs())).not.toBe(token);
+    }
+  });
+
+  it('gives each token a label and a detail in the catalogue', () => {
+    const tokens: Record<string, unknown> = en.options.tokens;
+    for (const { id } of NAME_TOKENS) {
+      const entry = tokens[id] as { label?: unknown; detail?: unknown } | undefined;
+      expect(typeof entry?.label).toBe('string');
+      expect(typeof entry?.detail).toBe('string');
+    }
+  });
+});
+
+/**
+ * The other list on the options screen whose ids are catalogue keys, tested here rather
+ * than in a file of its own because the rot is the same one: `id` is the only join
+ * between a preset and its words, and nothing in TypeScript checks it.
+ */
+describe('the resize presets', () => {
+  it('is a list of ids and the settings they apply', () => {
+    for (const preset of RESIZE_PRESETS) {
+      expect(typeof preset.id).toBe('string');
+      expect(typeof preset.apply).toBe('function');
+    }
+  });
+
+  it('gives each preset a label and a detail in the catalogue', () => {
+    const presets: Record<string, unknown> = en.options.resizePresets;
+    for (const { id } of RESIZE_PRESETS) {
+      const entry = presets[id] as { label?: unknown; detail?: unknown } | undefined;
+      expect(typeof entry?.label).toBe('string');
+      expect(typeof entry?.detail).toBe('string');
+    }
+  });
+
+  it('carries no words for a preset that does not exist', () => {
+    const ids = new Set(RESIZE_PRESETS.map((preset) => preset.id));
+    expect(Object.keys(en.options.resizePresets).filter((key) => !ids.has(key))).toEqual([]);
   });
 });
 

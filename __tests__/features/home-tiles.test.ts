@@ -13,6 +13,7 @@
  * once, and the enabled rule is strictly per-tile. This covers the second half.
  */
 
+import en from '@/i18n/locales/en.json';
 import {
   CONVERSION_TASKS,
   CURRENT_PHASE,
@@ -86,7 +87,9 @@ describe('capability gating', () => {
     // Android below API 28 is exactly this: JPEG in, JPEG out, no HEIC decoder.
     const noHeic = loaded(['jpeg', 'png'], ['jpeg', 'png']);
     expect(isTaskSupported(heicToJpg, noHeic)).toBe(false);
-    expect(unavailableReason(heicToJpg, noHeic)).toBe('Not supported on this device');
+    // The identifier rather than the sentence: this asserts which of the four reasons
+    // the user is given, and keeps asserting it after the sentence is reworded.
+    expect(unavailableReason(heicToJpg, noHeic)).toBe('device');
   });
 
   it('closes a task the device cannot encode the target of', () => {
@@ -114,7 +117,7 @@ describe('capability gating', () => {
     };
     // Telling a user their phone cannot do something we simply have not written is how
     // a bug report gets filed against the phone.
-    expect(unavailableReason(notBuilt, capable)).toBe('Coming in a later build');
+    expect(unavailableReason(notBuilt, capable)).toBe('later');
 
     // The settings screen now exists, so the tasks that were waiting on it are open.
     // Kept as an assertion rather than deleted: if HAS_TRANSFORM_OPTIONS is ever
@@ -123,7 +126,65 @@ describe('capability gating', () => {
     expect(unavailableReason(needsSettings, capable)).toBeNull();
   });
 
+  it('blames the build, not the phone, for a PDF operation this platform lacks', () => {
+    // Android reads and writes PDF and still cannot move a page between two of them.
+    // "Not supported on this device" would be the wrong claim about a working phone.
+    const noMerge = loaded(
+      ['jpeg', 'png', 'heic', 'webp', 'pdf'],
+      ['jpeg', 'png', 'webp', 'pdf'],
+      ['inspect', 'render', 'compose', 'compress', 'split'],
+    );
+    const mergePdf = CONVERSION_TASKS.find((t) => t.id === 'merge-pdf')!;
+    expect(unavailableReason(mergePdf, noMerge)).toBe('platform');
+  });
+
   it('keeps a device-unsupported tile non-interactive even when nothing is busy', () => {
     expect(isTileInteractive(heicToJpg, null, loaded(['jpeg'], ['jpeg']))).toBe(false);
+  });
+});
+
+/**
+ * A tile's words are looked up from its id — `tasks.<id>.title` — so nothing the compiler
+ * can see joins the two. Rename a task or add one and the home screen renders
+ * `tasks.split-pdf.title` at full size, which only someone reading the grid would catch.
+ */
+describe('every tile has words in the catalogue', () => {
+  const catalogue: Record<string, unknown> = en.tasks;
+
+  /**
+   * What a tile's entry looks like, rather than a list of the keys that are not one.
+   * `tasks` also holds strings every tile shares, and a new one of those is not a
+   * regression — an entry with a title and no tile behind it is.
+   */
+  const isTileEntry = (value: unknown): boolean =>
+    typeof (value as { title?: unknown } | undefined)?.title === 'string';
+
+  it.each(CONVERSION_TASKS.map((task) => task.id))('%s has a title and a subtitle', (id) => {
+    const entry = catalogue[id] as { title?: unknown; subtitle?: unknown } | undefined;
+    expect(typeof entry?.title).toBe('string');
+    expect(entry?.title).not.toBe('');
+    expect(typeof entry?.subtitle).toBe('string');
+    expect(entry?.subtitle).not.toBe('');
+  });
+
+  it('carries no words for a tile that does not exist', () => {
+    // The same rot in the other direction: a title nobody renders, paid for nine times
+    // over and wrong in every one of them without anybody finding out.
+    const ids = new Set(CONVERSION_TASKS.map((task) => task.id));
+    const orphans = Object.entries(catalogue)
+      .filter(([key, value]) => isTileEntry(value) && !ids.has(key))
+      .map(([key]) => key);
+    expect(orphans).toEqual([]);
+  });
+
+  it('names every reason a tile can be closed', () => {
+    // `UnavailableReason` is exactly the set of `home.unavailable.*` keys. The compiler
+    // holds one end of that promise and this holds the other.
+    expect(Object.keys(en.home.unavailable).sort()).toEqual([
+      'device',
+      'later',
+      'platform',
+      'settings',
+    ]);
   });
 });

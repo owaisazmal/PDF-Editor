@@ -56,12 +56,20 @@ export const imageDefaults = {
    * task. White covers almost everything; black and mid-grey cover artwork; the two
    * warm tones exist because a logo dropped onto a document is the other common case.
    */
+  /**
+   * Fills offered where a format cannot keep transparency.
+   *
+   * The colour is a token; the name is not. `id` is the catalogue key
+   * (`options.backgroundColors.<id>`), so VoiceOver says "Cream" in English and
+   * "Crema" in Spanish rather than saying "Cream" to everyone — and this file stays
+   * what it claims to be, which is design tokens rather than copy.
+   */
   backgroundChoices: [
-    { id: 'white', label: 'White', color: '#FFFFFF' },
-    { id: 'black', label: 'Black', color: '#000000' },
-    { id: 'grey', label: 'Grey', color: '#8A8A8E' },
-    { id: 'cream', label: 'Cream', color: '#FDFBD4' },
-    { id: 'sand', label: 'Sand', color: '#E8DCC0' },
+    { id: 'white', color: '#FFFFFF' },
+    { id: 'black', color: '#000000' },
+    { id: 'grey', color: '#8A8A8E' },
+    { id: 'cream', color: '#FDFBD4' },
+    { id: 'sand', color: '#E8DCC0' },
   ],
 } as const;
 

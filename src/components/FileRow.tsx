@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Text } from './Text';
 import { useTheme } from '@/theme';
@@ -24,17 +25,26 @@ export type FileRowProps = {
  */
 export function FileRow({ name, detail, state }: FileRowProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
-  const { label, ink, background } = {
-    pending: { label: 'Waiting', ink: 'textTertiary', background: theme.color.bgSunken },
-    done: { label: 'Done', ink: 'successInk', background: theme.color.successBg },
-    failed: { label: 'Failed', ink: 'dangerInk', background: theme.color.dangerBg },
-  }[state] as { label: string; ink: 'textTertiary' | 'successInk' | 'dangerInk'; background: string };
+  // `pending` is the state machine's word for it; the catalogue uses the one the user
+  // reads, so the key is carried here rather than built from the state name.
+  const { labelKey, ink, background } = {
+    pending: { labelKey: 'a11y.state.waiting', ink: 'textTertiary', background: theme.color.bgSunken },
+    done: { labelKey: 'a11y.state.done', ink: 'successInk', background: theme.color.successBg },
+    failed: { labelKey: 'a11y.state.failed', ink: 'dangerInk', background: theme.color.dangerBg },
+  }[state] as {
+    labelKey: string;
+    ink: 'textTertiary' | 'successInk' | 'dangerInk';
+    background: string;
+  };
+
+  const label = t(labelKey);
 
   return (
     <View
       accessible
-      accessibilityLabel={`${name}. ${label}. ${detail}`}
+      accessibilityLabel={t('a11y.fileRow', { name, state: label, detail })}
       style={[
         styles.row,
         {

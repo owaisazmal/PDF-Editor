@@ -4,6 +4,8 @@
 import { AppState, type NativeEventSubscription } from 'react-native';
 import { create } from 'zustand';
 
+import { errorKeyFor, type ErrorKey } from '@/features/convert/errors';
+
 import { jobClient, type BackgroundProgressStatus, type JobStatus } from '@/engine/jobClient';
 import type { ConversionOptionsInput } from '@/engine/options';
 import type { ConversionResult, DetectedFile, FileFailure, JobProgress } from '@/native/types';
@@ -67,7 +69,8 @@ export type BatchState = {
   results: ConversionResult[];
   failures: FileFailure[];
   /** Set when the job could not be submitted at all, as opposed to a per-file failure. */
-  submitError: string | null;
+  /** A catalogue key for a batch that would not start. The screen renders it. */
+  submitErrorKey: ErrorKey | null;
   /** Null until the first batch has asked. Only ever affects what the UI says. */
   backgroundProgress: BackgroundProgressStatus | null;
   /**
@@ -102,7 +105,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
   progress: emptyProgress(''),
   results: [],
   failures: [],
-  submitError: null,
+  submitErrorKey: null,
   backgroundProgress: null,
   namePattern: '',
 
@@ -121,7 +124,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       progress: { ...emptyProgress(jobId), totalCount: sources.length },
       results: [],
       failures: [],
-      submitError: null,
+      submitErrorKey: null,
     });
 
     unsubscribeEvents = jobClient.subscribe({
@@ -184,7 +187,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       teardown();
       set({
         status: 'failed',
-        submitError: error instanceof Error ? error.message : String(error),
+        submitErrorKey: errorKeyFor(error),
       });
     }
   },
@@ -234,7 +237,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       progress: emptyProgress(''),
       results: [],
       failures: [],
-      submitError: null,
+      submitErrorKey: null,
       backgroundProgress: null,
       // The pattern deliberately survives a reset: it belongs to the settings the user
       // chose, not to the batch that just finished, and clearing it would silently

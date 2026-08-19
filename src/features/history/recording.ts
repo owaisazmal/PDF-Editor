@@ -22,8 +22,10 @@ export function summarise(
   failedCount: number,
 ): Omit<HistoryEntry, 'id' | 'at'> {
   return {
+    // The id, not the title. A title written here would be a translated string frozen
+    // into storage — a Spanish user who converted something last week would find an
+    // English row waiting for them.
     taskId: task.id,
-    taskTitle: task.title,
     targetFormat: task.targetFormat,
     fileCount: results.length,
     failedCount,

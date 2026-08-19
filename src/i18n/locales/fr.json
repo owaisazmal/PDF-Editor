@@ -5,8 +5,6 @@
     "done": "Terminé",
     "notNow": "Pas maintenant",
     "remove": "Retirer",
-    "file_one": "fichier",
-    "file_other": "fichiers",
     "before": "Avant",
     "after": "Après",
     "size": "Taille",
@@ -14,14 +12,32 @@
     "saved": "Économisé",
     "largerBy": "Plus grand de",
     "aboutTheSame": "Taille quasi identique",
+    "unrecognised": "Non reconnu",
+    "file_one": "fichier",
+    "file_many": "fichiers",
+    "file_other": "fichiers",
     "pages_one": "page",
+    "pages_many": "pages",
     "pages_other": "pages"
+  },
+  "a11y": {
+    "labelledDetail": "{{label}}. {{detail}}",
+    "fileRow": "{{name}}. {{state}}. {{detail}}",
+    "stat": "{{label}} : {{value}}",
+    "percentSmaller": "{{percent}} pour cent plus petit",
+    "percentLarger": "{{percent}} pour cent plus grand",
+    "state": {
+      "waiting": "En attente",
+      "done": "Terminé",
+      "failed": "Échec"
+    }
   },
   "home": {
     "title": "Convertir",
     "promise": "Tout se passe sur votre appareil. Rien n’est envoyé, rien n’est suivi, et il n’y a aucune limite.",
     "history": "Historique",
     "historyLabel_one": "Historique, {{count}} conversion",
+    "historyLabel_many": "Historique, {{count}} conversions",
     "historyLabel_other": "Historique, {{count}} conversions",
     "unavailable": {
       "platform": "Pas encore disponible sur cette plateforme",
@@ -29,31 +45,34 @@
       "settings": "Nécessite l’écran de réglages",
       "later": "Arrive dans une version ultérieure"
     },
+    "nothingSelected": "Rien n’a été sélectionné.",
     "mergeNeedsTwo": "La fusion demande au moins deux PDF. Choisissez-en un autre et réessayez."
   },
   "tasks": {
+    "hint": "Convertit les fichiers {{from}} en {{to}}",
+    "unavailableHint": "Non disponible sur cet appareil",
     "heic-to-jpg": {
-      "title": "HEIC vers JPG",
+      "title": "HEIC en JPG",
       "subtitle": "Des photos d’iPhone que tout ouvre"
     },
     "webp-to-jpg": {
-      "title": "WebP vers JPG",
-      "subtitle": "Des images enregistrées qui refusent de s’ouvrir"
+      "title": "WebP en JPG",
+      "subtitle": "Images enregistrées qui ne s’ouvrent pas"
     },
     "compress-image": {
       "title": "Compresser une image",
       "subtitle": "Tenir dans une limite de taille sans deviner"
     },
     "resize-image": {
-      "title": "Redimensionner",
-      "subtitle": "Réglages pour réseaux, e-mail et impression"
+      "title": "Redimensionner une image",
+      "subtitle": "Préréglages pour réseaux, e-mail et impression"
     },
     "image-to-pdf": {
-      "title": "Image vers PDF",
-      "subtitle": "Beaucoup de photos, un seul document"
+      "title": "Image en PDF",
+      "subtitle": "Plusieurs photos, un seul document"
     },
     "pdf-to-jpg": {
-      "title": "PDF vers JPG",
+      "title": "PDF en JPG",
       "subtitle": "Les pages en images, au DPI de votre choix"
     },
     "merge-pdf": {
@@ -66,82 +85,170 @@
     },
     "compress-pdf": {
       "title": "Compresser un PDF",
-      "subtitle": "Fichier plus léger, avec un coût qu’il vaut mieux connaître"
+      "subtitle": "Fichier plus léger, avec un coût à connaître"
     },
     "png-to-jpg": {
-      "title": "PNG vers JPG",
-      "subtitle": "Des fichiers plus légers, avec le fond de votre choix"
+      "title": "PNG en JPG",
+      "subtitle": "Fichiers plus légers, avec le fond de votre choix"
+    },
+    "badge": {
+      "any": "TOUS",
+      "img": "IMG"
     }
   },
   "convert": {
-    "selectedFile": "FICHIER SÉLECTIONNÉ",
+    "selectedFile": "Fichier sélectionné",
+    "result": "Résultat",
     "dimensions": "Dimensions",
     "format": "Format",
     "nothingSelected": "Rien de sélectionné",
     "pickToStart": "Choisissez un fichier depuis l’écran d’accueil pour commencer.",
     "failed": "Impossible de convertir ce fichier",
     "convertAnother": "Convertir un autre",
+    "convertTo": "Convertir en {{format}}",
     "saveToPhotos": "Enregistrer dans Photos",
     "savedToPhotos": "Enregistré dans Photos",
-    "gpsFound": "Données de localisation détectées. Elles seront retirées du fichier converti."
+    "gpsFound": "Données de localisation détectées. Elles seront retirées du fichier converti.",
+    "claimedMismatch": "Le nom de ce fichier annonce un {{claimed}}, mais son contenu est un {{actual}}. C’est le format réel qui est converti.",
+    "willFlatten": "{{format}} n’a pas de transparence : les zones transparentes deviennent blanches.",
+    "grewExplanation": "{{source}} compresse mieux cette image que {{target}} ne peut le faire. La conversion reste correcte — baissez la qualité si la taille compte plus que la fidélité, ou gardez l’original.",
+    "announceDone": "Converti.",
+    "announceFailed": "Échec de la conversion."
   },
   "batch": {
-    "summary": "{{count}} fichiers → {{format}}",
+    "summary_one": "{{count}} fichier → {{format}}",
+    "summary_many": "{{count}} fichiers → {{format}}",
+    "summary_other": "{{count}} fichiers → {{format}}",
     "converting": "Conversion. {{done}} sur {{total}} terminés.",
     "finished": "Terminé. {{done}} sur {{total}} convertis.",
     "finishingCurrent": "Fin du fichier en cours…",
-    "failedCount": "{{count}} en échec",
-    "total": "TOTAL",
+    "failedCount_one": "{{count}} en échec",
+    "failedCount_many": "{{count}} en échec",
+    "failedCount_other": "{{count}} en échec",
+    "total": "Total",
     "couldNotStart": "Impossible de démarrer",
-    "notificationsOff": "Les notifications sont désactivées, ceci n’apparaîtra donc pas dans votre volet. La conversion se termine quand même si vous quittez l’app.",
+    "notificationsOff": "Les notifications sont désactivées, ceci n’apparaîtra donc pas dans le volet des notifications. La conversion se termine quand même si vous quittez l’app.",
     "stopped_one": "Arrêté. Le {{count}} fichier déjà converti est ci-dessous ; le reste n’a pas été touché.",
+    "stopped_many": "Arrêté. Les {{count}} fichiers déjà convertis sont ci-dessous ; le reste n’a pas été touché.",
     "stopped_other": "Arrêté. Les {{count}} fichiers déjà convertis sont ci-dessous ; le reste n’a pas été touché.",
     "cancelling": "Annulation…",
     "nothingToConvert": "Rien à convertir",
     "saveAll_one": "Enregistrer {{count}} dans Photos",
-    "saveAll_other": "Enregistrer {{count}} dans Photos"
+    "saveAll_many": "Enregistrer {{count}} dans Photos",
+    "saveAll_other": "Enregistrer {{count}} dans Photos",
+    "retry_one": "Réessayer {{count}} fichier en échec",
+    "retry_many": "Réessayer {{count}} fichiers en échec",
+    "retry_other": "Réessayer {{count}} fichiers en échec",
+    "announceFinished": "{{done}} sur {{total}} convertis.",
+    "announceFailures_one": "{{count}} fichier a échoué.",
+    "announceFailures_many": "{{count}} fichiers ont échoué.",
+    "announceFailures_other": "{{count}} fichiers ont échoué.",
+    "progressCount": "{{done}} / {{total}}",
+    "percentDone": "{{percent}}",
+    "savedAll_one": "{{count}} enregistré dans Photos",
+    "savedAll_many": "{{count}} enregistrés dans Photos",
+    "savedAll_other": "{{count}} enregistrés dans Photos"
   },
   "options": {
     "title": "Réglages",
-    "estimatedOutput": "TAILLE ESTIMÉE",
+    "summary_one": "{{count}} fichier → {{format}}",
+    "summary_many": "{{count}} fichiers → {{format}}",
+    "summary_other": "{{count}} fichiers → {{format}}",
+    "estimatedOutput": "Taille estimée",
+    "measuring": "Mesure en cours…",
     "measured": "Mesuré, pas deviné",
     "measuredOn": "Mesuré sur {{name}}",
+    "each": "{{size}} chacun",
     "aimForSize": "Viser une taille de fichier",
     "aimForSizeHint": "Cherche la qualité qui passe juste sous votre limite",
     "maximumSize": "Taille maximale",
     "quality": "Qualité",
-    "size": "TAILLE",
+    "size": "Taille",
     "customSize": "Taille personnalisée",
-    "rotate": "PIVOTER",
+    "rotate": "Rotation",
+    "rotateNone": "Aucune",
+    "rotateDegrees": "{{degrees}} degrés",
     "flipHorizontally": "Miroir horizontal",
     "flipVertically": "Miroir vertical",
-    "metadata": "MÉTADONNÉES",
+    "metadata": "Métadonnées",
     "metadataNoLocation": "Sans localisation",
+    "metadataNoLocationLabel": "Tout garder sauf la localisation",
     "metadataKeepAll": "Tout garder",
     "metadataStripAll": "Tout retirer",
-    "metadataHint": "L’appareil et la date restent. L’endroit où vous étiez, non.",
+    "metadataHint": {
+      "keepExceptGps": "L’appareil et la date restent. L’endroit où vous étiez, non.",
+      "keepAll": "Tout est repris, y compris la localisation.",
+      "stripAll": "Rien n’est repris."
+    },
     "convertToSrgb": "Convertir en sRGB",
     "convertToSrgbHint": "Les photos à large gamut paraissent sursaturées dans les apps qui ignorent le profil",
-    "background": "ARRIÈRE-PLAN",
-    "backgroundHint": "Ce format n’a pas de transparence. Choisissez ce qui la remplace.",
+    "background": "Fond",
+    "backgroundHint": "{{format}} n’a pas de transparence. Les zones transparentes prennent cette couleur.",
+    "backgroundColors": {
+      "white": "Blanc",
+      "black": "Noir",
+      "grey": "Gris",
+      "cream": "Crème",
+      "sand": "Sable"
+    },
     "convertTo": "Convertir en {{format}}",
-    "rename": "RENOMMER",
+    "rename": "Renommer",
     "pattern": "Motif",
     "keepOriginalNames": "Garder les noms d’origine",
     "namesKept": "Les noms restent tels quels",
+    "namePreview": "{{names}}",
+    "namePreviewMore": "{{names}}, …",
     "wouldCollide": "Tous les fichiers porteraient le même nom. Ajoutez {name} ou {index}.",
     "tokens": {
-      "name": "Nom",
-      "nameDetail": "Le nom d’origine, sans son extension",
-      "index": "Numéro",
-      "indexDetail": "Position dans le lot, à partir de 001",
-      "date": "Date",
-      "dateDetail": "La date du jour, sous la forme 2026-08-18",
-      "format": "Format",
-      "formatDetail": "Le format qui sera écrit"
+      "insert": "Insérer un élément de nom",
+      "name": {
+        "label": "Nom",
+        "detail": "Le nom d’origine, sans son extension"
+      },
+      "index": {
+        "label": "Numéro",
+        "detail": "Position dans le lot, à partir de 001"
+      },
+      "date": {
+        "label": "Date",
+        "detail": "La date du jour, sous la forme 2026-08-18"
+      },
+      "format": {
+        "label": "Format",
+        "detail": "Le format qui sera écrit"
+      }
     },
-    "insertToken": "Insérer un élément de nom",
-    "presets": "PRÉRÉGLAGES",
+    "resizePresets": {
+      "original": {
+        "label": "Original",
+        "detail": "Garder la taille actuelle"
+      },
+      "email": {
+        "label": "E-mail",
+        "detail": "Moins de 1 Mo, passe toute limite de pièce jointe"
+      },
+      "instagram-square": {
+        "label": "Carré",
+        "detail": "1080 × 1080 pour une publication"
+      },
+      "instagram-story": {
+        "label": "Story",
+        "detail": "1080 × 1920, plein écran"
+      },
+      "hd": {
+        "label": "1080p",
+        "detail": "1920 × 1080 pour écrans et diapositives"
+      },
+      "uhd": {
+        "label": "4K",
+        "detail": "3840 × 2160, encore largement de quoi imprimer"
+      },
+      "passport": {
+        "label": "Passeport",
+        "detail": "600 × 600 à 300 ppp"
+      }
+    },
+    "presets": "Préréglages",
     "presetsEmpty": "Enregistrez ces réglages pour les réutiliser sans les refaire.",
     "applyPreset": "Appliquer un préréglage enregistré",
     "presetName": "Nom du préréglage",
@@ -155,36 +262,52 @@
     "password": "Mot de passe",
     "wrongPassword": "Ce mot de passe ne l’a pas ouvert.",
     "unlock": "Déverrouiller",
-    "pageSize": "TAILLE DE PAGE",
-    "orientation": "ORIENTATION",
-    "fit": "AJUSTEMENT",
+    "pageSize": "Taille de page",
+    "orientation": "Orientation",
+    "fit": "Ajustement",
     "margin": "Marge",
-    "imagesPerPage": "IMAGES PAR PAGE",
+    "marginInches": "{{inches}} po",
+    "imagesPerPage": "Images par page",
     "pagesLabel": "Pages",
     "allPages": "Toutes les pages",
     "pagesHint": "Laissez vide pour toutes, ou écrivez par exemple 1-3, 7, 9-",
+    "noPages": "Aucune page",
+    "allNPages_one": "{{count}} page",
+    "allNPages_many": "Les {{count}} pages",
+    "allNPages_other": "Les {{count}} pages",
+    "pagesSelected_one": "{{count}} page sur {{total}}",
+    "pagesSelected_many": "{{count}} pages sur {{total}}",
+    "pagesSelected_other": "{{count}} pages sur {{total}}",
     "rangeMatchesNothing": "Cette plage ne correspond à aucune page",
-    "resolution": "RÉSOLUTION",
-    "format": "FORMAT",
+    "resolution": "Résolution",
+    "format": "Format",
+    "quality": "Qualité",
     "pngLossless": "Le PNG est sans perte, il n’y a donc pas de qualité à choisir. Fichiers plus gros, pixels exacts.",
-    "order": "ORDRE",
+    "order": "Ordre",
     "orderHint": "Les documents sont réunis dans l’ordre où vous les avez choisis.",
-    "splitBy": "DIVISER PAR",
+    "orderedFile": "{{index}}. {{name}}",
+    "splitBy": "Diviser par",
     "splitRanges": "Plages de pages",
     "splitEvery": "Toutes les N pages",
     "ranges": "Plages",
+    "rangesPlaceholder": "1-3, 4-8",
     "rangesHint": "Chaque plage devient son propre document",
     "pagesPerDocument": "Pages par document",
-    "documentsFrom": "{{documents}} documents à partir de {{pages}} pages",
+    "documentsFrom_one": "{{count}} document à partir de {{pages}} pages",
+    "documentsFrom_many": "{{count}} documents à partir de {{pages}} pages",
+    "documentsFrom_other": "{{count}} documents à partir de {{pages}} pages",
     "flattensTitle": "Ceci transforme le texte en images",
     "flattensBody": "Chaque page est redessinée en image : le résultat ne peut plus être sélectionné, recherché ni lu à voix haute. Aucune plateforme ne peut alléger un PDF autrement. Gardez l’original si l’un de ces points compte.",
     "grayscale": "Niveaux de gris",
     "grayscaleHint": "Divise par deux la taille d’un document scanné sans coût de lisibilité",
-    "result": "RÉSULTAT",
+    "result": "Résultat",
     "documents": "Documents",
     "images": "Images",
     "couldNotFinish": "Impossible de terminer",
     "nothingToDo": "Rien à faire",
+    "savedButton": "Enregistré",
+    "imageDetail": "{{width}} × {{height}} · {{size}}",
+    "partDetail": "{{pages}} · {{size}}",
     "actions": {
       "compose": "Créer le PDF",
       "render": "Exporter les pages",
@@ -194,46 +317,156 @@
       "run": "Lancer"
     },
     "summary": {
-      "compose": "{{count}} fichiers → PDF",
-      "merge": "{{count}} fichiers → un PDF"
+      "compose_one": "{{count}} fichier → PDF",
+      "compose_many": "{{count}} fichiers → PDF",
+      "compose_other": "{{count}} fichiers → PDF",
+      "merge_one": "{{count}} fichier → un PDF",
+      "merge_many": "{{count}} fichiers → un PDF",
+      "merge_other": "{{count}} fichiers → un PDF",
+      "pages_one": "{{count}} page",
+      "pages_many": "{{count}} pages",
+      "pages_other": "{{count}} pages",
+      "files_one": "{{count}} fichier",
+      "files_many": "{{count}} fichiers",
+      "files_other": "{{count}} fichiers"
     },
     "saveToPhotos_one": "Enregistrer {{count}} dans Photos",
+    "saveToPhotos_many": "Enregistrer {{count}} dans Photos",
     "saveToPhotos_other": "Enregistrer {{count}} dans Photos",
     "saveToFiles_one": "Enregistrer {{count}} dans Fichiers",
+    "saveToFiles_many": "Enregistrer {{count}} dans Fichiers",
     "saveToFiles_other": "Enregistrer {{count}} dans Fichiers",
-    "page_one": "page {{first}}",
-    "pageRange": "pages {{first}}-{{last}}"
+    "singlePage": "page {{first}}",
+    "pageRange": "pages {{first}}-{{last}}",
+    "announceFinished": "Terminé.",
+    "announceFailed": "Impossible de terminer.",
+    "announceLocked": "Ce PDF demande un mot de passe.",
+    "pageSizes": {
+      "fit": {
+        "label": "Ajuster à l’image",
+        "detail": "Chaque page prend la forme de son image"
+      },
+      "a4": {
+        "label": "A4",
+        "detail": "La norme presque partout"
+      },
+      "letter": {
+        "label": "Letter",
+        "detail": "La norme aux États-Unis et au Canada"
+      },
+      "legal": {
+        "label": "Legal",
+        "detail": "Plus long que Letter"
+      },
+      "a5": {
+        "label": "A5",
+        "detail": "La moitié d’un A4"
+      },
+      "a3": {
+        "label": "A3",
+        "detail": "Le double d’un A4"
+      },
+      "tabloid": {
+        "label": "Tabloid",
+        "detail": "Le double d’un Letter"
+      }
+    },
+    "orientations": {
+      "auto": "Auto",
+      "portrait": "Portrait",
+      "landscape": "Paysage"
+    },
+    "fitModes": {
+      "fit": {
+        "label": "Ajuster",
+        "hint": "L’image entière, avec de l’espace autour si les proportions diffèrent"
+      },
+      "fill": {
+        "label": "Remplir",
+        "hint": "Remplit la page et rogne ce qui dépasse"
+      },
+      "stretch": {
+        "label": "Étirer",
+        "hint": "Remplit la page en déformant l’image"
+      }
+    },
+    "nUp": {
+      "single": "1 par page",
+      "many": "{{count}} par page"
+    },
+    "dpi": {
+      "screen": {
+        "label": "Écran",
+        "detail": "{{dpi}} points par pouce"
+      },
+      "good": {
+        "label": "Bon",
+        "detail": "{{dpi}} points par pouce"
+      },
+      "print": {
+        "label": "Impression",
+        "detail": "{{dpi}} points par pouce"
+      },
+      "archive": {
+        "label": "Archive",
+        "detail": "{{dpi}} points par pouce, fichiers volumineux"
+      }
+    },
+    "renderFormats": {
+      "jpeg": "JPG",
+      "png": "PNG"
+    }
   },
   "incoming": {
     "title": "Envoyé ici",
     "subtitle_one": "{{count}} fichier depuis une autre app",
+    "subtitle_many": "{{count}} fichiers depuis une autre app",
     "subtitle_other": "{{count}} fichiers depuis une autre app",
-    "whatToDo": "QUE VOULEZ-VOUS FAIRE ?",
-    "partial": "{{count}} fichiers sur {{total}}",
-    "unreadable_one": "Un fichier n’a pas pu être identifié et sera laissé de côté.",
+    "whatToDo": "Que voulez-vous faire ?",
+    "partial_one": "{{count}} fichier sur {{total}}",
+    "partial_many": "{{count}} fichiers sur {{total}}",
+    "partial_other": "{{count}} fichiers sur {{total}}",
+    "fileDetail": "{{format}} · {{size}}",
+    "unreadable_one": "{{count}} fichier n’a pas pu être identifié et sera laissé de côté.",
+    "unreadable_many": "{{count}} fichiers n’ont pas pu être identifiés et seront laissés de côté.",
     "unreadable_other": "{{count}} fichiers n’ont pas pu être identifiés et seront laissés de côté.",
     "nothingUsable": "Rien ici ne peut être converti",
-    "nothingUsableBody": "Ces fichiers ne sont pas dans un format que cette app lit. Les images et les PDF fonctionnent.",
-    "unrecognised": "Non reconnu"
+    "nothingUsableBody": "Ces fichiers ne sont pas dans un format que cette app lit. Les images et les PDF fonctionnent."
   },
   "history": {
     "title": "Historique",
     "empty": "Rien de converti pour l’instant",
     "count_one": "{{count}} conversion, sur cet appareil uniquement",
+    "count_many": "{{count}} conversions, sur cet appareil uniquement",
     "count_other": "{{count}} conversions, sur cet appareil uniquement",
-    "allTime": "DEPUIS LE DÉBUT",
+    "allTime": "Depuis le début",
     "emptyTitle": "Rien ici pour l’instant",
     "emptyBody": "Les conversions que vous lancez apparaîtront ici, sur cet appareil. Rien n’est envoyé et rien n’est partagé.",
     "clear": "Effacer l’historique",
     "clearConfirm": "Touchez encore pour tout effacer",
-    "andMore": " et {{count}} de plus",
+    "names": "{{names}}",
+    "namesAndMore_one": "{{names}} et {{count}} de plus",
+    "namesAndMore_many": "{{names}} et {{count}} de plus",
+    "namesAndMore_other": "{{names}} et {{count}} de plus",
     "justNow": "À l’instant",
-    "minutesAgo": "il y a {{count}} min",
+    "minutesAgo_one": "il y a {{count}} min",
+    "minutesAgo_many": "il y a {{count}} min",
+    "minutesAgo_other": "il y a {{count}} min",
     "hoursAgo_one": "il y a {{count}} heure",
+    "hoursAgo_many": "il y a {{count}} heures",
     "hoursAgo_other": "il y a {{count}} heures",
     "daysAgo_one": "il y a {{count}} jour",
+    "daysAgo_many": "il y a {{count}} jours",
     "daysAgo_other": "il y a {{count}} jours",
-    "entryLabel": "{{task}}, {{count}} fichiers, {{when}}",
+    "rowDetail_one": "{{when}} · {{count}} fichier",
+    "rowDetail_many": "{{when}} · {{count}} fichiers",
+    "rowDetail_other": "{{when}} · {{count}} fichiers",
+    "rowDetailFailed_one": "{{when}} · {{count}} fichier · {{failed}} en échec",
+    "rowDetailFailed_many": "{{when}} · {{count}} fichiers · {{failed}} en échec",
+    "rowDetailFailed_other": "{{when}} · {{count}} fichiers · {{failed}} en échec",
+    "entryLabel_one": "{{task}}, {{count}} fichier, {{when}}",
+    "entryLabel_many": "{{task}}, {{count}} fichiers, {{when}}",
+    "entryLabel_other": "{{task}}, {{count}} fichiers, {{when}}",
     "entryHint": "Affiche les noms de fichiers et permet de retirer cette entrée"
   },
   "errors": {
@@ -249,5 +482,40 @@
     "downloadFailed": "Ce fichier est stocké dans le cloud et n’a pas pu être téléchargé. Vérifiez votre connexion et réessayez.",
     "cancelled": "Conversion annulée.",
     "unknown": "Un problème est survenu lors de la conversion de ce fichier. Réessayez."
+  },
+  "notification": {
+    "channelName": "Progression de la conversion",
+    "channelDescription": "Indique où en est un lot pendant que l’app est en arrière-plan.",
+    "progress": "Conversion de {{done}} sur {{total}}",
+    "preparing": "Préparation de la conversion",
+    "cancelling": "Annulation",
+    "cancel": "Annuler"
+  },
+  "share": {
+    "reading": "Lecture…",
+    "nothingShared": "Rien n’a été partagé.",
+    "unreadable": "Ces fichiers n’ont pas pu être lus.",
+    "title_one": "Convertir ce fichier",
+    "title_many": "Convertir {{count}} fichiers",
+    "title_other": "Convertir {{count}} fichiers",
+    "ready": "Prêt",
+    "saveAsJpg": "Enregistrer en JPG",
+    "saveAsPng": "Enregistrer en PNG",
+    "makePdf": "Créer un PDF",
+    "cancel": "Annuler",
+    "converting": "Conversion…",
+    "makingPdf": "Création du PDF…",
+    "pdfFailed": "Ce PDF n’a pas pu être créé.",
+    "nothingConverted": "Rien n’a pu être converti.",
+    "savedToPhotos_one": "Enregistré dans Photos",
+    "savedToPhotos_many": "{{count}} enregistrés dans Photos",
+    "savedToPhotos_other": "{{count}} enregistrés dans Photos",
+    "photosDenied": "Converti. L’enregistrement dans Photos n’a pas été autorisé.",
+    "someUnreadable_one": "{{count}} n’a pas pu être lu.",
+    "someUnreadable_many": "{{count}} n’ont pas pu être lus.",
+    "someUnreadable_other": "{{count}} n’ont pas pu être lus."
+  },
+  "permissions": {
+    "photoLibraryAdd": "Converter enregistre vos images converties directement dans votre photothèque. Il ne lit jamais votre photothèque — vous choisissez les fichiers via le sélecteur du système."
   }
 }

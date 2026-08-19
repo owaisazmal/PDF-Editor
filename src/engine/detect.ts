@@ -283,7 +283,15 @@ export function detectFromBytes(data: Uint8Array, filename?: string): Detection 
   );
 }
 
-/** Convenience wrapper for the common "I have a filename and a prefix" case. */
+/**
+ * A one-line description of what was detected, for diagnostics.
+ *
+ * Deliberately English and deliberately not in the catalogue: nothing renders this, and
+ * nothing should. The `reason` strings it can return name byte offsets and container
+ * tags, which are the right words for a bug report and the wrong ones for a person who
+ * just wanted a JPEG. What the screen shows on a failed detection is
+ * `common.unrecognised`.
+ */
 export function describeDetection(detection: Detection): string {
   if (!detection.format) return detection.reason;
   const spec = FORMATS[detection.format];
