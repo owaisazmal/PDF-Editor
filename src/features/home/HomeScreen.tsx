@@ -144,7 +144,7 @@ export function HomeScreen({ navigation }: Props) {
                 },
               ]}
             >
-              <Text variant="label" color="textSecondary">
+              <Text variant="label" color="textSecondary" heading>
                 History
               </Text>
             </Pressable>

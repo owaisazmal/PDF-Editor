@@ -56,7 +56,7 @@ export function HistoryScreen({ navigation }: Props) {
 
       {entries.length > 0 && totals.before > 0 ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">
-          <Text variant="label" color="textTertiary">
+          <Text variant="label" color="textTertiary" heading>
             ALL TIME
           </Text>
           <View style={{ marginTop: theme.space.sm }}>

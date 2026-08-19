@@ -27,6 +27,7 @@ import { useTheme } from '@/theme';
 import { describeSizeChange, formatBytes, formatDuration } from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
 import { errorMessageFor } from '../convert/errors';
+import { useAnnouncement } from '@/utils/useAnnouncement';
 import {
   DPI_CHIPS,
   FIT_MODE_HINTS,
@@ -87,6 +88,18 @@ export function PdfScreen({ route, navigation }: Props) {
 
   const busy = isPdfBusy(pdf.status);
   const pageCount = pdf.info?.pageCount ?? 0;
+
+  // A merge or an export can run for a while with nothing focused, so the outcome is
+  // announced rather than left to be discovered.
+  useAnnouncement(
+    pdf.status === 'done'
+      ? 'Finished.'
+      : pdf.status === 'failed'
+        ? 'Could not finish.'
+        : pdf.status === 'locked'
+          ? 'This PDF needs a password.'
+          : null,
+  );
 
   /**
    * Changing a setting after a run puts the screen back into a state where the action
@@ -265,7 +278,7 @@ export function PdfScreen({ route, navigation }: Props) {
             user asked for sits off-screen under settings they can no longer act on. */}
         {pdf.status === 'done' ? (
           <Card style={{ marginTop: theme.space.lg }} elevation="md">
-            <Text variant="label" color="textTertiary">
+            <Text variant="label" color="textTertiary" heading>
               RESULT
             </Text>
             <View style={{ marginTop: theme.space.sm }}>
@@ -331,7 +344,7 @@ export function PdfScreen({ route, navigation }: Props) {
         {canRun && task.pdfOperation === 'compose' ? (
           <>
             <Card>
-              <Text variant="label" color="textSecondary">
+              <Text variant="label" color="textSecondary" heading>
                 PAGE SIZE
               </Text>
               <ChipRow
@@ -381,7 +394,7 @@ export function PdfScreen({ route, navigation }: Props) {
             ) : null}
 
             <Card style={{ marginTop: theme.space.lg }}>
-              <Text variant="label" color="textSecondary">
+              <Text variant="label" color="textSecondary" heading>
                 IMAGES PER PAGE
               </Text>
               <ChipRow
@@ -418,7 +431,7 @@ export function PdfScreen({ route, navigation }: Props) {
             </Card>
 
             <Card style={{ marginTop: theme.space.lg }}>
-              <Text variant="label" color="textSecondary">
+              <Text variant="label" color="textSecondary" heading>
                 RESOLUTION
               </Text>
               <ChipRow
@@ -463,7 +476,7 @@ export function PdfScreen({ route, navigation }: Props) {
 
         {canRun && task.pdfOperation === 'merge' ? (
           <Card>
-            <Text variant="label" color="textSecondary">
+            <Text variant="label" color="textSecondary" heading>
               ORDER
             </Text>
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.sm }}>
@@ -542,7 +555,7 @@ export function PdfScreen({ route, navigation }: Props) {
             </Card>
 
             <Card style={{ marginTop: theme.space.lg }}>
-              <Text variant="label" color="textSecondary">
+              <Text variant="label" color="textSecondary" heading>
                 RESOLUTION
               </Text>
               <ChipRow

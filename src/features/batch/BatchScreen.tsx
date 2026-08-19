@@ -16,6 +16,7 @@ import { describeSizeChange, formatBytes, formatDuration } from '@/utils/format'
 import { CONVERSION_TASKS } from '../home/tasks';
 import { errorMessage } from '../convert/errors';
 import { useRecordConversion } from '../history/recording';
+import { useAnnouncement } from '@/utils/useAnnouncement';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Batch'>;
@@ -54,6 +55,19 @@ export function BatchScreen({ route, navigation }: Props) {
   // A cancelled batch is recorded too: the files it did convert are real, and they are
   // exactly the ones somebody comes back looking for.
   useRecordConversion(task, finished, batch.sources, batch.results, batch.failures.length);
+
+  /**
+   * Spoken when the batch reaches a state worth knowing about.
+   *
+   * Not on every progress tick: ten sentences a second is not information. Only the
+   * outcome, which is the thing a user who cannot see the bar is waiting for.
+   */
+  useAnnouncement(
+    finished
+      ? `${batch.progress.completedCount} of ${batch.progress.totalCount} converted.` +
+          (batch.failures.length > 0 ? ` ${batch.failures.length} failed.` : '')
+      : null,
+  );
 
   /**
    * The list the user picked, in the order they picked it, with each file's outcome
@@ -159,7 +173,16 @@ export function BatchScreen({ route, navigation }: Props) {
         </View>
 
         {running && progress.currentDisplayName ? (
-          <Text variant="caption" color="textTertiary" numberOfLines={1} style={{ marginTop: theme.space.sm }}>
+          <Text
+            variant="caption"
+            color="textTertiary"
+            numberOfLines={1}
+            // Android speaks changes to a live region without needing focus. This is the
+            // line that says which file is being worked on, which is the only readout a
+            // user who cannot see the bar has while it runs.
+            accessibilityLiveRegion="polite"
+            style={{ marginTop: theme.space.sm }}
+          >
             {batch.status === 'cancelling' ? 'Finishing the current file…' : progress.currentDisplayName}
           </Text>
         ) : null}
@@ -194,7 +217,7 @@ export function BatchScreen({ route, navigation }: Props) {
 
       {finished && batch.results.length > 0 ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">
-          <Text variant="label" color="textTertiary">
+          <Text variant="label" color="textTertiary" heading>
             TOTAL
           </Text>
           <View style={{ marginTop: theme.space.sm }}>
