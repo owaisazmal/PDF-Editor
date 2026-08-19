@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -10,6 +10,7 @@ import { Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
+import { useHistoryStore } from '@/store/history';
 import { useTheme } from '@/theme';
 import {
   CONVERSION_TASKS,
@@ -40,6 +41,7 @@ export function HomeScreen({ navigation }: Props) {
   const setPicking = useConversionStore((s) => s.setPicking);
   const fail = useConversionStore((s) => s.fail);
   const capabilities = useCapabilitiesStore();
+  const historyCount = useHistoryStore((state) => state.entries.length);
 
   // Asked once. The answer cannot change while the app is running — it is a property
   // of the OS build, not of anything the user can do.
@@ -121,7 +123,33 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <Screen scroll>
       <View style={{ marginBottom: theme.space['3xl'] }}>
-        <Text variant="display">Convert</Text>
+        <View style={styles.header}>
+          <Text variant="display">Convert</Text>
+          {/* Only once there is something to look at. An empty history behind a
+              permanent button is a dead end offered on every launch. */}
+          {historyCount > 0 ? (
+            <Pressable
+              testID="open-history"
+              accessibilityRole="button"
+              accessibilityLabel={`History, ${historyCount} ${
+                historyCount === 1 ? 'conversion' : 'conversions'
+              }`}
+              onPress={() => navigation.navigate('History')}
+              style={({ pressed }) => [
+                styles.headerAction,
+                {
+                  backgroundColor: theme.color.bgSunken,
+                  borderRadius: theme.radius.pill,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <Text variant="label" color="textSecondary">
+                History
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
         <Text variant="body" color="textSecondary" style={{ marginTop: theme.space.sm }}>
           Everything happens on your device. Nothing is uploaded, nothing is tracked, and
           there is no limit.
@@ -153,6 +181,8 @@ export function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  headerAction: { paddingHorizontal: 16, paddingVertical: 8 },
   // Negative margin cancels the per-cell padding so the grid aligns with the page edge.
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },
   cell: { width: '50%' },

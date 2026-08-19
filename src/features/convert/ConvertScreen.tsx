@@ -11,6 +11,7 @@ import { FORMATS } from '@/engine/formats';
 import { needsBackgroundChoice } from '@/engine/options';
 import { fileGateway } from '@/native';
 import { useConversionStore } from '@/store/conversion';
+import { useRecordConversion } from '../history/recording';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
 import { formatBytes, formatDimensions, formatDuration, percentageSaved } from '@/utils/format';
@@ -58,6 +59,16 @@ export function ConvertScreen({ route, navigation }: Props) {
     setSaved(true);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [result]);
+
+  // Above the early return, because hooks cannot be called conditionally. The hook
+  // itself does nothing until there is a finished conversion to record.
+  useRecordConversion(
+    task,
+    phase === 'done',
+    source ? [source] : [],
+    result ? [result] : [],
+    failure ? 1 : 0,
+  );
 
   const onStartOver = useCallback(() => {
     reset();

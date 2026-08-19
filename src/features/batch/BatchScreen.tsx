@@ -12,9 +12,10 @@ import { fileGateway } from '@/native';
 import { isBatchFinished, isBatchRunning, useBatchStore } from '@/store/batch';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
-import { formatBytes, formatDuration, percentageSaved } from '@/utils/format';
+import { describeSizeChange, formatBytes, formatDuration } from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
 import { errorMessage } from '../convert/errors';
+import { useRecordConversion } from '../history/recording';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Batch'>;
@@ -49,6 +50,10 @@ export function BatchScreen({ route, navigation }: Props) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   }, [batch.status]);
+
+  // A cancelled batch is recorded too: the files it did convert are real, and they are
+  // exactly the ones somebody comes back looking for.
+  useRecordConversion(task, finished, batch.sources, batch.results, batch.failures.length);
 
   /**
    * The list the user picked, in the order they picked it, with each file's outcome
@@ -195,12 +200,17 @@ export function BatchScreen({ route, navigation }: Props) {
           <View style={{ marginTop: theme.space.sm }}>
             <StatRow label="Before" value={formatBytes(totals.before)} />
             <StatRow label="After" value={formatBytes(totals.after)} />
-            <StatRow
-              label={totals.after > totals.before ? 'Larger by' : 'Saved'}
-              value={`${Math.abs(percentageSaved(totals.before, totals.after))}%`}
-              emphasis
-              {...(totals.after > totals.before ? { valueColor: 'warningInk' as const } : {})}
-            />
+            {(() => {
+              const change = describeSizeChange(totals.before, totals.after);
+              return (
+                <StatRow
+                  label={change.label}
+                  value={change.value}
+                  emphasis
+                  {...(change.grew ? { valueColor: 'warningInk' as const } : {})}
+                />
+              );
+            })()}
             <StatRow label="Took" value={formatDuration(totals.elapsed)} />
           </View>
         </Card>

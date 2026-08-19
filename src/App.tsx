@@ -25,6 +25,7 @@ import { BatchScreen } from '@/features/batch/BatchScreen';
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { OptionsScreen } from '@/features/options/OptionsScreen';
+import { HistoryScreen } from '@/features/history/HistoryScreen';
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { useIncomingStore, watchIncomingFiles } from '@/store/incoming';
@@ -89,6 +90,7 @@ function Navigation() {
         <Stack.Screen name="Options" component={OptionsScreen} />
         <Stack.Screen name="Pdf" component={PdfScreen} />
         <Stack.Screen name="Incoming" component={IncomingScreen} />
+        <Stack.Screen name="History" component={HistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

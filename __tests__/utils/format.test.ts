@@ -1,7 +1,9 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { formatBytes, formatDimensions, formatDuration, percentageSaved } from '@/utils/format';
+import { formatBytes, formatDimensions, formatDuration, percentageSaved,
+  describeSizeChange,
+} from '@/utils/format';
 
 describe('formatBytes', () => {
   it('uses 1000-based units, as a file manager does', () => {
@@ -75,5 +77,33 @@ describe('formatDuration', () => {
   it('switches to minutes with a zero-padded seconds field', () => {
     expect(formatDuration(65_000, 'en-US')).toBe('1m 05s');
     expect(formatDuration(605_000, 'en-US')).toBe('10m 05s');
+  });
+});
+
+describe('describing how the size changed', () => {
+  it('says what was saved', () => {
+    expect(describeSizeChange(1000, 400)).toEqual({ label: 'Saved', value: '60%', grew: false });
+  });
+
+  it('says when the file grew, which converting to PNG often does', () => {
+    expect(describeSizeChange(400, 1000)).toEqual({ label: 'Larger by', value: '150%', grew: true });
+  });
+
+  it('refuses to say "Larger by 0%", which is a contradiction', () => {
+    // A batch that grew by a fraction of a percent rounds to zero, and the honest
+    // answer is that nothing meaningful changed.
+    expect(describeSizeChange(1000, 1001)).toEqual({
+      label: 'About the same size',
+      value: '',
+      grew: false,
+    });
+  });
+
+  it('says the same for an exact match', () => {
+    expect(describeSizeChange(1000, 1000).label).toBe('About the same size');
+  });
+
+  it('does not divide by a before-size of zero', () => {
+    expect(describeSizeChange(0, 500).label).toBe('About the same size');
   });
 });

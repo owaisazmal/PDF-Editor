@@ -3,9 +3,14 @@
 
 import { create } from 'zustand';
 
-import { buildOptions, type ConversionOptionsInput } from '@/engine/options';
+import {
+  buildOptions,
+  conversionOptionsSchema,
+  type ConversionOptionsInput,
+} from '@/engine/options';
 import type { FormatId } from '@/engine/formats';
 import { imageDefaults } from '@/theme/tokens';
+import { KEYS, read, write } from './storage';
 
 /**
  * The settings the user is currently editing.
@@ -14,8 +19,10 @@ import { imageDefaults } from '@/theme/tokens';
  * value has to be representable while it is being edited — validation happens when the
  * job is submitted, not on every keystroke.
  *
- * Not persisted yet. Remembering the last-used settings, and saving named presets, is
- * Phase 5 work and wants MMKV behind it.
+ * The last-used settings are remembered across launches, because someone who converts
+ * at quality 70 does it every time and re-setting the slider on each launch is a tax on
+ * the people who use the app most. Only the settings survive — never a file, never a
+ * path.
  */
 export type OptionsState = {
   options: ConversionOptionsInput;
@@ -51,12 +58,44 @@ export const defaultOptionsFor = (format: FormatId): ConversionOptionsInput => (
   frameIndex: 0,
 });
 
-export const useOptionsStore = create<OptionsState>((set, get) => ({
-  options: defaultOptionsFor('jpeg'),
+/**
+ * Validated on the way in as well as on the way out.
+ *
+ * Stored settings are the one input to this store that did not come from the UI, so they
+ * are the one that can be wrong: written by an older build, or edited by hand. A rejected
+ * set falls back to the defaults rather than putting the app into a state its own schema
+ * would refuse.
+ */
+const storedOptions = (): ConversionOptionsInput | null =>
+  read<ConversionOptionsInput | null>(
+    KEYS.lastOptions,
+    (raw) => (conversionOptionsSchema.safeParse(raw).success ? (raw as ConversionOptionsInput) : null),
+    null,
+  );
 
-  setTargetFormat: (format) => set((state) => ({ options: { ...state.options, targetFormat: format } })),
-  patch: (patch) => set((state) => ({ options: { ...state.options, ...patch } })),
-  replace: (options) => set({ options }),
-  resetFor: (format) => set({ options: defaultOptionsFor(format) }),
-  validated: () => buildOptions(get().options),
-}));
+/** Remembering the target format would override the task the user just tapped. */
+const withFormat = (
+  options: ConversionOptionsInput,
+  format: FormatId,
+): ConversionOptionsInput => ({ ...options, targetFormat: format });
+
+export const useOptionsStore = create<OptionsState>((set, get) => {
+  const persist = (options: ConversionOptionsInput) => {
+    write(KEYS.lastOptions, options);
+    return { options };
+  };
+
+  return {
+    options: storedOptions() ?? defaultOptionsFor('jpeg'),
+
+    setTargetFormat: (format) => set((state) => persist(withFormat(state.options, format))),
+    patch: (patch) => set((state) => persist({ ...state.options, ...patch })),
+    replace: (options) => set(persist(options)),
+    /**
+     * Reopens a task with what was used last, not with the factory defaults — that is the
+     * whole point of remembering. The format still comes from the task being started.
+     */
+    resetFor: (format) => set(persist(withFormat(storedOptions() ?? defaultOptionsFor(format), format))),
+    validated: () => buildOptions(get().options),
+  };
+});
