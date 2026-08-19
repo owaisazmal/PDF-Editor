@@ -67,3 +67,33 @@ export function formatDuration(ms: number, locale?: string): string {
   const seconds = totalSeconds % 60;
   return `${new Intl.NumberFormat(locale).format(minutes)}m ${String(seconds).padStart(2, '0')}s`;
 }
+
+/**
+ * How the size changed, in words that stay true at the edges.
+ *
+ * `percentageSaved` rounds, so a batch that grew by a fraction of a percent produced
+ * "Larger by 0%" — a contradiction the user has to reconcile. Below a percent in either
+ * direction the honest answer is that nothing meaningful changed, and saying so is
+ * shorter than the number would have been.
+ */
+export type SizeChange = {
+  label: string;
+  /** Empty when the label says everything, as it does for no change. */
+  value: string;
+  grew: boolean;
+};
+
+export function describeSizeChange(beforeBytes: number, afterBytes: number): SizeChange {
+  const percent = percentageSaved(beforeBytes, afterBytes);
+
+  if (beforeBytes === 0 || percent === 0) {
+    return { label: 'About the same size', value: '', grew: false };
+  }
+
+  const grew = afterBytes > beforeBytes;
+  return {
+    label: grew ? 'Larger by' : 'Saved',
+    value: `${Math.abs(percent)}%`,
+    grew,
+  };
+}

@@ -10,6 +10,8 @@ export type RootStackParamList = {
   Pdf: { taskId: string };
   /** Files handed over by another app, before a task has been chosen. */
   Incoming: undefined;
+  /** What has been converted on this device. */
+  History: undefined;
 };
 
 declare global {

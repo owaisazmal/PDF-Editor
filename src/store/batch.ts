@@ -70,6 +70,12 @@ export type BatchState = {
   submitError: string | null;
   /** Null until the first batch has asked. Only ever affects what the UI says. */
   backgroundProgress: BackgroundProgressStatus | null;
+  /**
+   * The rename pattern for the next batch. Held here rather than passed to `start`,
+   * because the screen that sets it is not the screen that submits.
+   */
+  namePattern: string;
+  setNamePattern: (pattern: string) => void;
 
   start: (sources: DetectedFile[], options: ConversionOptionsInput) => Promise<void>;
   cancel: () => Promise<void>;
@@ -98,6 +104,9 @@ export const useBatchStore = create<BatchState>((set, get) => ({
   failures: [],
   submitError: null,
   backgroundProgress: null,
+  namePattern: '',
+
+  setNamePattern: (namePattern) => set({ namePattern }),
 
   async start(sources, options) {
     teardown();
@@ -169,6 +178,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
         jobId,
         inputUris: sources.map((source) => source.uri),
         options,
+        namePattern: get().namePattern,
       });
     } catch (error) {
       teardown();
@@ -226,6 +236,9 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       failures: [],
       submitError: null,
       backgroundProgress: null,
+      // The pattern deliberately survives a reset: it belongs to the settings the user
+      // chose, not to the batch that just finished, and clearing it would silently
+      // undo a rename between one batch and the next.
     });
   },
 }));

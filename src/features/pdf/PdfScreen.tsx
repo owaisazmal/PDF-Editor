@@ -24,7 +24,7 @@ import { describePageSelection, expandPageRanges } from '@/engine/pdfPages';
 import { fileGateway } from '@/native';
 import { isPdfBusy, usePdfStore } from '@/store/pdf';
 import { useTheme } from '@/theme';
-import { formatBytes, formatDuration, percentageSaved } from '@/utils/format';
+import { describeSizeChange, formatBytes, formatDuration } from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
 import { errorMessageFor } from '../convert/errors';
 import {
@@ -276,18 +276,20 @@ export function PdfScreen({ route, navigation }: Props) {
                     <>
                       <StatRow label="Before" value={formatBytes(document.beforeByteSize)} />
                       <StatRow label="After" value={formatBytes(document.byteSize)} />
-                      <StatRow
-                        label={
-                          document.byteSize > document.beforeByteSize ? 'Larger by' : 'Saved'
-                        }
-                        value={`${Math.abs(
-                          percentageSaved(document.beforeByteSize, document.byteSize),
-                        )}%`}
-                        emphasis
-                        {...(document.byteSize > document.beforeByteSize
-                          ? { valueColor: 'warningInk' as const }
-                          : {})}
-                      />
+                      {(() => {
+                        const change = describeSizeChange(
+                          document.beforeByteSize,
+                          document.byteSize,
+                        );
+                        return (
+                          <StatRow
+                            label={change.label}
+                            value={change.value}
+                            emphasis
+                            {...(change.grew ? { valueColor: 'warningInk' as const } : {})}
+                          />
+                        );
+                      })()}
                     </>
                   ) : (
                     <StatRow label="Size" value={formatBytes(document.byteSize)} emphasis />

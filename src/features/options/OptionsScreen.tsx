@@ -5,14 +5,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Button, Card, Screen, SegmentedControl, Slider, Text, Toggle } from '@/components';
 import { FORMATS } from '@/engine/formats';
 import { isLossy, needsBackgroundChoice, type MetadataMode } from '@/engine/options';
 import { RESIZE_PRESETS, matchPreset } from '@/engine/presets';
+import {
+  Button,
+  Card,
+  ChipRow,
+  Screen,
+  SegmentedControl,
+  Slider,
+  Text,
+  TextField,
+  Toggle,
+} from '@/components';
 import { rasterCodec } from '@/native';
 import { useBatchStore } from '@/store/batch';
 import { useConversionStore } from '@/store/conversion';
 import { useOptionsStore } from '@/store/options';
+import { usePresetsStore } from '@/store/presets';
+import { appendToken, collides, NAME_TOKENS, previewNames } from '@/engine/naming';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
 import { formatBytes } from '@/utils/format';
@@ -29,6 +41,13 @@ export function OptionsScreen({ route, navigation }: Props) {
   const { options, patch, replace } = useOptionsStore();
   const conversionSource = useConversionStore((s) => s.source);
   const batchSources = useBatchStore((s) => s.sources);
+  const namePattern = useBatchStore((s) => s.namePattern);
+  const setNamePattern = useBatchStore((s) => s.setNamePattern);
+
+  const presets = usePresetsStore((s) => s.presets);
+  const savePreset = usePresetsStore((s) => s.save);
+  const [presetName, setPresetName] = useState('');
+  const [namingPreset, setNamingPreset] = useState(false);
 
   const task = useMemo(
     () => CONVERSION_TASKS.find((t) => t.id === route.params.taskId),
@@ -84,6 +103,30 @@ export function OptionsScreen({ route, navigation }: Props) {
       if (estimateTimer.current) clearTimeout(estimateTimer.current);
     };
   }, [scheduleEstimate]);
+
+  /**
+   * What the first few files will actually be called.
+   *
+   * Computed from the same reference the native renamer mirrors, so the preview is a
+   * promise rather than an illustration.
+   */
+  const namePreview = useMemo(() => {
+    // Above the early return that narrows `task`, so the format is read defensively.
+    const format = task?.targetFormat;
+    if (!format || namePattern.trim().length === 0) return [];
+    return previewNames(
+      namePattern,
+      batchSources.map((source) => source.displayName),
+      format,
+      new Date(),
+    );
+  }, [namePattern, batchSources, task]);
+
+  const onSavePreset = useCallback(() => {
+    if (savePreset(presetName, options) === null) return;
+    setPresetName('');
+    setNamingPreset(false);
+  }, [savePreset, presetName, options]);
 
   const onConvert = useCallback(() => {
     navigation.navigate(fileCount > 1 ? 'Batch' : 'Convert', { taskId: route.params.taskId });
@@ -320,6 +363,104 @@ export function OptionsScreen({ route, navigation }: Props) {
           </View>
         </Card>
       ) : null}
+
+      {/* Renaming only makes sense across a batch: one file already has the name the
+          user chose when they saved it. */}
+      {fileCount > 1 ? (
+        <Card style={{ marginTop: theme.space.lg }}>
+          <Text variant="label" color="textSecondary">
+            RENAME
+          </Text>
+          <View style={{ marginTop: theme.space.md }}>
+            <TextField
+              label="Pattern"
+              value={namePattern}
+              onChange={setNamePattern}
+              placeholder="Keep the original names"
+              testID="name-pattern"
+              {...(collides(namePattern)
+                ? {
+                    hint: 'Every file would get the same name. Add {name} or {index}.',
+                    hintIsProblem: true,
+                  }
+                : {})}
+            />
+          </View>
+
+          <ChipRow
+            chips={NAME_TOKENS.map((token) => ({
+              value: token.token,
+              label: token.label,
+              detail: token.detail,
+            }))}
+            // Nothing is selected: these insert rather than choose. The row is the
+            // keyboard for a syntax nobody should have to remember.
+            value=""
+            onChange={(token) => setNamePattern(appendToken(namePattern, token))}
+            accessibilityLabel="Insert a name token"
+            testIDPrefix="name-token"
+          />
+
+          <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
+            {namePreview.length > 0
+              ? `${namePreview.join(', ')}${fileCount > namePreview.length ? ', …' : ''}`
+              : 'Names are kept as they are'}
+          </Text>
+        </Card>
+      ) : null}
+
+      <Card style={{ marginTop: theme.space.lg }}>
+        <Text variant="label" color="textSecondary">
+          PRESETS
+        </Text>
+
+        {presets.length > 0 ? (
+          <ChipRow
+            chips={presets.map((preset) => ({ value: preset.id, label: preset.name }))}
+            value=""
+            onChange={(id) => {
+              const preset = presets.find((entry) => entry.id === id);
+              if (!preset) return;
+              // The task decides the format; a preset carries everything else.
+              replace({ ...preset.options, targetFormat });
+              scheduleEstimate();
+            }}
+            accessibilityLabel="Apply a saved preset"
+            testIDPrefix="preset"
+          />
+        ) : (
+          <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.sm }}>
+            Save these settings to reuse them without rebuilding them.
+          </Text>
+        )}
+
+        {namingPreset ? (
+          <View style={{ marginTop: theme.space.md }}>
+            <TextField
+              label="Preset name"
+              value={presetName}
+              onChange={setPresetName}
+              placeholder="Email attachments"
+              autoFocus
+              onSubmit={onSavePreset}
+              testID="preset-name"
+            />
+            <Button
+              label="Save preset"
+              onPress={onSavePreset}
+              disabled={presetName.trim().length === 0}
+              style={{ marginTop: theme.space.md }}
+            />
+          </View>
+        ) : (
+          <Button
+            label="Save these settings"
+            variant="ghost"
+            onPress={() => setNamingPreset(true)}
+            style={{ marginTop: theme.space.md }}
+          />
+        )}
+      </Card>
 
       <View style={{ marginTop: theme.space['2xl'], gap: theme.space.md }}>
         <Button testID="convert-with-options" label={`Convert to ${targetSpec.label}`} onPress={onConvert} />

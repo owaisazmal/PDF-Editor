@@ -88,10 +88,13 @@ public struct JobSpec: Sendable {
 
     private func expandedName(for input: Input, index: Int) -> String {
         let sourceName = (input.displayName as NSString).deletingPathExtension
-        guard !namePattern.isEmpty else { return sourceName }
+        // Trimmed, not merely checked for empty: a field the user typed into and then
+        // cleared can hold spaces, and a batch named "   " is not what they asked for.
+        let pattern = namePattern.trimmingCharacters(in: .whitespaces)
+        guard !pattern.isEmpty else { return sourceName }
 
         // `index` is one-based because it appears in filenames people read.
-        return namePattern
+        return pattern
             .replacingOccurrences(of: "{name}", with: sourceName)
             .replacingOccurrences(of: "{index}", with: String(format: "%03d", index + 1))
             .replacingOccurrences(of: "{date}", with: JobSpec.dateStamp())

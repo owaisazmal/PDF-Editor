@@ -66,10 +66,13 @@ public data class JobSpec(
 
   private fun expandedName(input: Input, index: Int): String {
     val sourceName = input.displayName.substringBeforeLast('.', input.displayName)
-    if (namePattern.isEmpty()) return sourceName
+    // Trimmed, not merely checked for empty: a field the user typed into and then
+    // cleared can hold spaces, and a batch named "   " is not what they asked for.
+    val pattern = namePattern.trim()
+    if (pattern.isEmpty()) return sourceName
 
     // `index` is one-based because it appears in filenames people read.
-    return namePattern
+    return pattern
       .replace("{name}", sourceName)
       .replace("{index}", String.format(Locale.US, "%03d", index + 1))
       .replace("{date}", dateStamp())
