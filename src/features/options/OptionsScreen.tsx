@@ -164,7 +164,7 @@ export function OptionsScreen({ route, navigation }: Props) {
 
       {/* Estimate first: it is the number every other control on this screen moves. */}
       <Card style={{ marginTop: theme.space.xl }} elevation="md">
-        <Text variant="label" color="textTertiary">
+        <Text variant="label" color="textTertiary" heading>
           ESTIMATED OUTPUT
         </Text>
         <Text variant="monoLg" color="accentInk" style={{ marginTop: theme.space.xs }}>
@@ -224,7 +224,7 @@ export function OptionsScreen({ route, navigation }: Props) {
       ) : null}
 
       <Card style={{ marginTop: theme.space.lg }}>
-        <Text variant="label" color="textSecondary">
+        <Text variant="label" color="textSecondary" heading>
           SIZE
         </Text>
         <View style={styles.presets}>
@@ -326,7 +326,7 @@ export function OptionsScreen({ route, navigation }: Props) {
 
       {willFlatten ? (
         <Card style={{ marginTop: theme.space.lg }}>
-          <Text variant="label" color="textSecondary">
+          <Text variant="label" color="textSecondary" heading>
             BACKGROUND
           </Text>
           <Text variant="caption" color="textTertiary" style={{ marginTop: 2 }}>
@@ -368,7 +368,7 @@ export function OptionsScreen({ route, navigation }: Props) {
           user chose when they saved it. */}
       {fileCount > 1 ? (
         <Card style={{ marginTop: theme.space.lg }}>
-          <Text variant="label" color="textSecondary">
+          <Text variant="label" color="textSecondary" heading>
             RENAME
           </Text>
           <View style={{ marginTop: theme.space.md }}>
@@ -410,7 +410,7 @@ export function OptionsScreen({ route, navigation }: Props) {
       ) : null}
 
       <Card style={{ marginTop: theme.space.lg }}>
-        <Text variant="label" color="textSecondary">
+        <Text variant="label" color="textSecondary" heading>
           PRESETS
         </Text>
 

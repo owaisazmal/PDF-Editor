@@ -12,6 +12,7 @@ import { needsBackgroundChoice } from '@/engine/options';
 import { fileGateway } from '@/native';
 import { useConversionStore } from '@/store/conversion';
 import { useRecordConversion } from '../history/recording';
+import { useAnnouncement } from '@/utils/useAnnouncement';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
 import { formatBytes, formatDimensions, formatDuration, percentageSaved } from '@/utils/format';
@@ -60,6 +61,12 @@ export function ConvertScreen({ route, navigation }: Props) {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [result]);
 
+  // Spoken on the outcome, because a conversion finishes without anything being tapped
+  // and a screen reader would otherwise say nothing at all.
+  useAnnouncement(
+    phase === 'done' ? 'Converted.' : phase === 'error' ? 'Conversion failed.' : null,
+  );
+
   // Above the early return, because hooks cannot be called conditionally. The hook
   // itself does nothing until there is a finished conversion to record.
   useRecordConversion(
@@ -103,7 +110,7 @@ export function ConvertScreen({ route, navigation }: Props) {
       <Text variant="h1">{task.title}</Text>
 
       <Card style={{ marginTop: theme.space['2xl'] }}>
-        <Text variant="label" color="textTertiary">
+        <Text variant="label" color="textTertiary" heading>
           SELECTED FILE
         </Text>
         <Text variant="h3" numberOfLines={2} style={{ marginTop: theme.space.xs }}>
@@ -141,7 +148,7 @@ export function ConvertScreen({ route, navigation }: Props) {
 
       {phase === 'done' && result ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">
-          <Text variant="label" color="textTertiary">
+          <Text variant="label" color="textTertiary" heading>
             RESULT
           </Text>
           <View style={{ marginTop: theme.space.md }}>

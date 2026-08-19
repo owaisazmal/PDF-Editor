@@ -239,6 +239,28 @@ indefinitely — but for as long as a session is open, a password-protected file
 plaintext in storage no other app can read without root. The password itself is used once,
 to decrypt, and is never stored.
 
+### 3.5 Accessibility, and what the audit found
+
+The design system already got two things right before the audit: font scaling is applied
+once, in the theme, to both `fontSize` and `lineHeight` — so `allowFontScaling` is off on
+every `Text` and the vertical rhythm survives a user at 200%. And composite rows hide
+their own children from the reader so a file row is announced once, as a sentence, rather
+than as three unrelated fragments.
+
+Two real gaps came out of it:
+
+- **Nothing was a heading.** Not one `accessibilityRole="header"` in the app, which means
+  a screen-reader user could not jump between sections and had to listen through every
+  control to find one. Heading-sized variants now carry the role by default, and the
+  all-caps section labels carry it explicitly, because "METADATA" is a heading whatever
+  size it is drawn at.
+- **Progress was silent.** A batch converts without anything being tapped or focused, so
+  the reader said nothing at all: a blind user started a conversion and had no way to
+  know whether it was running, finished or failed. The current-file line is now a polite
+  live region, which Android speaks on change, and the outcome is announced explicitly on
+  iOS, where live regions do nothing and an announcement is the only mechanism. It speaks
+  the outcome rather than the ticks — ten sentences a second is not information.
+
 ### 3.4 Three doors, one queue
 
 Files reach the app from outside it three ways, and they converge deliberately: a share
