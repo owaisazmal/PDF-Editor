@@ -4,17 +4,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Button, Card, FileRow, ProgressBar, Screen, StatRow, Text } from '@/components';
+import { Button, Card, FileRow, ProgressBar, Screen, SectionLabel, StatRow, Text } from '@/components';
 import { FORMATS } from '@/engine/formats';
 import { fileGateway } from '@/native';
 import { isBatchFinished, isBatchRunning, useBatchStore } from '@/store/batch';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
-import { describeSizeChange, formatBytes, formatDuration } from '@/utils/format';
+import { describeSizeChange, formatBytes, formatDuration, formatNumber } from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
-import { errorMessage } from '../convert/errors';
+import { errorKey, errorKeyFor, type ErrorKey } from '../convert/errors';
 import { useRecordConversion } from '../history/recording';
 import { useAnnouncement } from '@/utils/useAnnouncement';
 import type { RootStackParamList } from '@/navigation/types';
@@ -23,12 +24,16 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Batch'>;
 
 export function BatchScreen({ route, navigation }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const batch = useBatchStore();
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // A key, not a sentence: the gateway rejects with English written for the console, and
+  // that text has no translation to fall back to.
+  const [saveError, setSaveError] = useState<ErrorKey | null>(null);
 
   const task = useMemo(
-    () => CONVERSION_TASKS.find((t) => t.id === route.params.taskId),
+    // Not `t` for the parameter any more: it would shadow the translator two lines up.
+    () => CONVERSION_TASKS.find((candidate) => candidate.id === route.params.taskId),
     [route.params.taskId],
   );
 
@@ -61,11 +66,20 @@ export function BatchScreen({ route, navigation }: Props) {
    *
    * Not on every progress tick: ten sentences a second is not information. Only the
    * outcome, which is the thing a user who cannot see the bar is waiting for.
+   *
+   * Two sentences rather than one, because the failure half pluralises on its own and
+   * only exists sometimes. Written as one key it would have needed a variant for every
+   * plural category with and without failures.
    */
   useAnnouncement(
     finished
-      ? `${batch.progress.completedCount} of ${batch.progress.totalCount} converted.` +
-          (batch.failures.length > 0 ? ` ${batch.failures.length} failed.` : '')
+      ? t('batch.announceFinished', {
+          done: formatNumber(batch.progress.completedCount),
+          total: formatNumber(batch.progress.totalCount),
+        }) +
+          (batch.failures.length > 0
+            ? ` ${t('batch.announceFailures', { count: batch.failures.length })}`
+            : '')
       : null,
   );
 
@@ -97,7 +111,7 @@ export function BatchScreen({ route, navigation }: Props) {
         return {
           key: `${index}-failed`,
           name: failure.displayName || source.displayName,
-          detail: errorMessage(failure.code),
+          detail: t(errorKey(failure.code)),
           state: 'failed' as const,
         };
       }
@@ -108,7 +122,7 @@ export function BatchScreen({ route, navigation }: Props) {
         state: 'pending' as const,
       };
     });
-  }, [batch.sources, batch.results, batch.failures]);
+  }, [batch.sources, batch.results, batch.failures, t]);
 
   const totals = useMemo(() => {
     const before = batch.sources.reduce((sum, source) => sum + source.byteSize, 0);
@@ -124,7 +138,7 @@ export function BatchScreen({ route, navigation }: Props) {
       setSaved(true);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : String(error));
+      setSaveError(errorKeyFor(error));
     }
   }, [batch.results]);
 
@@ -137,8 +151,13 @@ export function BatchScreen({ route, navigation }: Props) {
   if (!task) {
     return (
       <Screen>
-        <Text variant="h2">Nothing to convert</Text>
-        <Button label="Back" variant="secondary" onPress={onDone} style={{ marginTop: theme.space['2xl'] }} />
+        <Text variant="h2">{t('batch.nothingToConvert')}</Text>
+        <Button
+          label={t('common.back')}
+          variant="secondary"
+          onPress={onDone}
+          style={{ marginTop: theme.space['2xl'] }}
+        />
       </Screen>
     );
   }
@@ -148,9 +167,9 @@ export function BatchScreen({ route, navigation }: Props) {
 
   return (
     <Screen>
-      <Text variant="h1">{task.title}</Text>
+      <Text variant="h1">{t(`tasks.${task.id}.title`)}</Text>
       <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-        {progress.totalCount} {progress.totalCount === 1 ? 'file' : 'files'} → {targetLabel}
+        {t('batch.summary', { count: progress.totalCount, format: targetLabel })}
       </Text>
 
       <Card style={{ marginTop: theme.space.xl }}>
@@ -158,17 +177,30 @@ export function BatchScreen({ route, navigation }: Props) {
           fraction={progress.fraction}
           accessibilityLabel={
             running
-              ? `Converting. ${progress.completedCount} of ${progress.totalCount} done.`
-              : `Finished. ${progress.completedCount} of ${progress.totalCount} converted.`
+              ? t('batch.converting', {
+                  done: formatNumber(progress.completedCount),
+                  total: formatNumber(progress.totalCount),
+                })
+              : t('batch.finished', {
+                  done: formatNumber(progress.completedCount),
+                  total: formatNumber(progress.totalCount),
+                })
           }
         />
 
         <View style={{ marginTop: theme.space.md, flexDirection: 'row', justifyContent: 'space-between' }}>
           <Text variant="mono" color="textSecondary">
-            {progress.completedCount + progress.failedCount} / {progress.totalCount}
+            {t('batch.progressCount', {
+              done: formatNumber(progress.completedCount + progress.failedCount),
+              total: formatNumber(progress.totalCount),
+            })}
           </Text>
           <Text variant="mono" color={progress.failedCount > 0 ? 'dangerInk' : 'textTertiary'}>
-            {progress.failedCount > 0 ? `${progress.failedCount} failed` : `${Math.round(progress.fraction * 100)}%`}
+            {progress.failedCount > 0
+              ? t('batch.failedCount', { count: progress.failedCount })
+              : t('batch.percentDone', {
+                  percent: formatNumber(Math.round(progress.fraction * 100)),
+                })}
           </Text>
         </View>
 
@@ -183,7 +215,7 @@ export function BatchScreen({ route, navigation }: Props) {
             accessibilityLiveRegion="polite"
             style={{ marginTop: theme.space.sm }}
           >
-            {batch.status === 'cancelling' ? 'Finishing the current file…' : progress.currentDisplayName}
+            {batch.status === 'cancelling' ? t('batch.finishingCurrent') : progress.currentDisplayName}
           </Text>
         ) : null}
       </Card>
@@ -194,9 +226,7 @@ export function BatchScreen({ route, navigation }: Props) {
         // what happened, and that the finished files are still here, is the difference
         // between a deliberate stop and an apparent malfunction.
         <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.md }}>
-          Stopped. The {batch.results.length}{' '}
-          {batch.results.length === 1 ? 'file' : 'files'} already converted are below —
-          the rest were left alone.
+          {t('batch.stopped', { count: batch.results.length })}
         </Text>
       ) : null}
 
@@ -210,42 +240,39 @@ export function BatchScreen({ route, navigation }: Props) {
           color="textTertiary"
           style={{ marginTop: theme.space.sm }}
         >
-          Notifications are off, so this won’t appear in your shade. It still finishes if
-          you leave the app.
+          {t('batch.notificationsOff')}
         </Text>
       ) : null}
 
       {finished && batch.results.length > 0 ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">
-          <Text variant="label" color="textTertiary" heading>
-            TOTAL
-          </Text>
+          <SectionLabel color="textTertiary">{t('batch.total')}</SectionLabel>
           <View style={{ marginTop: theme.space.sm }}>
-            <StatRow label="Before" value={formatBytes(totals.before)} />
-            <StatRow label="After" value={formatBytes(totals.after)} />
+            <StatRow label={t('common.before')} value={formatBytes(totals.before)} />
+            <StatRow label={t('common.after')} value={formatBytes(totals.after)} />
             {(() => {
               const change = describeSizeChange(totals.before, totals.after);
               return (
                 <StatRow
-                  label={change.label}
+                  label={t(change.labelKey)}
                   value={change.value}
                   emphasis
                   {...(change.grew ? { valueColor: 'warningInk' as const } : {})}
                 />
               );
             })()}
-            <StatRow label="Took" value={formatDuration(totals.elapsed)} />
+            <StatRow label={t('common.took')} value={formatDuration(totals.elapsed)} />
           </View>
         </Card>
       ) : null}
 
-      {batch.submitError ? (
+      {batch.submitErrorKey ? (
         <Card style={{ marginTop: theme.space.lg }}>
           <Text variant="h3" color="dangerInk">
-            Could not start
+            {t('batch.couldNotStart')}
           </Text>
           <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-            {batch.submitError}
+            {t(batch.submitErrorKey)}
           </Text>
         </Card>
       ) : null}
@@ -253,7 +280,7 @@ export function BatchScreen({ route, navigation }: Props) {
       {saveError ? (
         <Card style={{ marginTop: theme.space.lg }}>
           <Text variant="bodySm" color="dangerInk">
-            {saveError}
+            {t(saveError)}
           </Text>
         </Card>
       ) : null}
@@ -272,7 +299,7 @@ export function BatchScreen({ route, navigation }: Props) {
         {running ? (
           <Button
             testID="cancel-button"
-            label={batch.status === 'cancelling' ? 'Cancelling…' : 'Cancel'}
+            label={batch.status === 'cancelling' ? t('batch.cancelling') : t('common.cancel')}
             variant="secondary"
             busy={batch.status === 'cancelling'}
             onPress={() => void batch.cancel()}
@@ -282,7 +309,11 @@ export function BatchScreen({ route, navigation }: Props) {
             {batch.results.length > 0 ? (
               <Button
                 testID="save-button"
-                label={saved ? `Saved ${batch.results.length} to Photos` : `Save ${batch.results.length} to Photos`}
+                label={
+                  saved
+                    ? t('batch.savedAll', { count: batch.results.length })
+                    : t('batch.saveAll', { count: batch.results.length })
+                }
                 onPress={() => void onSave()}
                 disabled={saved}
               />
@@ -290,12 +321,12 @@ export function BatchScreen({ route, navigation }: Props) {
             {batch.failures.length > 0 ? (
               <Button
                 testID="retry-button"
-                label={`Retry ${batch.failures.length} failed`}
+                label={t('batch.retry', { count: batch.failures.length })}
                 variant="secondary"
                 onPress={() => void batch.retryFailed()}
               />
             ) : null}
-            <Button label="Done" variant="ghost" onPress={onDone} />
+            <Button label={t('common.done')} variant="ghost" onPress={onDone} />
           </>
         )}
       </View>

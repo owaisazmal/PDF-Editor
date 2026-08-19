@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -18,7 +19,8 @@ import {
   unavailableReason,
   type ConversionTask,
 } from './tasks';
-import { blockedReason, routeToTask } from './routing';
+import { blockedReason, routeToTask, type BlockedReason } from './routing';
+import { errorKeyFor, type ErrorKey } from '@/features/convert/errors';
 import type { RootStackParamList } from '@/navigation/types';
 
 /**
@@ -37,6 +39,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
  * tile, pick, convert — which `e2e/three-taps.yaml` asserts rather than assumes.
  */
 export function HomeScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const setPicking = useConversionStore((s) => s.setPicking);
   const fail = useConversionStore((s) => s.fail);
@@ -49,6 +52,16 @@ export function HomeScreen({ navigation }: Props) {
     if (!capabilities.isLoaded) void capabilities.load();
   }, [capabilities]);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+
+  /**
+   * Why the last tap went nowhere.
+   *
+   * Held here rather than in the conversion store, which is where it used to go. Nothing
+   * on this screen reads that store, so picking a single PDF for Merge set a failure
+   * nobody rendered and the tile simply did nothing — no message, no navigation, no way
+   * to tell a refusal from a bug.
+   */
+  const [blocked, setBlocked] = useState<ErrorKey | BlockedReason | null>(null);
 
   /**
    * Guards against opening two pickers at once. Deliberately a ref rather than the
@@ -78,6 +91,9 @@ export function HomeScreen({ navigation }: Props) {
     async (task: ConversionTask) => {
       if (pickInFlight.current) return;
       pickInFlight.current = true;
+      // Cleared on the next attempt, not on a timer: the message is about the tap that
+      // just happened, and it should stay until something else happens.
+      setBlocked(null);
       setBusyTaskId(task.id);
       setPicking();
       try {
@@ -98,9 +114,10 @@ export function HomeScreen({ navigation }: Props) {
           return;
         }
 
-        const blocked = blockedReason(task, picked);
-        if (blocked) {
-          fail({ code: 'unknown', message: blocked });
+        const reason = blockedReason(task, picked);
+        if (reason) {
+          setBlocked(reason);
+          fail({ code: 'unknown', message: reason });
           return;
         }
 
@@ -108,10 +125,11 @@ export function HomeScreen({ navigation }: Props) {
         // that a picked file gets.
         routeToTask(navigation, task, picked);
       } catch (error) {
-        fail({
-          code: 'unknown',
-          message: error instanceof Error ? error.message : String(error),
-        });
+        // Shown as well as recorded. A picker that throws used to leave the grid looking
+        // untouched, which reads as a tile that does not work.
+        const key = errorKeyFor(error);
+        setBlocked(key);
+        fail({ code: 'unknown', message: key });
       } finally {
         pickInFlight.current = false;
         setBusyTaskId(null);
@@ -124,16 +142,14 @@ export function HomeScreen({ navigation }: Props) {
     <Screen scroll>
       <View style={{ marginBottom: theme.space['3xl'] }}>
         <View style={styles.header}>
-          <Text variant="display">Convert</Text>
+          <Text variant="display">{t('home.title')}</Text>
           {/* Only once there is something to look at. An empty history behind a
               permanent button is a dead end offered on every launch. */}
           {historyCount > 0 ? (
             <Pressable
               testID="open-history"
               accessibilityRole="button"
-              accessibilityLabel={`History, ${historyCount} ${
-                historyCount === 1 ? 'conversion' : 'conversions'
-              }`}
+              accessibilityLabel={t('home.historyLabel', { count: historyCount })}
               onPress={() => navigation.navigate('History')}
               style={({ pressed }) => [
                 styles.headerAction,
@@ -145,15 +161,28 @@ export function HomeScreen({ navigation }: Props) {
               ]}
             >
               <Text variant="label" color="textSecondary" heading>
-                History
+                {t('home.history')}
               </Text>
             </Pressable>
           ) : null}
         </View>
         <Text variant="body" color="textSecondary" style={{ marginTop: theme.space.sm }}>
-          Everything happens on your device. Nothing is uploaded, nothing is tracked, and
-          there is no limit.
+          {t('home.promise')}
         </Text>
+
+        {blocked ? (
+          <Text
+            testID="home-blocked"
+            variant="bodySm"
+            color="warningInk"
+            // Announced without needing focus: the tap that caused this was on a tile
+            // somewhere else on the grid, and nothing moves focus here.
+            accessibilityLiveRegion="polite"
+            style={{ marginTop: theme.space.md }}
+          >
+            {t(blocked)}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.grid}>
@@ -165,8 +194,8 @@ export function HomeScreen({ navigation }: Props) {
             <View key={task.id} style={[styles.cell, { padding: theme.space.sm }]}>
               <TaskTile
                 testID={`task-${task.id}`}
-                title={task.title}
-                subtitle={reason ?? task.subtitle}
+                title={t(`tasks.${task.id}.title`)}
+                subtitle={reason ? t(`home.unavailable.${reason}`) : t(`tasks.${task.id}.subtitle`)}
                 from={task.from}
                 to={task.to}
                 enabled={isTileInteractive(task, busyTaskId, capabilities)}

@@ -30,13 +30,23 @@ export type TaskNavigation = {
   ) => void;
 };
 
-/** Why a task cannot be started with these files. Null when it can. */
-export function blockedReason(task: ConversionTask, files: DetectedFile[]): string | null {
-  if (files.length === 0) return 'Nothing was selected.';
+/**
+ * Why a task cannot be started with these files. Null when it can.
+ *
+ * A catalogue key rather than a sentence — this module is reached from two screens and
+ * cannot call `t` from where it sits.
+ */
+export type BlockedReason = 'home.nothingSelected' | 'home.mergeNeedsTwo';
+
+export function blockedReason(
+  task: ConversionTask,
+  files: DetectedFile[],
+): BlockedReason | null {
+  if (files.length === 0) return 'home.nothingSelected';
   if (task.needsMultiple && files.length < 2) {
     // Said before anything starts: a merge of one document is not an error the engine
     // should have to report, and nothing has been lost yet.
-    return 'Merging needs at least two PDFs. Pick another and try again.';
+    return 'home.mergeNeedsTwo';
   }
   return null;
 }

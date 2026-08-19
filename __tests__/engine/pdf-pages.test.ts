@@ -82,18 +82,31 @@ describe('expanding a page range', () => {
   });
 });
 
+/**
+ * The descriptor, not the sentence. This module is the reference the Swift and Kotlin
+ * copies mirror, and asserting English here would have made a reference implementation
+ * answerable to the translation catalogue — as well as breaking every time somebody
+ * reworded the line under the input.
+ */
 describe('describing a selection', () => {
   it('says all when the range covers the document', () => {
-    expect(describePageSelection('', 12)).toBe('All 12 pages');
-    expect(describePageSelection('1-12', 12)).toBe('All 12 pages');
+    expect(describePageSelection('', 12)).toEqual({ kind: 'all', count: 12 });
+    expect(describePageSelection('1-12', 12)).toEqual({ kind: 'all', count: 12 });
   });
 
   it('counts rather than echoing the range back', () => {
-    expect(describePageSelection('2-4', 12)).toBe('3 of 12 pages');
+    expect(describePageSelection('2-4', 12)).toEqual({ kind: 'subset', count: 3, total: 12 });
   });
 
   it('says so plainly when a range matches nothing', () => {
-    expect(describePageSelection('99', 12)).toBe('That range does not match any pages');
+    expect(describePageSelection('99', 12)).toEqual({ kind: 'unmatched' });
+  });
+
+  it('separates an empty document from a range that matched nothing', () => {
+    // Two different sentences on screen, and only this distinction carries which one:
+    // a count of zero cannot say whether the document or the range is at fault.
+    expect(describePageSelection('', 0)).toEqual({ kind: 'none' });
+    expect(describePageSelection('1-3', 0)).toEqual({ kind: 'none' });
   });
 });
 

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
@@ -12,31 +13,39 @@ import {
   ChipRow,
   FileRow,
   Screen,
+  SectionLabel,
   SegmentedControl,
   Slider,
   StatRow,
   Text,
   TextField,
   Toggle,
+  type Chip,
+  type Segment,
 } from '@/components';
 import { pdfClient, type PdfFitMode, type PdfOrientation, type PdfPageSize } from '@/engine/pdfClient';
-import { describePageSelection, expandPageRanges } from '@/engine/pdfPages';
+import { describePageSelection, expandPageRanges, type PageSelection } from '@/engine/pdfPages';
 import { fileGateway } from '@/native';
 import { isPdfBusy, usePdfStore } from '@/store/pdf';
 import { useTheme } from '@/theme';
-import { describeSizeChange, formatBytes, formatDuration } from '@/utils/format';
+import {
+  describeSizeChange,
+  formatBytes,
+  formatDecimal,
+  formatDuration,
+  formatNumber,
+} from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
-import { errorMessageFor } from '../convert/errors';
+import { errorKeyFor, type ErrorKey } from '../convert/errors';
 import { useAnnouncement } from '@/utils/useAnnouncement';
 import {
-  DPI_CHIPS,
-  FIT_MODE_HINTS,
-  FIT_MODE_SEGMENTS,
-  N_UP_CHIPS,
-  ORIENTATION_SEGMENTS,
-  PAGE_SIZE_CHIPS,
-  RENDER_FORMAT_SEGMENTS,
-  SPLIT_MODE_SEGMENTS,
+  DPI_VALUES,
+  FIT_MODE_VALUES,
+  N_UP_VALUES,
+  ORIENTATION_VALUES,
+  PAGE_SIZE_VALUES,
+  RENDER_FORMAT_VALUES,
+  SPLIT_MODE_VALUES,
 } from './options';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -52,14 +61,16 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Pdf'>;
  * password prompt that must not read as an error.
  */
 export function PdfScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const pdf = usePdfStore();
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  /** A catalogue key, never a message: the engine's own sentences are English only. */
+  const [saveError, setSaveError] = useState<ErrorKey | null>(null);
   const [password, setPassword] = useState('');
 
   const task = useMemo(
-    () => CONVERSION_TASKS.find((t) => t.id === route.params.taskId),
+    () => CONVERSION_TASKS.find((entry) => entry.id === route.params.taskId),
     [route.params.taskId],
   );
 
@@ -89,15 +100,76 @@ export function PdfScreen({ route, navigation }: Props) {
   const busy = isPdfBusy(pdf.status);
   const pageCount = pdf.info?.pageCount ?? 0;
 
+  /**
+   * The option vocabulary wears its words here rather than in `options.ts`.
+   *
+   * A module evaluated once at import time cannot call `t`, and a label captured at
+   * import time would be whatever language the app started in. Rebuilt per language
+   * rather than per render because a chip row is rebuilt from these on every keystroke
+   * in the field above it.
+   */
+  const pageSizeChips = useMemo<Chip<PdfPageSize>[]>(
+    () =>
+      PAGE_SIZE_VALUES.map((value) => ({
+        value,
+        label: t(`pdf.pageSizes.${value}.label`),
+        detail: t(`pdf.pageSizes.${value}.detail`),
+      })),
+    [t],
+  );
+
+  const orientationSegments = useMemo<Segment<PdfOrientation>[]>(
+    () => ORIENTATION_VALUES.map((value) => ({ value, label: t(`pdf.orientations.${value}`) })),
+    [t],
+  );
+
+  const fitModeSegments = useMemo<Segment<PdfFitMode>[]>(
+    () => FIT_MODE_VALUES.map((value) => ({ value, label: t(`pdf.fitModes.${value}.label`) })),
+    [t],
+  );
+
+  const nUpChips = useMemo<Chip<number>[]>(
+    () =>
+      N_UP_VALUES.map((count) => ({
+        value: count,
+        label: count === 1 ? t('pdf.nUp.single') : t('pdf.nUp.many', { count }),
+      })),
+    [t],
+  );
+
+  const dpiChips = useMemo<Chip<number>[]>(
+    () =>
+      DPI_VALUES.map(({ id, dpi }) => ({
+        value: dpi,
+        label: t(`pdf.dpi.${id}.label`),
+        detail: t(`pdf.dpi.${id}.detail`, { dpi: formatNumber(dpi) }),
+      })),
+    [t],
+  );
+
+  const renderFormatSegments = useMemo<Segment<'jpeg' | 'png'>[]>(
+    () => RENDER_FORMAT_VALUES.map((value) => ({ value, label: t(`pdf.renderFormats.${value}`) })),
+    [t],
+  );
+
+  const splitModeSegments = useMemo<Segment<'ranges' | 'every'>[]>(
+    () =>
+      SPLIT_MODE_VALUES.map((value) => ({
+        value,
+        label: value === 'ranges' ? t('pdf.splitRanges') : t('pdf.splitEvery'),
+      })),
+    [t],
+  );
+
   // A merge or an export can run for a while with nothing focused, so the outcome is
   // announced rather than left to be discovered.
   useAnnouncement(
     pdf.status === 'done'
-      ? 'Finished.'
+      ? t('pdf.announceFinished')
       : pdf.status === 'failed'
-        ? 'Could not finish.'
+        ? t('pdf.announceFailed')
         : pdf.status === 'locked'
-          ? 'This PDF needs a password.'
+          ? t('pdf.announceLocked')
           : null,
   );
 
@@ -119,6 +191,81 @@ export function PdfScreen({ route, navigation }: Props) {
         settingChanged();
       },
     [settingChanged],
+  );
+
+  const summary = useCallback(
+    (operation: string | undefined, fileCount: number, pages: number): string => {
+      switch (operation) {
+        case 'compose':
+          return t('pdf.summary.compose', { count: fileCount });
+        case 'merge':
+          return t('pdf.summary.merge', { count: fileCount });
+        default:
+          return pages > 0
+            ? t('pdf.summary.pages', { count: pages })
+            : t('pdf.summary.files', { count: fileCount });
+      }
+    },
+    [t],
+  );
+
+  const actionLabel = useCallback(
+    (operation: string | undefined): string => {
+      switch (operation) {
+        case 'compose':
+          return t('pdf.actions.compose');
+        case 'render':
+          return t('pdf.actions.render');
+        case 'merge':
+          return t('pdf.actions.merge');
+        case 'split':
+          return t('pdf.actions.split');
+        case 'compress':
+          return t('pdf.actions.compress');
+        default:
+          return t('pdf.actions.run');
+      }
+    },
+    [t],
+  );
+
+  const saveLabel = useCallback(
+    (images: number, parts: number, documents: number): string =>
+      images > 0
+        ? t('pdf.saveToPhotos', { count: images })
+        : t('pdf.saveToFiles', { count: parts + documents }),
+    [t],
+  );
+
+  /** "pages 4-6" reads better than "part 2" when the user is looking for a chapter. */
+  const describeSourcePages = useCallback(
+    (pages: number[]): string => {
+      const first = pages[0];
+      const last = pages[pages.length - 1];
+      if (first === undefined || last === undefined) return '';
+      if (pages.length === 1) return t('pdf.singlePage', { first: formatNumber(first) });
+      return t('pdf.pageRange', { first: formatNumber(first), last: formatNumber(last) });
+    },
+    [t],
+  );
+
+  const describeSelection = useCallback(
+    (selection: PageSelection): string => {
+      switch (selection.kind) {
+        case 'none':
+          return t('pdf.noPages');
+        case 'unmatched':
+          return t('pdf.rangeMatchesNothing');
+        case 'all':
+          return t('pdf.allNPages', { count: selection.count });
+        case 'subset':
+          return t('pdf.pagesSelected', {
+            count: selection.count,
+            total: formatNumber(selection.total),
+          });
+      }
+    },
+    [t],
   );
 
   /**
@@ -155,7 +302,7 @@ export function PdfScreen({ route, navigation }: Props) {
       setSaved(true);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      setSaveError(errorMessageFor(error));
+      setSaveError(errorKeyFor(error));
     }
   }, [pdf.documents, pdf.images, pdf.parts]);
 
@@ -207,6 +354,9 @@ export function PdfScreen({ route, navigation }: Props) {
           return { documents: [document], elapsedMs: document.elapsedMs };
         }
         default:
+          // Unreachable: a task routed here always has an operation. English on purpose —
+          // `errorKeyFor` turns anything without a native code into `errors.unknown`, so
+          // this reaches the log and never the screen.
           throw new Error('That task has no PDF operation.');
       }
     });
@@ -220,8 +370,8 @@ export function PdfScreen({ route, navigation }: Props) {
   if (!task) {
     return (
       <Screen>
-        <Text variant="h2">Nothing to do</Text>
-        <Button label="Back" variant="ghost" onPress={goHome} style={{ marginTop: theme.space.lg }} />
+        <Text variant="h2">{t('pdf.nothingToDo')}</Text>
+        <Button label={t('common.back')} variant="ghost" onPress={goHome} style={{ marginTop: theme.space.lg }} />
       </Screen>
     );
   }
@@ -232,7 +382,7 @@ export function PdfScreen({ route, navigation }: Props) {
 
   return (
     <Screen>
-      <Text variant="h1">{task.title}</Text>
+      <Text variant="h1">{t(`tasks.${task.id}.title`)}</Text>
       <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
         {summary(task.pdfOperation, pdf.sources.length, pageCount)}
       </Text>
@@ -245,26 +395,25 @@ export function PdfScreen({ route, navigation }: Props) {
       >
         {pdf.status === 'locked' ? (
           <Card>
-            <Text variant="h3">This PDF is locked</Text>
+            <Text variant="h3">{t('pdf.locked')}</Text>
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-              The password is used to open the file and is never saved, sent, or written
-              anywhere.
+              {t('pdf.lockedHint')}
             </Text>
             <View style={{ marginTop: theme.space.lg }}>
               <TextField
-                label="Password"
+                label={t('pdf.password')}
                 value={password}
                 onChange={setPassword}
                 secure
                 autoFocus
                 onSubmit={() => void pdf.unlock(password)}
                 {...(pdf.passwordFailed
-                  ? { hint: 'That password did not open it.', hintIsProblem: true }
+                  ? { hint: t('pdf.wrongPassword'), hintIsProblem: true }
                   : {})}
               />
             </View>
             <Button
-              label="Unlock"
+              label={t('pdf.unlock')}
               onPress={() => void pdf.unlock(password)}
               disabled={password.length === 0}
               busy={busy}
@@ -278,17 +427,15 @@ export function PdfScreen({ route, navigation }: Props) {
             user asked for sits off-screen under settings they can no longer act on. */}
         {pdf.status === 'done' ? (
           <Card style={{ marginTop: theme.space.lg }} elevation="md">
-            <Text variant="label" color="textTertiary" heading>
-              RESULT
-            </Text>
+            <SectionLabel color="textTertiary">{t('pdf.result')}</SectionLabel>
             <View style={{ marginTop: theme.space.sm }}>
               {pdf.documents.map((document) => (
                 <View key={document.outputUri}>
-                  <StatRow label="Pages" value={String(document.pageCount)} />
+                  <StatRow label={t('pdf.pagesLabel')} value={formatNumber(document.pageCount)} />
                   {document.beforeByteSize > 0 ? (
                     <>
-                      <StatRow label="Before" value={formatBytes(document.beforeByteSize)} />
-                      <StatRow label="After" value={formatBytes(document.byteSize)} />
+                      <StatRow label={t('common.before')} value={formatBytes(document.beforeByteSize)} />
+                      <StatRow label={t('common.after')} value={formatBytes(document.byteSize)} />
                       {(() => {
                         const change = describeSizeChange(
                           document.beforeByteSize,
@@ -296,7 +443,7 @@ export function PdfScreen({ route, navigation }: Props) {
                         );
                         return (
                           <StatRow
-                            label={change.label}
+                            label={t(change.labelKey)}
                             value={change.value}
                             emphasis
                             {...(change.grew ? { valueColor: 'warningInk' as const } : {})}
@@ -305,17 +452,17 @@ export function PdfScreen({ route, navigation }: Props) {
                       })()}
                     </>
                   ) : (
-                    <StatRow label="Size" value={formatBytes(document.byteSize)} emphasis />
+                    <StatRow label={t('common.size')} value={formatBytes(document.byteSize)} emphasis />
                   )}
                 </View>
               ))}
               {pdf.parts.length > 0 ? (
-                <StatRow label="Documents" value={String(pdf.parts.length)} emphasis />
+                <StatRow label={t('pdf.documents')} value={formatNumber(pdf.parts.length)} emphasis />
               ) : null}
               {pdf.images.length > 0 ? (
-                <StatRow label="Images" value={String(pdf.images.length)} emphasis />
+                <StatRow label={t('pdf.images')} value={formatNumber(pdf.images.length)} emphasis />
               ) : null}
-              <StatRow label="Took" value={formatDuration(pdf.elapsedMs)} />
+              <StatRow label={t('common.took')} value={formatDuration(pdf.elapsedMs)} />
             </View>
           </Card>
         ) : null}
@@ -326,7 +473,10 @@ export function PdfScreen({ route, navigation }: Props) {
               <FileRow
                 key={part.outputUri}
                 name={part.outputDisplayName}
-                detail={`${describeSourcePages(part.sourcePages)} · ${formatBytes(part.byteSize)}`}
+                detail={t('pdf.partDetail', {
+                  pages: describeSourcePages(part.sourcePages),
+                  size: formatBytes(part.byteSize),
+                })}
                 state="done"
               />
             ))}
@@ -334,7 +484,11 @@ export function PdfScreen({ route, navigation }: Props) {
               <FileRow
                 key={image.outputUri}
                 name={image.outputDisplayName}
-                detail={`${image.pixelWidth}×${image.pixelHeight} · ${formatBytes(image.byteSize)}`}
+                detail={t('pdf.imageDetail', {
+                  width: formatNumber(image.pixelWidth),
+                  height: formatNumber(image.pixelHeight),
+                  size: formatBytes(image.byteSize),
+                })}
                 state="done"
               />
             ))}
@@ -344,49 +498,52 @@ export function PdfScreen({ route, navigation }: Props) {
         {canRun && task.pdfOperation === 'compose' ? (
           <>
             <Card>
-              <Text variant="label" color="textSecondary" heading>
-                PAGE SIZE
-              </Text>
+              <SectionLabel>{t('pdf.pageSize')}</SectionLabel>
               <ChipRow
-                chips={PAGE_SIZE_CHIPS}
+                chips={pageSizeChips}
                 value={pageSize}
                 onChange={change(setPageSize)}
-                accessibilityLabel="Page size"
+                accessibilityLabel={t('pdf.pageSize')}
                 testIDPrefix="page-size"
               />
               <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-                {PAGE_SIZE_CHIPS.find((c) => c.value === pageSize)?.detail ?? ''}
+                {pageSizeChips.find((c) => c.value === pageSize)?.detail ?? ''}
               </Text>
             </Card>
 
             {pageSize !== 'fit' ? (
               <Card style={{ marginTop: theme.space.lg }}>
+                {/* `testID` is pinned rather than derived from the label: the control
+                    falls back to the label for it, and a label that changes with the
+                    language is a test id that changes with the language. */}
                 <SegmentedControl<PdfOrientation>
-                  label="ORIENTATION"
-                  segments={ORIENTATION_SEGMENTS}
+                  label={t('pdf.orientation')}
+                  testID="ORIENTATION"
+                  segments={orientationSegments}
                   value={orientation}
                   onChange={change(setOrientation)}
                 />
                 <View style={{ marginTop: theme.space.lg }}>
                   <SegmentedControl<PdfFitMode>
-                    label="FIT"
-                    segments={FIT_MODE_SEGMENTS}
+                    label={t('pdf.fit')}
+                    testID="FIT"
+                    segments={fitModeSegments}
                     value={fitMode}
                     onChange={change(setFitMode)}
                   />
                   <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-                    {FIT_MODE_HINTS[fitMode]}
+                    {t(`pdf.fitModes.${fitMode}.hint`)}
                   </Text>
                 </View>
                 <View style={{ marginTop: theme.space.lg }}>
                   <Slider
-                    label="Margin"
+                    label={t('pdf.margin')}
                     value={marginPoints}
                     min={0}
                     max={108}
                     step={6}
                     // Points are the PDF unit; inches are the one people can picture.
-                    valueLabel={`${(marginPoints / 72).toFixed(2)} in`}
+                    valueLabel={t('pdf.marginInches', { inches: formatDecimal(marginPoints / 72, 2) })}
                     onChange={change(setMarginPoints)}
                   />
                 </View>
@@ -394,14 +551,12 @@ export function PdfScreen({ route, navigation }: Props) {
             ) : null}
 
             <Card style={{ marginTop: theme.space.lg }}>
-              <Text variant="label" color="textSecondary" heading>
-                IMAGES PER PAGE
-              </Text>
+              <SectionLabel>{t('pdf.imagesPerPage')}</SectionLabel>
               <ChipRow
-                chips={N_UP_CHIPS}
+                chips={nUpChips}
                 value={nUp}
                 onChange={change(setNUp)}
-                accessibilityLabel="Images per page"
+                accessibilityLabel={t('pdf.imagesPerPage')}
                 testIDPrefix="n-up"
               />
             </Card>
@@ -412,62 +567,61 @@ export function PdfScreen({ route, navigation }: Props) {
           <>
             <Card>
               <TextField
-                label="Pages"
+                label={t('pdf.pagesLabel')}
                 value={pageRanges}
                 onChange={change(setPageRanges)}
-                placeholder="All pages"
+                placeholder={t('pdf.allPages')}
                 keyboardType="numbers-and-punctuation"
                 hint={
                   rangeIsEmpty
-                    ? 'That range does not match any pages'
-                    : describePageSelection(pageRanges, pageCount)
+                    ? t('pdf.rangeMatchesNothing')
+                    : describeSelection(describePageSelection(pageRanges, pageCount))
                 }
                 hintIsProblem={rangeIsEmpty}
                 testID="page-ranges"
               />
               <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-                Leave it empty for every page, or write something like 1-3, 7, 9-
+                {t('pdf.pagesHint')}
               </Text>
             </Card>
 
             <Card style={{ marginTop: theme.space.lg }}>
-              <Text variant="label" color="textSecondary" heading>
-                RESOLUTION
-              </Text>
+              <SectionLabel>{t('pdf.resolution')}</SectionLabel>
               <ChipRow
-                chips={DPI_CHIPS}
+                chips={dpiChips}
                 value={renderDpi}
                 onChange={change(setRenderDpi)}
-                accessibilityLabel="Resolution"
+                accessibilityLabel={t('pdf.resolution')}
                 testIDPrefix="dpi"
               />
               <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-                {DPI_CHIPS.find((c) => c.value === renderDpi)?.detail ?? ''}
+                {dpiChips.find((c) => c.value === renderDpi)?.detail ?? ''}
               </Text>
             </Card>
 
             <Card style={{ marginTop: theme.space.lg }}>
               <SegmentedControl<'jpeg' | 'png'>
-                label="FORMAT"
-                segments={RENDER_FORMAT_SEGMENTS}
+                label={t('pdf.format')}
+                testID="FORMAT"
+                segments={renderFormatSegments}
                 value={renderFormat}
                 onChange={change(setRenderFormat)}
               />
               {renderFormat === 'jpeg' ? (
                 <View style={{ marginTop: theme.space.lg }}>
                   <Slider
-                    label="Quality"
+                    label={t('pdf.quality')}
                     value={renderQuality}
                     min={1}
                     max={100}
                     step={1}
-                    valueLabel={String(renderQuality)}
+                    valueLabel={formatNumber(renderQuality)}
                     onChange={change(setRenderQuality)}
                   />
                 </View>
               ) : (
                 <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-                  PNG is lossless, so there is no quality to choose. Larger files, exact pixels.
+                  {t('pdf.pngLossless')}
                 </Text>
               )}
             </Card>
@@ -476,17 +630,18 @@ export function PdfScreen({ route, navigation }: Props) {
 
         {canRun && task.pdfOperation === 'merge' ? (
           <Card>
-            <Text variant="label" color="textSecondary" heading>
-              ORDER
-            </Text>
+            <SectionLabel>{t('pdf.order')}</SectionLabel>
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.sm }}>
-              Documents are joined in the order you picked them.
+              {t('pdf.orderHint')}
             </Text>
             <View style={{ marginTop: theme.space.md }}>
               {pdf.sources.map((source, index) => (
                 <FileRow
                   key={source.uri}
-                  name={`${index + 1}. ${source.displayName}`}
+                  name={t('pdf.orderedFile', {
+                    index: formatNumber(index + 1),
+                    name: source.displayName,
+                  })}
                   detail={formatBytes(source.byteSize)}
                   // These are inputs, not outputs, so they are only ever waiting or
                   // finished — a merge that has happened should not still say WAITING.
@@ -500,37 +655,41 @@ export function PdfScreen({ route, navigation }: Props) {
         {canRun && task.pdfOperation === 'split' ? (
           <Card>
             <SegmentedControl<'ranges' | 'every'>
-              label="SPLIT BY"
-              segments={SPLIT_MODE_SEGMENTS}
+              label={t('pdf.splitBy')}
+              testID="SPLIT BY"
+              segments={splitModeSegments}
               value={splitMode}
               onChange={change(setSplitMode)}
             />
             {splitMode === 'ranges' ? (
               <View style={{ marginTop: theme.space.lg }}>
                 <TextField
-                  label="Ranges"
+                  label={t('pdf.ranges')}
                   value={splitRanges}
                   onChange={change(setSplitRanges)}
-                  placeholder="1-3, 4-8"
+                  placeholder={t('pdf.rangesPlaceholder')}
                   keyboardType="numbers-and-punctuation"
-                  hint="Each range becomes its own document"
+                  hint={t('pdf.rangesHint')}
                   testID="split-ranges"
                 />
               </View>
             ) : (
               <View style={{ marginTop: theme.space.lg }}>
                 <Slider
-                  label="Pages per document"
+                  label={t('pdf.pagesPerDocument')}
                   value={everyNPages}
                   min={1}
                   max={Math.max(pageCount, 1)}
                   step={1}
-                  valueLabel={String(everyNPages)}
+                  valueLabel={formatNumber(everyNPages)}
                   onChange={change(setEveryNPages)}
                 />
                 <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
                   {pageCount > 0
-                    ? `${Math.ceil(pageCount / everyNPages)} documents from ${pageCount} pages`
+                    ? t('pdf.documentsFrom', {
+                        count: Math.ceil(pageCount / everyNPages),
+                        pages: formatNumber(pageCount),
+                      })
                     : ''}
                 </Text>
               </View>
@@ -545,40 +704,36 @@ export function PdfScreen({ route, navigation }: Props) {
                   stopped being selectable once the original is gone is the failure this
                   card exists to prevent. */}
               <Text variant="h3" color="warningInk">
-                This flattens text into pictures
+                {t('pdf.flattensTitle')}
               </Text>
               <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-                Every page is redrawn as an image, so the result cannot be selected,
-                searched, or read aloud. Neither platform can shrink a PDF without doing
-                this. Keep the original if any of that matters.
+                {t('pdf.flattensBody')}
               </Text>
             </Card>
 
             <Card style={{ marginTop: theme.space.lg }}>
-              <Text variant="label" color="textSecondary" heading>
-                RESOLUTION
-              </Text>
+              <SectionLabel>{t('pdf.resolution')}</SectionLabel>
               <ChipRow
-                chips={DPI_CHIPS}
+                chips={dpiChips}
                 value={compressDpi}
                 onChange={change(setCompressDpi)}
-                accessibilityLabel="Resolution"
+                accessibilityLabel={t('pdf.resolution')}
                 testIDPrefix="compress-dpi"
               />
               <View style={{ marginTop: theme.space.lg }}>
                 <Slider
-                  label="Quality"
+                  label={t('pdf.quality')}
                   value={compressQuality}
                   min={1}
                   max={100}
                   step={1}
-                  valueLabel={String(compressQuality)}
+                  valueLabel={formatNumber(compressQuality)}
                   onChange={change(setCompressQuality)}
                 />
               </View>
               <Toggle
-                label="Grayscale"
-                hint="Halves the size of a scanned document at no readable cost"
+                label={t('pdf.grayscale')}
+                hint={t('pdf.grayscaleHint')}
                 value={grayscale}
                 onChange={change(setGrayscale)}
               />
@@ -586,13 +741,13 @@ export function PdfScreen({ route, navigation }: Props) {
           </>
         ) : null}
 
-        {pdf.error && pdf.status === 'failed' ? (
+        {pdf.errorKey && pdf.status === 'failed' ? (
           <Card style={{ marginTop: theme.space.lg }}>
             <Text variant="h3" color="dangerInk">
-              Could not finish
+              {t('pdf.couldNotFinish')}
             </Text>
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-              {pdf.error}
+              {t(pdf.errorKey)}
             </Text>
           </Card>
         ) : null}
@@ -600,7 +755,7 @@ export function PdfScreen({ route, navigation }: Props) {
         {saveError ? (
           <Card style={{ marginTop: theme.space.lg }}>
             <Text variant="bodySm" color="dangerInk">
-              {saveError}
+              {t(saveError)}
             </Text>
           </Card>
         ) : null}
@@ -609,7 +764,9 @@ export function PdfScreen({ route, navigation }: Props) {
       <View style={{ paddingTop: theme.space.md, gap: theme.space.sm }}>
         {pdf.status === 'done' ? (
           <Button
-            label={saved ? 'Saved' : saveLabel(pdf.images.length, pdf.parts.length, pdf.documents.length)}
+            // `pdf.savedButton`, not `common.saved`: that one is the bytes a conversion
+            // saved, and most languages use a different word for each.
+            label={saved ? t('pdf.savedButton') : saveLabel(pdf.images.length, pdf.parts.length, pdf.documents.length)}
             onPress={() => void save()}
             disabled={saved}
           />
@@ -621,54 +778,8 @@ export function PdfScreen({ route, navigation }: Props) {
             busy={busy}
           />
         )}
-        <Button label="Done" variant="ghost" onPress={goHome} />
+        <Button label={t('common.done')} variant="ghost" onPress={goHome} />
       </View>
     </Screen>
   );
-}
-
-function summary(operation: string | undefined, fileCount: number, pageCount: number): string {
-  const files = `${fileCount} ${fileCount === 1 ? 'file' : 'files'}`;
-  const pages = `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
-
-  switch (operation) {
-    case 'compose':
-      return `${files} → PDF`;
-    case 'merge':
-      return `${files} → one PDF`;
-    default:
-      return pageCount > 0 ? pages : files;
-  }
-}
-
-function actionLabel(operation: string | undefined): string {
-  switch (operation) {
-    case 'compose':
-      return 'Make PDF';
-    case 'render':
-      return 'Export pages';
-    case 'merge':
-      return 'Merge';
-    case 'split':
-      return 'Split';
-    case 'compress':
-      return 'Compress';
-    default:
-      return 'Run';
-  }
-}
-
-function saveLabel(images: number, parts: number, documents: number): string {
-  if (images > 0) return `Save ${images} to Photos`;
-  const count = parts + documents;
-  return `Save ${count} to Files`;
-}
-
-/** "pages 4-6" reads better than "part 2" when the user is looking for a chapter. */
-function describeSourcePages(pages: number[]): string {
-  const first = pages[0];
-  const last = pages[pages.length - 1];
-  if (first === undefined || last === undefined) return '';
-  if (pages.length === 1) return `page ${first}`;
-  return `pages ${first}-${last}`;
 }

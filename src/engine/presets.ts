@@ -8,13 +8,15 @@ import type { ConversionOptionsInput } from './options';
  *
  * People arrive with a destination in mind — "this has to fit in an email", "this is
  * going on a story" — not a number. Each preset is that destination expressed as
- * settings, and the subtitle says what it actually does so the choice is checkable.
+ * settings, and the catalogue says what it actually does so the choice is checkable.
+ *
+ * The words live in `options.resizePresets.<id>`, keyed by the same `id` the option
+ * matcher uses. Note the namespace: `options.presets` is already the section heading, and
+ * i18next cannot hold both a string and a group at one path.
  */
 export type ResizePreset = {
+  /** Also the catalogue key: `options.resizePresets.<id>.label` and `.detail`. */
   id: string;
-  label: string;
-  /** What this does, in the user's terms. */
-  detail: string;
   apply: (options: ConversionOptionsInput) => ConversionOptionsInput;
 };
 
@@ -34,8 +36,6 @@ const maxDimension = (width: number, height: number) =>
 export const RESIZE_PRESETS: readonly ResizePreset[] = [
   {
     id: 'original',
-    label: 'Original',
-    detail: 'Keep the size it already is',
     apply: (options) => ({
       ...options,
       resize: {
@@ -52,8 +52,6 @@ export const RESIZE_PRESETS: readonly ResizePreset[] = [
   },
   {
     id: 'email',
-    label: 'Email',
-    detail: 'Under 1 MB, fits any attachment limit',
     apply: (options) => ({
       ...options,
       resize: maxDimension(2048, 2048),
@@ -64,32 +62,22 @@ export const RESIZE_PRESETS: readonly ResizePreset[] = [
   },
   {
     id: 'instagram-square',
-    label: 'Square',
-    detail: '1080 × 1080 for a feed post',
     apply: (options) => ({ ...options, resize: maxDimension(1080, 1080) }),
   },
   {
     id: 'instagram-story',
-    label: 'Story',
-    detail: '1080 × 1920, full screen',
     apply: (options) => ({ ...options, resize: maxDimension(1080, 1920) }),
   },
   {
     id: 'hd',
-    label: '1080p',
-    detail: '1920 × 1080 for screens and slides',
     apply: (options) => ({ ...options, resize: maxDimension(1920, 1080) }),
   },
   {
     id: 'uhd',
-    label: '4K',
-    detail: '3840 × 2160, still plenty for print',
     apply: (options) => ({ ...options, resize: maxDimension(3840, 2160) }),
   },
   {
     id: 'passport',
-    label: 'Passport',
-    detail: '600 × 600 at 300 dpi',
     apply: (options) => ({
       ...options,
       resize: {

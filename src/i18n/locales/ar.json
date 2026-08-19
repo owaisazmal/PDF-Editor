@@ -5,8 +5,6 @@
     "done": "تم",
     "notNow": "ليس الآن",
     "remove": "إزالة",
-    "file_one": "ملف",
-    "file_other": "ملفات",
     "before": "قبل",
     "after": "بعد",
     "size": "الحجم",
@@ -14,24 +12,54 @@
     "saved": "توفير",
     "largerBy": "أكبر بنسبة",
     "aboutTheSame": "الحجم نفسه تقريبًا",
+    "unrecognised": "غير معروف",
+    "file_zero": "ملف",
+    "file_one": "ملف",
+    "file_two": "ملفان",
+    "file_few": "ملفات",
+    "file_many": "ملفًا",
+    "file_other": "ملف",
+    "pages_zero": "صفحة",
     "pages_one": "صفحة",
-    "pages_other": "صفحات"
+    "pages_two": "صفحتان",
+    "pages_few": "صفحات",
+    "pages_many": "صفحة",
+    "pages_other": "صفحة"
+  },
+  "a11y": {
+    "labelledDetail": "{{label}}. {{detail}}",
+    "fileRow": "{{name}}. {{state}}. {{detail}}",
+    "stat": "{{label}}: {{value}}",
+    "percentSmaller": "أصغر بنسبة {{percent}} بالمئة",
+    "percentLarger": "أكبر بنسبة {{percent}} بالمئة",
+    "state": {
+      "waiting": "في الانتظار",
+      "done": "اكتمل",
+      "failed": "فشل"
+    }
   },
   "home": {
     "title": "تحويل",
     "promise": "كل شيء يجري على جهازك. لا رفع ولا تتبّع، وبلا حدود.",
     "history": "السجل",
+    "historyLabel_zero": "السجل، {{count}} عملية تحويل",
     "historyLabel_one": "السجل، {{count}} عملية تحويل",
-    "historyLabel_other": "السجل، {{count}} عمليات تحويل",
+    "historyLabel_two": "السجل، {{count}} عمليتا تحويل",
+    "historyLabel_few": "السجل، {{count}} عمليات تحويل",
+    "historyLabel_many": "السجل، {{count}} عملية تحويل",
+    "historyLabel_other": "السجل، {{count}} عملية تحويل",
     "unavailable": {
       "platform": "غير متاح على هذه المنصة بعد",
       "device": "غير مدعوم على هذا الجهاز",
       "settings": "يحتاج إلى شاشة الإعدادات",
       "later": "سيأتي في إصدار لاحق"
     },
+    "nothingSelected": "لم يُحدَّد شيء.",
     "mergeNeedsTwo": "الدمج يحتاج إلى ملفَّي PDF على الأقل. اختر ملفًا آخر وحاول مجددًا."
   },
   "tasks": {
+    "hint": "يحوّل ملفات {{from}} إلى {{to}}",
+    "unavailableHint": "غير متاح على هذا الجهاز",
     "heic-to-jpg": {
       "title": "من HEIC إلى JPG",
       "subtitle": "صور آيفون يفتحها أي تطبيق"
@@ -71,41 +99,99 @@
     "png-to-jpg": {
       "title": "من PNG إلى JPG",
       "subtitle": "ملفات أصغر، بخلفية تختارها"
+    },
+    "badge": {
+      "any": "الكل",
+      "img": "صورة"
     }
   },
   "convert": {
     "selectedFile": "الملف المحدد",
+    "result": "النتيجة",
     "dimensions": "الأبعاد",
     "format": "الصيغة",
-    "nothingSelected": "لم يتم تحديد شيء",
+    "nothingSelected": "لا شيء محدَّد",
     "pickToStart": "اختر ملفًا من الشاشة الرئيسية للبدء.",
     "failed": "تعذّر تحويل هذا الملف",
     "convertAnother": "تحويل ملف آخر",
+    "convertTo": "التحويل إلى {{format}}",
     "saveToPhotos": "الحفظ في الصور",
     "savedToPhotos": "تم الحفظ في الصور",
-    "gpsFound": "عُثر على بيانات موقع. ستُزال من الملف المحوَّل."
+    "gpsFound": "عُثر على بيانات موقع. ستُزال من الملف المحوَّل.",
+    "claimedMismatch": "هذا الملف يحمل اسم {{claimed}} لكن محتواه {{actual}}. سيُحوَّل بصيغته الفعلية.",
+    "willFlatten": "صيغة {{format}} لا تدعم الشفافية، لذا تصبح المناطق الشفافة بيضاء.",
+    "grewExplanation": "صيغة {{source}} تضغط هذه الصورة أفضل مما تستطيع {{target}}. التحويل صحيح رغم ذلك — اخفض الجودة إن كان الحجم أهم من الدقة، أو أبقِ الملف الأصلي.",
+    "announceDone": "تم التحويل.",
+    "announceFailed": "فشل التحويل."
   },
   "batch": {
-    "summary": "{{count}} ملفات ← {{format}}",
+    "summary_zero": "{{count}} ملف ← {{format}}",
+    "summary_one": "{{count}} ملف ← {{format}}",
+    "summary_two": "{{count}} ملفان ← {{format}}",
+    "summary_few": "{{count}} ملفات ← {{format}}",
+    "summary_many": "{{count}} ملفًا ← {{format}}",
+    "summary_other": "{{count}} ملف ← {{format}}",
     "converting": "جارٍ التحويل. اكتمل {{done}} من {{total}}.",
     "finished": "اكتمل. حُوِّل {{done}} من {{total}}.",
     "finishingCurrent": "جارٍ إنهاء الملف الحالي…",
-    "failedCount": "فشل {{count}}",
+    "failedCount_zero": "فشل {{count}}",
+    "failedCount_one": "فشل {{count}}",
+    "failedCount_two": "فشل {{count}}",
+    "failedCount_few": "فشل {{count}}",
+    "failedCount_many": "فشل {{count}}",
+    "failedCount_other": "فشل {{count}}",
     "total": "الإجمالي",
     "couldNotStart": "تعذّر البدء",
     "notificationsOff": "الإشعارات مغلقة، لذا لن يظهر هذا في لوحة الإشعارات. سيكتمل التحويل حتى لو غادرت التطبيق.",
-    "stopped_one": "تم الإيقاف. الملف {{count}} المحوَّل موجود بالأسفل، والبقية لم تُمس.",
-    "stopped_other": "تم الإيقاف. الملفات {{count}} المحوَّلة موجودة بالأسفل، والبقية لم تُمس.",
+    "stopped_zero": "تم الإيقاف. اكتمل تحويل {{count}} ملف — لا شيء بالأسفل، والبقية لم تُمس.",
+    "stopped_one": "تم الإيقاف. اكتمل تحويل {{count}} ملف — تجده بالأسفل، والبقية لم تُمس.",
+    "stopped_two": "تم الإيقاف. اكتمل تحويل {{count}} ملفين — تجدهما بالأسفل، والبقية لم تُمس.",
+    "stopped_few": "تم الإيقاف. اكتمل تحويل {{count}} ملفات — تجدها بالأسفل، والبقية لم تُمس.",
+    "stopped_many": "تم الإيقاف. اكتمل تحويل {{count}} ملفًا — تجدها بالأسفل، والبقية لم تُمس.",
+    "stopped_other": "تم الإيقاف. اكتمل تحويل {{count}} ملف — تجدها بالأسفل، والبقية لم تُمس.",
     "cancelling": "جارٍ الإلغاء…",
     "nothingToConvert": "لا شيء لتحويله",
-    "saveAll_one": "حفظ {{count}} في الصور",
-    "saveAll_other": "حفظ {{count}} في الصور"
+    "saveAll_zero": "حفظ {{count}} ملف في الصور",
+    "saveAll_one": "حفظ {{count}} ملف في الصور",
+    "saveAll_two": "حفظ {{count}} ملفين في الصور",
+    "saveAll_few": "حفظ {{count}} ملفات في الصور",
+    "saveAll_many": "حفظ {{count}} ملفًا في الصور",
+    "saveAll_other": "حفظ {{count}} ملف في الصور",
+    "retry_zero": "إعادة محاولة {{count}} ملف فاشل",
+    "retry_one": "إعادة محاولة {{count}} ملف فاشل",
+    "retry_two": "إعادة محاولة {{count}} ملفين فاشلين",
+    "retry_few": "إعادة محاولة {{count}} ملفات فاشلة",
+    "retry_many": "إعادة محاولة {{count}} ملفًا فاشلًا",
+    "retry_other": "إعادة محاولة {{count}} ملف فاشل",
+    "announceFinished": "حُوِّل {{done}} من {{total}}.",
+    "announceFailures_zero": "فشل {{count}} ملف.",
+    "announceFailures_one": "فشل {{count}} ملف.",
+    "announceFailures_two": "فشل {{count}} ملفان.",
+    "announceFailures_few": "فشل {{count}} ملفات.",
+    "announceFailures_many": "فشل {{count}} ملفًا.",
+    "announceFailures_other": "فشل {{count}} ملف.",
+    "progressCount": "{{done}} / {{total}}",
+    "percentDone": "{{percent}}",
+    "savedAll_zero": "حُفظ {{count}} ملف في الصور",
+    "savedAll_one": "حُفظ {{count}} ملف في الصور",
+    "savedAll_two": "حُفظ {{count}} ملفان في الصور",
+    "savedAll_few": "حُفظ {{count}} ملفات في الصور",
+    "savedAll_many": "حُفظ {{count}} ملفًا في الصور",
+    "savedAll_other": "حُفظ {{count}} ملف في الصور"
   },
   "options": {
     "title": "الإعدادات",
+    "summary_zero": "{{count}} ملف ← {{format}}",
+    "summary_one": "{{count}} ملف ← {{format}}",
+    "summary_two": "{{count}} ملفان ← {{format}}",
+    "summary_few": "{{count}} ملفات ← {{format}}",
+    "summary_many": "{{count}} ملفًا ← {{format}}",
+    "summary_other": "{{count}} ملف ← {{format}}",
     "estimatedOutput": "الحجم المتوقع",
+    "measuring": "جارٍ القياس…",
     "measured": "مقيس، لا مُخمَّن",
     "measuredOn": "قيس على {{name}}",
+    "each": "{{size}} لكل ملف",
     "aimForSize": "استهدف حجمًا للملف",
     "aimForSizeHint": "يبحث عن الجودة التي تقع أسفل حدّك مباشرة",
     "maximumSize": "الحجم الأقصى",
@@ -113,34 +199,88 @@
     "size": "المقاس",
     "customSize": "مقاس مخصص",
     "rotate": "تدوير",
+    "rotateNone": "بدون",
+    "rotateDegrees": "{{degrees}} درجة",
     "flipHorizontally": "قلب أفقي",
     "flipVertically": "قلب رأسي",
     "metadata": "البيانات الوصفية",
     "metadataNoLocation": "بدون موقع",
+    "metadataNoLocationLabel": "الإبقاء على كل شيء عدا الموقع",
     "metadataKeepAll": "الإبقاء على الكل",
     "metadataStripAll": "إزالة الكل",
-    "metadataHint": "الكاميرا والتاريخ يبقيان. مكان التقاط الصورة لا يبقى.",
+    "metadataHint": {
+      "keepExceptGps": "الكاميرا والتاريخ يبقيان. مكان التقاط الصورة لا يبقى.",
+      "keepAll": "يُنقل كل شيء، بما في ذلك الموقع.",
+      "stripAll": "لا يُنقل شيء."
+    },
     "convertToSrgb": "التحويل إلى sRGB",
     "convertToSrgbHint": "الصور واسعة النطاق اللوني تبدو مُشبعة أكثر من اللازم في التطبيقات التي تتجاهل ملف الألوان",
     "background": "الخلفية",
-    "backgroundHint": "هذه الصيغة لا تدعم الشفافية. اختر ما يحل محلها.",
+    "backgroundHint": "صيغة {{format}} لا تدعم الشفافية. المناطق الشفافة تصبح بهذا اللون.",
+    "backgroundColors": {
+      "white": "أبيض",
+      "black": "أسود",
+      "grey": "رمادي",
+      "cream": "كريمي",
+      "sand": "رملي"
+    },
     "convertTo": "التحويل إلى {{format}}",
     "rename": "إعادة التسمية",
     "pattern": "النمط",
     "keepOriginalNames": "الإبقاء على الأسماء الأصلية",
     "namesKept": "تبقى الأسماء كما هي",
+    "namePreview": "{{names}}",
+    "namePreviewMore": "{{names}}، …",
     "wouldCollide": "ستحصل كل الملفات على الاسم نفسه. أضف {name} أو {index}.",
     "tokens": {
-      "name": "الاسم",
-      "nameDetail": "الاسم الأصلي، بدون الامتداد",
-      "index": "الرقم",
-      "indexDetail": "الموضع في الدفعة، ابتداءً من 001",
-      "date": "التاريخ",
-      "dateDetail": "تاريخ اليوم، بصيغة 2026-08-18",
-      "format": "الصيغة",
-      "formatDetail": "الصيغة التي ستُكتب"
+      "insert": "إدراج عنصر في الاسم",
+      "name": {
+        "label": "الاسم",
+        "detail": "الاسم الأصلي، بدون الامتداد"
+      },
+      "index": {
+        "label": "الرقم",
+        "detail": "الموضع في الدفعة، ابتداءً من 001"
+      },
+      "date": {
+        "label": "التاريخ",
+        "detail": "تاريخ اليوم، بصيغة 2026-08-18"
+      },
+      "format": {
+        "label": "الصيغة",
+        "detail": "الصيغة التي ستُكتب"
+      }
     },
-    "insertToken": "إدراج عنصر في الاسم",
+    "resizePresets": {
+      "original": {
+        "label": "الأصلي",
+        "detail": "الإبقاء على المقاس الحالي"
+      },
+      "email": {
+        "label": "البريد",
+        "detail": "أقل من 1 MB، يناسب أي حد للمرفقات"
+      },
+      "instagram-square": {
+        "label": "مربّع",
+        "detail": "1080 × 1080 لمنشور في الخلاصة"
+      },
+      "instagram-story": {
+        "label": "ستوري",
+        "detail": "1080 × 1920، ملء الشاشة"
+      },
+      "hd": {
+        "label": "1080p",
+        "detail": "1920 × 1080 للشاشات والشرائح"
+      },
+      "uhd": {
+        "label": "4K",
+        "detail": "3840 × 2160، ويكفي للطباعة أيضًا"
+      },
+      "passport": {
+        "label": "جواز سفر",
+        "detail": "600 × 600 بدقة 300 نقطة لكل بوصة"
+      }
+    },
     "presets": "الإعدادات المحفوظة",
     "presetsEmpty": "احفظ هذه الإعدادات لتستخدمها لاحقًا دون إعادة ضبطها.",
     "applyPreset": "تطبيق إعداد محفوظ",
@@ -159,23 +299,45 @@
     "orientation": "الاتجاه",
     "fit": "الملاءمة",
     "margin": "الهامش",
+    "marginInches": "{{inches}} بوصة",
     "imagesPerPage": "عدد الصور في الصفحة",
     "pagesLabel": "الصفحات",
     "allPages": "كل الصفحات",
     "pagesHint": "اتركه فارغًا لكل الصفحات، أو اكتب مثلًا 1-3, 7, 9-",
+    "noPages": "لا صفحات",
+    "allNPages_zero": "كل الصفحات ({{count}})",
+    "allNPages_one": "الصفحة كلها ({{count}})",
+    "allNPages_two": "الصفحتان كلتاهما ({{count}})",
+    "allNPages_few": "كل الصفحات ({{count}})",
+    "allNPages_many": "كل الصفحات ({{count}})",
+    "allNPages_other": "كل الصفحات ({{count}})",
+    "pagesSelected_zero": "{{count}} صفحة من أصل {{total}}",
+    "pagesSelected_one": "{{count}} صفحة من أصل {{total}}",
+    "pagesSelected_two": "{{count}} صفحتان من أصل {{total}}",
+    "pagesSelected_few": "{{count}} صفحات من أصل {{total}}",
+    "pagesSelected_many": "{{count}} صفحة من أصل {{total}}",
+    "pagesSelected_other": "{{count}} صفحة من أصل {{total}}",
     "rangeMatchesNothing": "هذا النطاق لا يطابق أي صفحة",
     "resolution": "الدقة",
     "format": "الصيغة",
+    "quality": "الجودة",
     "pngLossless": "صيغة PNG بلا فقد، لذا لا توجد جودة تختارها. ملفات أكبر، وبكسلات دقيقة.",
     "order": "الترتيب",
     "orderHint": "تُدمج المستندات بالترتيب الذي اخترتها به.",
+    "orderedFile": "{{index}}. {{name}}",
     "splitBy": "التقسيم حسب",
     "splitRanges": "نطاقات الصفحات",
     "splitEvery": "كل N صفحات",
     "ranges": "النطاقات",
+    "rangesPlaceholder": "1-3, 4-8",
     "rangesHint": "كل نطاق يصبح مستندًا مستقلًا",
     "pagesPerDocument": "عدد الصفحات لكل مستند",
-    "documentsFrom": "{{documents}} مستندات من {{pages}} صفحات",
+    "documentsFrom_zero": "{{count}} مستند من {{pages}} صفحة",
+    "documentsFrom_one": "{{count}} مستند من {{pages}} صفحة",
+    "documentsFrom_two": "{{count}} مستندان من {{pages}} صفحة",
+    "documentsFrom_few": "{{count}} مستندات من {{pages}} صفحة",
+    "documentsFrom_many": "{{count}} مستندًا من {{pages}} صفحة",
+    "documentsFrom_other": "{{count}} مستند من {{pages}} صفحة",
     "flattensTitle": "هذا يحوّل النص إلى صور",
     "flattensBody": "تُعاد كل صفحة كصورة، لذا لن يمكن تحديد النتيجة ولا البحث فيها ولا قراءتها بصوت عالٍ. لا يمكن لأي من المنصتين تصغير ملف PDF دون ذلك. احتفظ بالنسخة الأصلية إن كان أيٌّ من ذلك يهمك.",
     "grayscale": "تدرّج رمادي",
@@ -185,6 +347,9 @@
     "images": "الصور",
     "couldNotFinish": "تعذّر الإكمال",
     "nothingToDo": "لا شيء لفعله",
+    "savedButton": "تم الحفظ",
+    "imageDetail": "{{width}} × {{height}} · {{size}}",
+    "partDetail": "{{pages}} · {{size}}",
     "actions": {
       "compose": "إنشاء PDF",
       "render": "تصدير الصفحات",
@@ -194,46 +359,207 @@
       "run": "تشغيل"
     },
     "summary": {
-      "compose": "{{count}} ملفات ← PDF",
-      "merge": "{{count}} ملفات ← ملف PDF واحد"
+      "compose_zero": "{{count}} ملف ← PDF",
+      "compose_one": "{{count}} ملف ← PDF",
+      "compose_two": "{{count}} ملفان ← PDF",
+      "compose_few": "{{count}} ملفات ← PDF",
+      "compose_many": "{{count}} ملفًا ← PDF",
+      "compose_other": "{{count}} ملف ← PDF",
+      "merge_zero": "{{count}} ملف ← ملف PDF واحد",
+      "merge_one": "{{count}} ملف ← ملف PDF واحد",
+      "merge_two": "{{count}} ملفان ← ملف PDF واحد",
+      "merge_few": "{{count}} ملفات ← ملف PDF واحد",
+      "merge_many": "{{count}} ملفًا ← ملف PDF واحد",
+      "merge_other": "{{count}} ملف ← ملف PDF واحد",
+      "pages_zero": "{{count}} صفحة",
+      "pages_one": "{{count}} صفحة",
+      "pages_two": "{{count}} صفحتان",
+      "pages_few": "{{count}} صفحات",
+      "pages_many": "{{count}} صفحة",
+      "pages_other": "{{count}} صفحة",
+      "files_zero": "{{count}} ملف",
+      "files_one": "{{count}} ملف",
+      "files_two": "{{count}} ملفان",
+      "files_few": "{{count}} ملفات",
+      "files_many": "{{count}} ملفًا",
+      "files_other": "{{count}} ملف"
     },
-    "saveToPhotos_one": "حفظ {{count}} في الصور",
-    "saveToPhotos_other": "حفظ {{count}} في الصور",
-    "saveToFiles_one": "حفظ {{count}} في الملفات",
-    "saveToFiles_other": "حفظ {{count}} في الملفات",
-    "page_one": "صفحة {{first}}",
-    "pageRange": "الصفحات {{first}}-{{last}}"
+    "saveToPhotos_zero": "حفظ {{count}} ملف في الصور",
+    "saveToPhotos_one": "حفظ {{count}} ملف في الصور",
+    "saveToPhotos_two": "حفظ {{count}} ملفين في الصور",
+    "saveToPhotos_few": "حفظ {{count}} ملفات في الصور",
+    "saveToPhotos_many": "حفظ {{count}} ملفًا في الصور",
+    "saveToPhotos_other": "حفظ {{count}} ملف في الصور",
+    "saveToFiles_zero": "حفظ {{count}} ملف في الملفات",
+    "saveToFiles_one": "حفظ {{count}} ملف في الملفات",
+    "saveToFiles_two": "حفظ {{count}} ملفين في الملفات",
+    "saveToFiles_few": "حفظ {{count}} ملفات في الملفات",
+    "saveToFiles_many": "حفظ {{count}} ملفًا في الملفات",
+    "saveToFiles_other": "حفظ {{count}} ملف في الملفات",
+    "singlePage": "الصفحة {{first}}",
+    "pageRange": "الصفحات {{first}}-{{last}}",
+    "announceFinished": "اكتمل.",
+    "announceFailed": "تعذّر الإكمال.",
+    "announceLocked": "ملف PDF هذا يحتاج إلى كلمة مرور.",
+    "pageSizes": {
+      "fit": {
+        "label": "ملاءمة الصورة",
+        "detail": "تأخذ كل صفحة شكل صورتها"
+      },
+      "a4": {
+        "label": "A4",
+        "detail": "المعيار في كل مكان تقريبًا"
+      },
+      "letter": {
+        "label": "Letter",
+        "detail": "المعيار في الولايات المتحدة وكندا"
+      },
+      "legal": {
+        "label": "Legal",
+        "detail": "أطول من Letter"
+      },
+      "a5": {
+        "label": "A5",
+        "detail": "نصف A4"
+      },
+      "a3": {
+        "label": "A3",
+        "detail": "ضعف A4"
+      },
+      "tabloid": {
+        "label": "Tabloid",
+        "detail": "ضعف Letter"
+      }
+    },
+    "orientations": {
+      "auto": "تلقائي",
+      "portrait": "طولي",
+      "landscape": "عرضي"
+    },
+    "fitModes": {
+      "fit": {
+        "label": "ملاءمة",
+        "hint": "الصورة كاملة، مع فراغ حولها حين يختلف الشكلان"
+      },
+      "fill": {
+        "label": "ملء",
+        "hint": "يملأ الصفحة ويقتطع ما لا يتّسع"
+      },
+      "stretch": {
+        "label": "تمديد",
+        "hint": "يملأ الصفحة بتشويه الصورة"
+      }
+    },
+    "nUp": {
+      "single": "1 في الصفحة",
+      "many": "{{count}} في الصفحة"
+    },
+    "dpi": {
+      "screen": {
+        "label": "الشاشة",
+        "detail": "{{dpi}} نقطة لكل بوصة"
+      },
+      "good": {
+        "label": "جيدة",
+        "detail": "{{dpi}} نقطة لكل بوصة"
+      },
+      "print": {
+        "label": "الطباعة",
+        "detail": "{{dpi}} نقطة لكل بوصة"
+      },
+      "archive": {
+        "label": "الأرشفة",
+        "detail": "{{dpi}} نقطة لكل بوصة، ملفات كبيرة"
+      }
+    },
+    "renderFormats": {
+      "jpeg": "JPG",
+      "png": "PNG"
+    }
   },
   "incoming": {
     "title": "أُرسل إلى هنا",
+    "subtitle_zero": "{{count}} ملف من تطبيق آخر",
     "subtitle_one": "{{count}} ملف من تطبيق آخر",
-    "subtitle_other": "{{count}} ملفات من تطبيق آخر",
+    "subtitle_two": "{{count}} ملفان من تطبيق آخر",
+    "subtitle_few": "{{count}} ملفات من تطبيق آخر",
+    "subtitle_many": "{{count}} ملفًا من تطبيق آخر",
+    "subtitle_other": "{{count}} ملف من تطبيق آخر",
     "whatToDo": "ماذا تريد أن تفعل؟",
-    "partial": "{{count}} من {{total}} ملفات",
-    "unreadable_one": "تعذّر التعرّف على ملف واحد وسيُستبعد.",
-    "unreadable_other": "تعذّر التعرّف على {{count}} ملفات وستُستبعد.",
+    "partial_zero": "{{count}} ملف من أصل {{total}}",
+    "partial_one": "{{count}} ملف من أصل {{total}}",
+    "partial_two": "{{count}} ملفان من أصل {{total}}",
+    "partial_few": "{{count}} ملفات من أصل {{total}}",
+    "partial_many": "{{count}} ملفًا من أصل {{total}}",
+    "partial_other": "{{count}} ملف من أصل {{total}}",
+    "fileDetail": "{{format}} · {{size}}",
+    "unreadable_zero": "تعذّر التعرّف على {{count}} ملف وسيُستبعد.",
+    "unreadable_one": "تعذّر التعرّف على {{count}} ملف وسيُستبعد.",
+    "unreadable_two": "تعذّر التعرّف على {{count}} ملفين وسيُستبعدان.",
+    "unreadable_few": "تعذّر التعرّف على {{count}} ملفات وستُستبعد.",
+    "unreadable_many": "تعذّر التعرّف على {{count}} ملفًا وستُستبعد.",
+    "unreadable_other": "تعذّر التعرّف على {{count}} ملف وسيُستبعد.",
     "nothingUsable": "لا شيء هنا يمكن تحويله",
-    "nothingUsableBody": "هذه الملفات ليست بصيغة يقرأها هذا التطبيق. الصور وملفات PDF تعمل.",
-    "unrecognised": "غير معروف"
+    "nothingUsableBody": "هذه الملفات ليست بصيغة يقرأها هذا التطبيق. الصور وملفات PDF تعمل."
   },
   "history": {
     "title": "السجل",
     "empty": "لم تحوّل شيئًا بعد",
+    "count_zero": "{{count}} عملية تحويل، على هذا الجهاز فقط",
     "count_one": "{{count}} عملية تحويل، على هذا الجهاز فقط",
-    "count_other": "{{count}} عمليات تحويل، على هذا الجهاز فقط",
-    "allTime": "الإجمالي",
+    "count_two": "{{count}} عمليتا تحويل، على هذا الجهاز فقط",
+    "count_few": "{{count}} عمليات تحويل، على هذا الجهاز فقط",
+    "count_many": "{{count}} عملية تحويل، على هذا الجهاز فقط",
+    "count_other": "{{count}} عملية تحويل، على هذا الجهاز فقط",
+    "allTime": "منذ البداية",
     "emptyTitle": "لا شيء هنا بعد",
     "emptyBody": "ستظهر عمليات التحويل التي تجريها هنا، على هذا الجهاز. لا شيء يُرفع ولا شيء يُشارَك.",
     "clear": "مسح السجل",
     "clearConfirm": "اضغط مرة أخرى لمسح كل شيء",
-    "andMore": " و{{count}} غيرها",
+    "names": "{{names}}",
+    "namesAndMore_zero": "{{names}} و{{count}} غيرها",
+    "namesAndMore_one": "{{names}} و{{count}} غيرها",
+    "namesAndMore_two": "{{names}} و{{count}} غيرها",
+    "namesAndMore_few": "{{names}} و{{count}} غيرها",
+    "namesAndMore_many": "{{names}} و{{count}} غيرها",
+    "namesAndMore_other": "{{names}} و{{count}} غيرها",
     "justNow": "الآن",
-    "minutesAgo": "قبل {{count}} دقيقة",
+    "minutesAgo_zero": "قبل {{count}} دقيقة",
+    "minutesAgo_one": "قبل {{count}} دقيقة",
+    "minutesAgo_two": "قبل {{count}} دقيقتين",
+    "minutesAgo_few": "قبل {{count}} دقائق",
+    "minutesAgo_many": "قبل {{count}} دقيقة",
+    "minutesAgo_other": "قبل {{count}} دقيقة",
+    "hoursAgo_zero": "قبل {{count}} ساعة",
     "hoursAgo_one": "قبل {{count}} ساعة",
-    "hoursAgo_other": "قبل {{count}} ساعات",
+    "hoursAgo_two": "قبل {{count}} ساعتين",
+    "hoursAgo_few": "قبل {{count}} ساعات",
+    "hoursAgo_many": "قبل {{count}} ساعة",
+    "hoursAgo_other": "قبل {{count}} ساعة",
+    "daysAgo_zero": "قبل {{count}} يوم",
     "daysAgo_one": "قبل {{count}} يوم",
-    "daysAgo_other": "قبل {{count}} أيام",
-    "entryLabel": "{{task}}، {{count}} ملفات، {{when}}",
+    "daysAgo_two": "قبل {{count}} يومين",
+    "daysAgo_few": "قبل {{count}} أيام",
+    "daysAgo_many": "قبل {{count}} يومًا",
+    "daysAgo_other": "قبل {{count}} يوم",
+    "rowDetail_zero": "{{when}} · {{count}} ملف",
+    "rowDetail_one": "{{when}} · {{count}} ملف",
+    "rowDetail_two": "{{when}} · {{count}} ملفان",
+    "rowDetail_few": "{{when}} · {{count}} ملفات",
+    "rowDetail_many": "{{when}} · {{count}} ملفًا",
+    "rowDetail_other": "{{when}} · {{count}} ملف",
+    "rowDetailFailed_zero": "{{when}} · {{count}} ملف · فشل {{failed}}",
+    "rowDetailFailed_one": "{{when}} · {{count}} ملف · فشل {{failed}}",
+    "rowDetailFailed_two": "{{when}} · {{count}} ملفان · فشل {{failed}}",
+    "rowDetailFailed_few": "{{when}} · {{count}} ملفات · فشل {{failed}}",
+    "rowDetailFailed_many": "{{when}} · {{count}} ملفًا · فشل {{failed}}",
+    "rowDetailFailed_other": "{{when}} · {{count}} ملف · فشل {{failed}}",
+    "entryLabel_zero": "{{task}}، {{count}} ملف، {{when}}",
+    "entryLabel_one": "{{task}}، {{count}} ملف، {{when}}",
+    "entryLabel_two": "{{task}}، {{count}} ملفان، {{when}}",
+    "entryLabel_few": "{{task}}، {{count}} ملفات، {{when}}",
+    "entryLabel_many": "{{task}}، {{count}} ملفًا، {{when}}",
+    "entryLabel_other": "{{task}}، {{count}} ملف، {{when}}",
     "entryHint": "يعرض أسماء الملفات ويتيح إزالة هذا السجل"
   },
   "errors": {
@@ -249,5 +575,49 @@
     "downloadFailed": "هذا الملف مخزَّن في السحابة وتعذّر تنزيله. تحقّق من اتصالك وحاول مجددًا.",
     "cancelled": "أُلغي التحويل.",
     "unknown": "حدث خطأ أثناء تحويل هذا الملف. حاول مجددًا."
+  },
+  "notification": {
+    "channelName": "تقدّم التحويل",
+    "channelDescription": "يعرض إلى أين وصلت الدفعة بينما التطبيق في الخلفية.",
+    "progress": "جارٍ تحويل {{done}} من {{total}}",
+    "preparing": "جارٍ التحضير للتحويل",
+    "cancelling": "جارٍ الإلغاء",
+    "cancel": "إلغاء"
+  },
+  "share": {
+    "reading": "جارٍ القراءة…",
+    "nothingShared": "لم تتم مشاركة أي شيء.",
+    "unreadable": "تعذّرت قراءة تلك الملفات.",
+    "title_zero": "تحويل {{count}} ملف",
+    "title_one": "تحويل هذا الملف",
+    "title_two": "تحويل {{count}} ملفين",
+    "title_few": "تحويل {{count}} ملفات",
+    "title_many": "تحويل {{count}} ملفًا",
+    "title_other": "تحويل {{count}} ملف",
+    "ready": "جاهز",
+    "saveAsJpg": "الحفظ بصيغة JPG",
+    "saveAsPng": "الحفظ بصيغة PNG",
+    "makePdf": "إنشاء PDF",
+    "cancel": "إلغاء",
+    "converting": "جارٍ التحويل…",
+    "makingPdf": "جارٍ إنشاء PDF…",
+    "pdfFailed": "تعذّر إنشاء ملف PDF.",
+    "nothingConverted": "لم يُحوَّل شيء.",
+    "savedToPhotos_zero": "حُفظ {{count}} ملف في الصور",
+    "savedToPhotos_one": "تم الحفظ في الصور",
+    "savedToPhotos_two": "حُفظ {{count}} ملفان في الصور",
+    "savedToPhotos_few": "حُفظ {{count}} ملفات في الصور",
+    "savedToPhotos_many": "حُفظ {{count}} ملفًا في الصور",
+    "savedToPhotos_other": "حُفظ {{count}} ملف في الصور",
+    "photosDenied": "تم التحويل. لم يُسمح بالحفظ في الصور.",
+    "someUnreadable_zero": "تعذّرت قراءة {{count}} ملف.",
+    "someUnreadable_one": "تعذّرت قراءة {{count}} ملف.",
+    "someUnreadable_two": "تعذّرت قراءة {{count}} ملفين.",
+    "someUnreadable_few": "تعذّرت قراءة {{count}} ملفات.",
+    "someUnreadable_many": "تعذّرت قراءة {{count}} ملفًا.",
+    "someUnreadable_other": "تعذّرت قراءة {{count}} ملف."
+  },
+  "permissions": {
+    "photoLibraryAdd": "يحفظ Converter صورك المحوَّلة مباشرة في مكتبة الصور. وهو لا يقرأ مكتبتك أبدًا — أنت من يختار الملفات عبر أداة الاختيار في النظام."
   }
 }

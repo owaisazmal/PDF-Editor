@@ -136,6 +136,29 @@ Swift and Kotlin by `npm run generate`. The share extension and the Android shar
 target therefore render in the same design system and identify files by the same rules,
 without a second copy of either table. CI fails if a generated file is stale.
 
+### Nine languages, one catalogue
+
+`src/i18n/locales/*.json` is the only place a user-visible string is written — including
+the ones no JavaScript can reach. The Android foreground service runs while the runtime is
+dead, and the iOS share extension runs none at all, so `plugins/withLocalizations.js`
+compiles their resources out of the same files at prebuild: `values-xx/strings.xml`,
+`xx.lproj/Localizable.strings`, and a `.stringsdict` for the plurals `.strings` cannot
+express. A notification therefore cannot drift out of step with the screen that started it,
+and the locale test covers both.
+
+Plural forms come from the language, not from English. i18next resolves a count through
+`Intl.PluralRules` and falls back to English when the category is missing — so a catalogue
+carrying only `_one` and `_other` leaves an Arabic reader an English sentence for two, three
+and eleven files, which is most of them. Each file carries exactly its own CLDR categories:
+six for Arabic, three for the Romance languages, one for Japanese and Chinese. The test
+asserts that per language rather than against English.
+
+There is no in-app language picker, deliberately. iOS and Android both ship one, both
+relaunch the app when it changes — which is what switching to or from a right-to-left
+language requires — and a picker we built would be the one that could not. What the app owes
+theirs is a declared list, which the same plugin writes as `CFBundleLocalizations` and
+`res/xml/locales_config.xml`.
+
 ### The extension is a claim, not a fact
 
 A `.png` that is really a HEIC is a real case, and a converter that believes the
@@ -149,16 +172,18 @@ detectors mirror it; a conformance test runs the fixture corpus through all thre
 src/
   native/      TurboModule specs and typed wrappers
   engine/      format table, detection, options schema, planner
-  features/    home, convert (more per phase)
+  features/    home, convert, batch, options, pdf, incoming, history
   components/  design-system primitives — all token-driven
   store/       zustand slices
   theme/       tokens.ts, the contrast utility, the provider
+  i18n/        the catalogue: nine locale files and the instance
   utils/
 native/
   ios/ConverterCore/    Swift: ImageIO, PDFKit, vImage
   ios/generated/        Tokens.swift, FormatTable.swift
   android/converter/    Kotlin: ImageDecoder, PdfRenderer, PdfDocument
   android/generated/    Tokens.kt, FormatTable.kt
+plugins/       Expo config plugins — native sources, share extension, localisations
 scripts/       generators and CI gates
 __tests__/     unit and integration
 docs/          architecture, dependencies, measured contrast

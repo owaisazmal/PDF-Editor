@@ -18,6 +18,31 @@ import UniformTypeIdentifiers
 /// What it deliberately does not do is offer everything. A share sheet is a place for
 /// one decision, so it offers the three destinations that account for almost every
 /// share — JPEG, PNG, and one PDF from all of them — and leaves the rest to the app.
+// MARK: - Copy
+
+/// The extension's own copy, from its own bundle.
+///
+/// It cannot reach the app's i18next catalogue — no JavaScript runs here — so the words
+/// come from `Localizable.strings`, which `plugins/withLocalizations.js` generates from
+/// that same catalogue at prebuild. One place to translate, and a share sheet that
+/// cannot drift out of step with the app behind it.
+///
+/// `Bundle(for:)` rather than `.main`: inside an extension, `.main` is the extension's
+/// bundle on some paths and the host app's on others, and the host here is whatever app
+/// the user shared from.
+private func L(_ key: String) -> String {
+    NSLocalizedString(key, bundle: Bundle(for: ShareViewController.self), comment: "")
+}
+
+/// A plural, resolved by the platform against the language's own CLDR categories.
+///
+/// The ternary this replaces could express exactly two forms. Arabic needs six, and
+/// Japanese needs one — neither is expressible as `count == 1 ? a : b`, which is why the
+/// counts live in `Localizable.stringsdict` rather than in this file.
+private func L(_ key: String, _ count: Int) -> String {
+    String.localizedStringWithFormat(L(key), count)
+}
+
 @objc(ShareViewController)
 final class ShareViewController: UIViewController {
 
@@ -62,7 +87,7 @@ final class ShareViewController: UIViewController {
             .flatMap { $0.attachments ?? [] }
 
         guard !providers.isEmpty else {
-            show(status: "Nothing was shared.", isProblem: true)
+            show(status: L("share.nothingShared"), isProblem: true)
             return
         }
 
@@ -113,18 +138,20 @@ final class ShareViewController: UIViewController {
 
     private func describeInput() {
         guard !sources.isEmpty else {
-            show(status: "Those files could not be read.", isProblem: true)
+            show(status: L("share.unreadable"), isProblem: true)
             return
         }
 
         let count = sources.count
-        titleLabel.text = count == 1 ? "Convert this file" : "Convert \(count) files"
+        titleLabel.text = L("share.title", count)
 
         let detected = sources.compactMap { try? FormatDetector.detect(url: $0) }
         let labels = Set(detected.compactMap { FormatTable.spec($0.format)?.label })
         detailLabel.text = labels.isEmpty
-            ? "Ready"
-            : labels.sorted().joined(separator: ", ")
+            ? L("share.ready")
+            // `ListFormatter` knows that Arabic separates with ، and Japanese with 、,
+            // which a hardcoded ", " does not.
+            : ListFormatter.localizedString(byJoining: labels.sorted())
 
         actionButtons.forEach { $0.isEnabled = true }
     }
@@ -135,7 +162,7 @@ final class ShareViewController: UIViewController {
     @objc private func convertToPng() { convertImages(to: "png") }
 
     private func convertImages(to format: String) {
-        begin(status: "Converting…")
+        begin(status: L("share.converting"))
 
         Task.detached(priority: .userInitiated) { [sources] in
             var written: [URL] = []
@@ -165,7 +192,7 @@ final class ShareViewController: UIViewController {
     }
 
     @objc private func convertToPdf() {
-        begin(status: "Making a PDF…")
+        begin(status: L("share.makingPdf"))
 
         Task.detached(priority: .userInitiated) { [sources] in
             do {
@@ -184,7 +211,7 @@ final class ShareViewController: UIViewController {
                 )
                 await self.offerToSave(output)
             } catch {
-                await self.show(status: "That PDF could not be made.", isProblem: true)
+                await self.show(status: L("share.pdfFailed"), isProblem: true)
             }
         }
     }
@@ -192,21 +219,24 @@ final class ShareViewController: UIViewController {
     @MainActor
     private func finishImages(written: [URL], failures: Int) async {
         guard !written.isEmpty else {
-            show(status: "Nothing could be converted.", isProblem: true)
+            show(status: L("share.nothingConverted"), isProblem: true)
             return
         }
 
         do {
             try await FileGateway.saveToPhotos(urls: written)
-            let saved = written.count == 1 ? "Saved to Photos" : "\(written.count) saved to Photos"
-            show(status: failures == 0 ? saved : "\(saved). \(failures) could not be read.")
+            // Two whole sentences rather than one with a count spliced into it: both
+            // halves inflect on their own count, and only sentence-level joining stays
+            // correct across nine languages.
+            let saved = L("share.savedToPhotos", written.count)
+            show(status: failures == 0 ? saved : "\(saved) \(L("share.someUnreadable", failures))")
             // Left up briefly so the outcome is read rather than glimpsed.
             try? await Task.sleep(nanoseconds: 900_000_000)
             close()
         } catch {
             // Adding to the library is the one thing here that can be refused, and the
             // files still exist — offering them is better than reporting a dead end.
-            show(status: "Converted. Saving to Photos was not allowed.", isProblem: true)
+            show(status: L("share.photosDenied"), isProblem: true)
             offerToSave(written)
         }
     }
@@ -257,7 +287,7 @@ final class ShareViewController: UIViewController {
 
         titleLabel.font = .systemFont(ofSize: Tokens.Typography.h2.fontSize, weight: .bold)
         titleLabel.numberOfLines = 2
-        titleLabel.text = "Reading…"
+        titleLabel.text = L("share.reading")
 
         detailLabel.font = .systemFont(ofSize: Tokens.Typography.bodySm.fontSize)
         detailLabel.numberOfLines = 2
@@ -267,9 +297,9 @@ final class ShareViewController: UIViewController {
         statusLabel.isHidden = true
 
         actionButtons = [
-            makeButton(title: "Save as JPG", action: #selector(convertToJpeg), prominent: true),
-            makeButton(title: "Save as PNG", action: #selector(convertToPng), prominent: false),
-            makeButton(title: "Make a PDF", action: #selector(convertToPdf), prominent: false),
+            makeButton(title: L("share.saveAsJpg"), action: #selector(convertToJpeg), prominent: true),
+            makeButton(title: L("share.saveAsPng"), action: #selector(convertToPng), prominent: false),
+            makeButton(title: L("share.makePdf"), action: #selector(convertToPdf), prominent: false),
         ]
         actionButtons.forEach { $0.isEnabled = false }
 
@@ -277,7 +307,7 @@ final class ShareViewController: UIViewController {
         buttonStack.spacing = Tokens.Space.sm
         actionButtons.forEach(buttonStack.addArrangedSubview)
 
-        let cancelButton = makeButton(title: "Cancel", action: #selector(cancel), prominent: false)
+        let cancelButton = makeButton(title: L("share.cancel"), action: #selector(cancel), prominent: false)
         cancelButton.setTitleColor(colour(palette.textSecondary), for: .normal)
         cancelButton.backgroundColor = .clear
 

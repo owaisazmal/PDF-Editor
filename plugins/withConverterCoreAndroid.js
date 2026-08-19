@@ -6,7 +6,6 @@ const {
   withAppBuildGradle,
   withMainApplication,
   withAndroidManifest,
-  withStringsXml,
   AndroidConfig,
 } = require('expo/config-plugins');
 const fs = require('node:fs');
@@ -113,21 +112,6 @@ const NOTIFICATION_ICON = `<?xml version="1.0" encoding="utf-8"?>
         android:pathData="M20,15 L11,15 L11,12 L5,16 L11,20 L11,17 L20,17 Z" />
 </vector>
 `;
-
-/**
- * Kept as Android resources rather than Kotlin constants because the service runs with
- * no JavaScript alive, so it cannot reach the app's own translations. Phase 5 adds
- * `values-xx/strings.xml` beside them for the other eight locales.
- */
-const STRINGS = {
-  conversion_channel_name: 'Conversion progress',
-  conversion_channel_description:
-    'Shows how far a batch has got while the app is in the background.',
-  conversion_notification_progress: 'Converting %1$d of %2$d',
-  conversion_notification_preparing: 'Preparing to convert',
-  conversion_notification_cancelling: 'Cancelling',
-  conversion_notification_cancel: 'Cancel',
-};
 
 /** Reads the `package` declaration so a file always lands where its package says. */
 function packageOf(source) {
@@ -272,18 +256,7 @@ module.exports = function withConverterCoreAndroid(config) {
     return modConfig;
   });
 
-  // 4. Add the notification strings.
-  config = withStringsXml(config, (modConfig) => {
-    modConfig.modResults = AndroidConfig.Strings.setStringItem(
-      Object.entries(STRINGS).map(([name, value]) =>
-        AndroidConfig.Resources.buildResourceItem({ name, value, translatable: true }),
-      ),
-      modConfig.modResults,
-    );
-    return modConfig;
-  });
-
-  // 5. Register the package. Expo's template leaves a marked spot for exactly this.
+  // 4. Register the package. Expo's template leaves a marked spot for exactly this.
   return withMainApplication(config, (modConfig) => {
     let contents = modConfig.modResults.contents;
 

@@ -84,6 +84,11 @@ describe('what to offer for files someone sent', () => {
     const ranked = applicableTasks(mixed, capable);
     const first = ranked[0];
     expect(first?.matchCount).toBe(3);
+
+    // The whole ordering rather than its head: one task out of place further down is
+    // still a task the user has to scroll past to reach the one they wanted.
+    const counts = ranked.map((entry) => entry.matchCount);
+    expect(counts).toEqual([...counts].sort((a, b) => b - a));
   });
 
   it('ignores files it could not identify', () => {

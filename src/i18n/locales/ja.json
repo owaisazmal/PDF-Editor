@@ -5,8 +5,6 @@
     "done": "完了",
     "notNow": "今はしない",
     "remove": "削除",
-    "file_one": "ファイル",
-    "file_other": "ファイル",
     "before": "変換前",
     "after": "変換後",
     "size": "サイズ",
@@ -14,14 +12,26 @@
     "saved": "削減",
     "largerBy": "増加",
     "aboutTheSame": "ほぼ同じサイズ",
-    "pages_one": "ページ",
+    "unrecognised": "不明な形式",
+    "file_other": "ファイル",
     "pages_other": "ページ"
+  },
+  "a11y": {
+    "labelledDetail": "{{label}}。{{detail}}",
+    "fileRow": "{{name}}。{{state}}。{{detail}}",
+    "stat": "{{label}}：{{value}}",
+    "percentSmaller": "{{percent}} パーセント小さくなりました",
+    "percentLarger": "{{percent}} パーセント大きくなりました",
+    "state": {
+      "waiting": "待機中",
+      "done": "完了",
+      "failed": "失敗"
+    }
   },
   "home": {
     "title": "変換",
     "promise": "すべて端末内で処理されます。アップロードも追跡もなく、回数制限もありません。",
     "history": "履歴",
-    "historyLabel_one": "履歴、{{count}} 件の変換",
     "historyLabel_other": "履歴、{{count}} 件の変換",
     "unavailable": {
       "platform": "このプラットフォームではまだ利用できません",
@@ -29,31 +39,34 @@
       "settings": "設定画面が必要です",
       "later": "今後のビルドで対応予定"
     },
+    "nothingSelected": "何も選択されませんでした。",
     "mergeNeedsTwo": "結合には PDF が 2 つ以上必要です。もう 1 つ選んでからやり直してください。"
   },
   "tasks": {
+    "hint": "{{from}} ファイルを {{to}} に変換します",
+    "unavailableHint": "この端末では利用できません",
     "heic-to-jpg": {
-      "title": "HEIC から JPG",
+      "title": "HEIC を JPG に変換",
       "subtitle": "どこでも開ける iPhone の写真に"
     },
     "webp-to-jpg": {
-      "title": "WebP から JPG",
-      "subtitle": "保存したのに開けない画像を"
+      "title": "WebP を JPG に変換",
+      "subtitle": "保存したのに開けない画像に"
     },
     "compress-image": {
       "title": "画像を圧縮",
       "subtitle": "当てずっぽうなしでサイズ上限に収める"
     },
     "resize-image": {
-      "title": "サイズ変更",
+      "title": "画像をリサイズ",
       "subtitle": "SNS・メール・印刷向けのプリセット"
     },
     "image-to-pdf": {
-      "title": "画像から PDF",
+      "title": "画像を PDF に変換",
       "subtitle": "たくさんの写真を 1 つの書類に"
     },
     "pdf-to-jpg": {
-      "title": "PDF から JPG",
+      "title": "PDF を JPG に変換",
       "subtitle": "選んだ解像度でページを画像に"
     },
     "merge-pdf": {
@@ -69,43 +82,61 @@
       "subtitle": "小さくなる代わりに失うものがあります"
     },
     "png-to-jpg": {
-      "title": "PNG から JPG",
+      "title": "PNG を JPG に変換",
       "subtitle": "背景を選んで、より小さなファイルに"
+    },
+    "badge": {
+      "any": "全形式",
+      "img": "画像"
     }
   },
   "convert": {
     "selectedFile": "選択したファイル",
+    "result": "結果",
     "dimensions": "寸法",
     "format": "形式",
     "nothingSelected": "何も選択されていません",
     "pickToStart": "ホーム画面でファイルを選んで始めてください。",
     "failed": "このファイルを変換できませんでした",
     "convertAnother": "別のファイルを変換",
+    "convertTo": "{{format}} に変換",
     "saveToPhotos": "写真に保存",
     "savedToPhotos": "写真に保存しました",
-    "gpsFound": "位置情報が見つかりました。変換後のファイルからは削除されます。"
+    "gpsFound": "位置情報が見つかりました。変換後のファイルからは削除されます。",
+    "claimedMismatch": "このファイルは {{claimed}} という名前ですが、中身は {{actual}} です。実際の形式で変換します。",
+    "willFlatten": "{{format}} は透明に対応していないため、透明な部分は白になります。",
+    "grewExplanation": "この画像は {{target}} よりも {{source}} のほうがうまく圧縮できます。変換自体は正しく行われています。忠実さよりサイズが大事なら画質を下げるか、元のファイルをそのまま使ってください。",
+    "announceDone": "変換しました。",
+    "announceFailed": "変換に失敗しました。"
   },
   "batch": {
-    "summary": "{{count}} ファイル → {{format}}",
+    "summary_other": "{{count}} ファイル → {{format}}",
     "converting": "変換中。{{total}} 件中 {{done}} 件完了。",
     "finished": "完了。{{total}} 件中 {{done}} 件を変換しました。",
     "finishingCurrent": "現在のファイルを処理中…",
-    "failedCount": "{{count}} 件失敗",
+    "failedCount_other": "{{count}} 件失敗",
     "total": "合計",
     "couldNotStart": "開始できませんでした",
     "notificationsOff": "通知がオフのため、通知領域には表示されません。アプリを離れても処理は最後まで続きます。",
-    "stopped_one": "停止しました。変換済みの {{count}} ファイルは下にあります。残りはそのままです。",
     "stopped_other": "停止しました。変換済みの {{count}} ファイルは下にあります。残りはそのままです。",
     "cancelling": "キャンセル中…",
     "nothingToConvert": "変換するものがありません",
-    "saveAll_one": "{{count}} 件を写真に保存",
-    "saveAll_other": "{{count}} 件を写真に保存"
+    "saveAll_other": "{{count}} 件を写真に保存",
+    "retry_other": "失敗した {{count}} 件を再試行",
+    "announceFinished": "{{total}} 件中 {{done}} 件を変換しました。",
+    "announceFailures_other": "{{count}} 件のファイルが失敗しました。",
+    "progressCount": "{{done}} / {{total}}",
+    "percentDone": "{{percent}}",
+    "savedAll_other": "{{count}} 件を写真に保存しました"
   },
   "options": {
     "title": "設定",
+    "summary_other": "{{count}} ファイル → {{format}}",
     "estimatedOutput": "推定サイズ",
+    "measuring": "計測中…",
     "measured": "推測ではなく実測",
     "measuredOn": "{{name}} で計測",
+    "each": "各 {{size}}",
     "aimForSize": "ファイルサイズを指定",
     "aimForSizeHint": "上限をわずかに下回る画質を探します",
     "maximumSize": "最大サイズ",
@@ -113,34 +144,88 @@
     "size": "サイズ",
     "customSize": "カスタムサイズ",
     "rotate": "回転",
+    "rotateNone": "なし",
+    "rotateDegrees": "{{degrees}} 度",
     "flipHorizontally": "左右反転",
     "flipVertically": "上下反転",
     "metadata": "メタデータ",
     "metadataNoLocation": "位置情報なし",
+    "metadataNoLocationLabel": "位置情報以外はすべて保持",
     "metadataKeepAll": "すべて保持",
     "metadataStripAll": "すべて削除",
-    "metadataHint": "カメラと日付は残ります。撮影場所は残りません。",
+    "metadataHint": {
+      "keepExceptGps": "カメラと日付は残ります。撮影場所は残りません。",
+      "keepAll": "位置情報を含め、すべて引き継がれます。",
+      "stripAll": "何も引き継がれません。"
+    },
     "convertToSrgb": "sRGB に変換",
     "convertToSrgbHint": "広色域の写真は、プロファイルを無視するアプリでは色が濃く見えます",
     "background": "背景",
-    "backgroundHint": "この形式は透明に対応していません。何で置き換えるか選んでください。",
+    "backgroundHint": "{{format}} は透明に対応していません。透明な部分はこの色になります。",
+    "backgroundColors": {
+      "white": "白",
+      "black": "黒",
+      "grey": "グレー",
+      "cream": "クリーム",
+      "sand": "サンド"
+    },
     "convertTo": "{{format}} に変換",
     "rename": "名前の変更",
     "pattern": "パターン",
     "keepOriginalNames": "元の名前のまま",
     "namesKept": "名前はそのままです",
+    "namePreview": "{{names}}",
+    "namePreviewMore": "{{names}}、…",
     "wouldCollide": "すべて同じ名前になります。{name} か {index} を追加してください。",
     "tokens": {
-      "name": "名前",
-      "nameDetail": "拡張子を除いた元の名前",
-      "index": "連番",
-      "indexDetail": "バッチ内の位置、001 から",
-      "date": "日付",
-      "dateDetail": "今日の日付（2026-08-18 の形式）",
-      "format": "形式",
-      "formatDetail": "書き出す形式"
+      "insert": "名前の要素を挿入",
+      "name": {
+        "label": "名前",
+        "detail": "拡張子を除いた元の名前"
+      },
+      "index": {
+        "label": "連番",
+        "detail": "バッチ内の位置、001 から"
+      },
+      "date": {
+        "label": "日付",
+        "detail": "今日の日付（2026-08-18 の形式）"
+      },
+      "format": {
+        "label": "形式",
+        "detail": "書き出す形式"
+      }
     },
-    "insertToken": "名前の要素を挿入",
+    "resizePresets": {
+      "original": {
+        "label": "元のまま",
+        "detail": "今のサイズをそのまま保ちます"
+      },
+      "email": {
+        "label": "メール",
+        "detail": "1 MB 未満。どの添付制限にも収まります"
+      },
+      "instagram-square": {
+        "label": "正方形",
+        "detail": "1080 × 1080、フィード投稿向け"
+      },
+      "instagram-story": {
+        "label": "ストーリー",
+        "detail": "1080 × 1920、全画面"
+      },
+      "hd": {
+        "label": "1080p",
+        "detail": "1920 × 1080、画面とスライド向け"
+      },
+      "uhd": {
+        "label": "4K",
+        "detail": "3840 × 2160、印刷にも十分"
+      },
+      "passport": {
+        "label": "パスポート",
+        "detail": "600 × 600、300 dpi"
+      }
+    },
     "presets": "プリセット",
     "presetsEmpty": "この設定を保存すると、次回は作り直さずに使えます。",
     "applyPreset": "保存したプリセットを適用",
@@ -159,23 +244,30 @@
     "orientation": "向き",
     "fit": "合わせ方",
     "margin": "余白",
+    "marginInches": "{{inches}} インチ",
     "imagesPerPage": "1 ページあたりの画像",
     "pagesLabel": "ページ",
     "allPages": "すべてのページ",
     "pagesHint": "空欄ですべてのページ。1-3, 7, 9- のように指定もできます",
+    "noPages": "ページなし",
+    "allNPages_other": "全 {{count}} ページ",
+    "pagesSelected_other": "{{total}} ページ中 {{count}} ページ",
     "rangeMatchesNothing": "その範囲に該当するページはありません",
     "resolution": "解像度",
     "format": "形式",
+    "quality": "画質",
     "pngLossless": "PNG は劣化しないため画質の選択はありません。ファイルは大きく、ピクセルは正確です。",
     "order": "順序",
     "orderHint": "選んだ順に書類が結合されます。",
+    "orderedFile": "{{index}}. {{name}}",
     "splitBy": "分割方法",
     "splitRanges": "ページ範囲",
     "splitEvery": "N ページごと",
     "ranges": "範囲",
+    "rangesPlaceholder": "1-3, 4-8",
     "rangesHint": "範囲ごとに別の書類になります",
     "pagesPerDocument": "1 書類あたりのページ数",
-    "documentsFrom": "{{pages}} ページから {{documents}} 件の書類",
+    "documentsFrom_other": "{{pages}} ページから {{count}} 件の書類",
     "flattensTitle": "テキストが画像になります",
     "flattensBody": "各ページが画像として描き直されるため、選択も検索も読み上げもできなくなります。どちらのプラットフォームでもこれなしに PDF を小さくすることはできません。どれかが必要なら元のファイルを残してください。",
     "grayscale": "グレースケール",
@@ -185,6 +277,9 @@
     "images": "画像",
     "couldNotFinish": "完了できませんでした",
     "nothingToDo": "実行できることがありません",
+    "savedButton": "保存済み",
+    "imageDetail": "{{width}} × {{height}} · {{size}}",
+    "partDetail": "{{pages}} · {{size}}",
     "actions": {
       "compose": "PDF を作成",
       "render": "ページを書き出す",
@@ -194,46 +289,122 @@
       "run": "実行"
     },
     "summary": {
-      "compose": "{{count}} ファイル → PDF",
-      "merge": "{{count}} ファイル → 1 つの PDF"
+      "compose_other": "{{count}} ファイル → PDF",
+      "merge_other": "{{count}} ファイル → 1 つの PDF",
+      "pages_other": "{{count}} ページ",
+      "files_other": "{{count}} ファイル"
     },
-    "saveToPhotos_one": "{{count}} 件を写真に保存",
     "saveToPhotos_other": "{{count}} 件を写真に保存",
-    "saveToFiles_one": "{{count}} 件をファイルに保存",
     "saveToFiles_other": "{{count}} 件をファイルに保存",
-    "page_one": "{{first}} ページ",
-    "pageRange": "{{first}}〜{{last}} ページ"
+    "singlePage": "{{first}} ページ",
+    "pageRange": "{{first}}〜{{last}} ページ",
+    "announceFinished": "完了しました。",
+    "announceFailed": "完了できませんでした。",
+    "announceLocked": "この PDF にはパスワードが必要です。",
+    "pageSizes": {
+      "fit": {
+        "label": "画像に合わせる",
+        "detail": "各ページが画像の形になります"
+      },
+      "a4": {
+        "label": "A4",
+        "detail": "ほぼどこでも標準"
+      },
+      "letter": {
+        "label": "Letter",
+        "detail": "米国とカナダでの標準"
+      },
+      "legal": {
+        "label": "Legal",
+        "detail": "Letter より長い"
+      },
+      "a5": {
+        "label": "A5",
+        "detail": "A4 の半分"
+      },
+      "a3": {
+        "label": "A3",
+        "detail": "A4 の 2 倍"
+      },
+      "tabloid": {
+        "label": "Tabloid",
+        "detail": "Letter の 2 倍"
+      }
+    },
+    "orientations": {
+      "auto": "自動",
+      "portrait": "縦向き",
+      "landscape": "横向き"
+    },
+    "fitModes": {
+      "fit": {
+        "label": "収める",
+        "hint": "画像全体が入ります。形が違う分は余白になります"
+      },
+      "fill": {
+        "label": "埋める",
+        "hint": "ページいっぱいに広げ、はみ出す部分は切り取ります"
+      },
+      "stretch": {
+        "label": "伸ばす",
+        "hint": "画像を歪ませてページいっぱいに広げます"
+      }
+    },
+    "nUp": {
+      "single": "1 ページに 1 枚",
+      "many": "1 ページに {{count}} 枚"
+    },
+    "dpi": {
+      "screen": {
+        "label": "画面",
+        "detail": "1 インチあたり {{dpi}} ドット"
+      },
+      "good": {
+        "label": "標準",
+        "detail": "1 インチあたり {{dpi}} ドット"
+      },
+      "print": {
+        "label": "印刷",
+        "detail": "1 インチあたり {{dpi}} ドット"
+      },
+      "archive": {
+        "label": "保存用",
+        "detail": "1 インチあたり {{dpi}} ドット。ファイルは大きくなります"
+      }
+    },
+    "renderFormats": {
+      "jpeg": "JPG",
+      "png": "PNG"
+    }
   },
   "incoming": {
-    "title": "送られてきました",
-    "subtitle_one": "他のアプリからの {{count}} ファイル",
+    "title": "送られてきたファイル",
     "subtitle_other": "他のアプリからの {{count}} ファイル",
     "whatToDo": "どうしますか？",
-    "partial": "{{total}} 件中 {{count}} 件",
-    "unreadable_one": "1 件のファイルを判別できなかったため除外されます。",
+    "partial_other": "{{total}} 件中 {{count}} 件",
+    "fileDetail": "{{format}} · {{size}}",
     "unreadable_other": "{{count}} 件のファイルを判別できなかったため除外されます。",
     "nothingUsable": "ここに変換できるものはありません",
-    "nothingUsableBody": "これらはこのアプリが読める形式ではありません。画像と PDF なら対応しています。",
-    "unrecognised": "判別できません"
+    "nothingUsableBody": "これらはこのアプリが読める形式ではありません。画像と PDF なら対応しています。"
   },
   "history": {
     "title": "履歴",
     "empty": "まだ何も変換していません",
-    "count_one": "{{count}} 件の変換（この端末のみ）",
     "count_other": "{{count}} 件の変換（この端末のみ）",
     "allTime": "累計",
     "emptyTitle": "まだ何もありません",
     "emptyBody": "実行した変換がこの端末に記録されます。アップロードも共有もされません。",
     "clear": "履歴を消去",
     "clearConfirm": "もう一度タップですべて消去",
-    "andMore": " ほか {{count}} 件",
+    "names": "{{names}}",
+    "namesAndMore_other": "{{names}} ほか {{count}} 件",
     "justNow": "たった今",
-    "minutesAgo": "{{count}} 分前",
-    "hoursAgo_one": "{{count}} 時間前",
+    "minutesAgo_other": "{{count}} 分前",
     "hoursAgo_other": "{{count}} 時間前",
-    "daysAgo_one": "{{count}} 日前",
     "daysAgo_other": "{{count}} 日前",
-    "entryLabel": "{{task}}、{{count}} ファイル、{{when}}",
+    "rowDetail_other": "{{when}} · {{count}} ファイル",
+    "rowDetailFailed_other": "{{when}} · {{count}} ファイル · {{failed}} 件失敗",
+    "entryLabel_other": "{{task}}、{{count}} ファイル、{{when}}",
     "entryHint": "ファイル名を表示し、この記録を削除できます"
   },
   "errors": {
@@ -249,5 +420,34 @@
     "downloadFailed": "このファイルはクラウドにあり、ダウンロードできませんでした。接続を確認してからやり直してください。",
     "cancelled": "変換をキャンセルしました。",
     "unknown": "このファイルの変換中に問題が発生しました。もう一度お試しください。"
+  },
+  "notification": {
+    "channelName": "変換の進捗",
+    "channelDescription": "アプリがバックグラウンドにある間、変換がどこまで進んだかを表示します。",
+    "progress": "{{total}} 件中 {{done}} 件を変換中",
+    "preparing": "変換の準備中",
+    "cancelling": "キャンセル中",
+    "cancel": "キャンセル"
+  },
+  "share": {
+    "reading": "読み込み中…",
+    "nothingShared": "何も共有されませんでした。",
+    "unreadable": "それらのファイルは読み込めませんでした。",
+    "title_other": "{{count}} 件のファイルを変換",
+    "ready": "準備完了",
+    "saveAsJpg": "JPG で保存",
+    "saveAsPng": "PNG で保存",
+    "makePdf": "PDF を作成",
+    "cancel": "キャンセル",
+    "converting": "変換中…",
+    "makingPdf": "PDF を作成中…",
+    "pdfFailed": "その PDF は作成できませんでした。",
+    "nothingConverted": "何も変換できませんでした。",
+    "savedToPhotos_other": "{{count}} 件を写真に保存しました",
+    "photosDenied": "変換しました。写真への保存は許可されていません。",
+    "someUnreadable_other": "{{count}} 件は読み込めませんでした。"
+  },
+  "permissions": {
+    "photoLibraryAdd": "Converter は変換した画像を写真ライブラリに直接保存します。ライブラリを読み取ることはありません。ファイルはシステムの選択画面から選びます。"
   }
 }

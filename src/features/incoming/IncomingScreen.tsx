@@ -3,9 +3,10 @@
 
 import { useCallback, useMemo } from 'react';
 import { ScrollView, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Button, Card, FileRow, Screen, TaskTile, Text } from '@/components';
+import { Button, Card, FileRow, Screen, SectionLabel, TaskTile, Text } from '@/components';
 import { FORMATS } from '@/engine/formats';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useIncomingStore } from '@/store/incoming';
@@ -27,6 +28,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Incoming'>;
  * possible outcome is an error.
  */
 export function IncomingScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const files = useIncomingStore((state) => state.files);
   const clear = useIncomingStore((state) => state.clear);
@@ -61,9 +63,9 @@ export function IncomingScreen({ navigation }: Props) {
 
   return (
     <Screen>
-      <Text variant="h1">Sent here</Text>
+      <Text variant="h1">{t('incoming.title')}</Text>
       <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-        {files.length} {files.length === 1 ? 'file' : 'files'} from another app
+        {t('incoming.subtitle', { count: files.length })}
       </Text>
 
       <ScrollView
@@ -76,9 +78,10 @@ export function IncomingScreen({ navigation }: Props) {
             <FileRow
               key={file.uri}
               name={file.displayName}
-              detail={`${FORMATS[file.format as keyof typeof FORMATS]?.label ?? 'Unrecognised'} · ${formatBytes(
-                file.byteSize,
-              )}`}
+              detail={t('incoming.fileDetail', {
+                format: FORMATS[file.format as keyof typeof FORMATS]?.label ?? t('common.unrecognised'),
+                size: formatBytes(file.byteSize),
+              })}
               state={file.format === '' ? 'failed' : 'done'}
             />
           ))}
@@ -86,29 +89,26 @@ export function IncomingScreen({ navigation }: Props) {
 
         {unreadable > 0 ? (
           <Text variant="caption" color="warningInk" style={{ marginTop: theme.space.sm }}>
-            {unreadable === 1 ? 'One file' : `${unreadable} files`} could not be
-            identified and will be left out.
+            {t('incoming.unreadable', { count: unreadable })}
           </Text>
         ) : null}
 
         {options.length > 0 ? (
           <>
-            <Text variant="label" color="textSecondary" style={{ marginTop: theme.space.xl }}>
-              WHAT WOULD YOU LIKE TO DO?
-            </Text>
+            <SectionLabel style={{ marginTop: theme.space.xl }}>{t('incoming.whatToDo')}</SectionLabel>
             <View style={{ marginTop: theme.space.md, gap: theme.space.md }}>
               {options.map(({ task, matchCount }) => (
                 <TaskTile
                   key={task.id}
                   from={task.from}
                   to={task.to}
-                  title={task.title}
+                  title={t(`tasks.${task.id}.title`)}
                   // The count rather than the stock subtitle: with a mixed selection the
                   // useful thing to know is how much of it this task will take.
                   subtitle={
                     matchCount === files.length
-                      ? task.subtitle
-                      : `${matchCount} of ${files.length} files`
+                      ? t(`tasks.${task.id}.subtitle`)
+                      : t('incoming.partial', { count: matchCount, total: files.length })
                   }
                   onPress={() => start(task.id)}
                 />
@@ -117,16 +117,16 @@ export function IncomingScreen({ navigation }: Props) {
           </>
         ) : (
           <Card style={{ marginTop: theme.space.xl }}>
-            <Text variant="h3">Nothing here can be converted</Text>
+            <Text variant="h3">{t('incoming.nothingUsable')}</Text>
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-              These files are not in a format this app reads. Images and PDFs both work.
+              {t('incoming.nothingUsableBody')}
             </Text>
           </Card>
         )}
       </ScrollView>
 
       <View style={{ paddingTop: theme.space.md }}>
-        <Button label="Not now" variant="ghost" onPress={dismiss} />
+        <Button label={t('common.notNow')} variant="ghost" onPress={dismiss} />
       </View>
     </Screen>
   );

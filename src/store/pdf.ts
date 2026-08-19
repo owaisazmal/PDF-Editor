@@ -10,7 +10,7 @@ import {
   type PdfPageImage,
   type PdfPart,
 } from '@/engine/pdfClient';
-import { errorMessageFor } from '@/features/convert/errors';
+import { errorKeyFor, type ErrorKey } from '@/features/convert/errors';
 import type { DetectedFile } from '@/native/types';
 
 /**
@@ -34,7 +34,8 @@ export type PdfState = {
   info: PdfInfo | null;
   sessionHandle: string;
   status: PdfStatus;
-  error: string | null;
+  /** A catalogue key. The screen turns it into a sentence. */
+  errorKey: ErrorKey | null;
   /** Set when a password was tried and rejected, so the field can say so. */
   passwordFailed: boolean;
 
@@ -53,11 +54,18 @@ export type PdfState = {
 /** Everything a new operation starts from. A function, so no two runs share an array. */
 const empty = (): Pick<
   PdfState,
-  'info' | 'sessionHandle' | 'error' | 'passwordFailed' | 'documents' | 'images' | 'parts' | 'elapsedMs'
+  | 'info'
+  | 'sessionHandle'
+  | 'errorKey'
+  | 'passwordFailed'
+  | 'documents'
+  | 'images'
+  | 'parts'
+  | 'elapsedMs'
 > => ({
   info: null,
   sessionHandle: '',
-  error: null,
+  errorKey: null,
   passwordFailed: false,
   documents: [],
   images: [],
@@ -82,7 +90,7 @@ export const usePdfStore = create<PdfState>((set, get) => ({
 
     const first = sources[0];
     if (!first) {
-      set({ status: 'failed', error: 'Nothing was selected.' });
+      set({ status: 'failed', errorKey: 'errors.unknown' });
       return;
     }
     // An image-to-PDF task has no PDF to inspect yet — the document is the output.
@@ -95,7 +103,7 @@ export const usePdfStore = create<PdfState>((set, get) => ({
       const info = await pdfClient.inspect(first.uri);
       set({ info, status: info.needsPassword ? 'locked' : 'ready' });
     } catch (error) {
-      set({ status: 'failed', error: message(error) });
+      set({ status: 'failed', errorKey: errorKeyFor(error) });
     }
   },
 
@@ -109,7 +117,7 @@ export const usePdfStore = create<PdfState>((set, get) => ({
     const source = get().sources[0];
     if (!source) return;
 
-    set({ status: 'inspecting', passwordFailed: false, error: null });
+    set({ status: 'inspecting', passwordFailed: false, errorKey: null });
     try {
       const sessionHandle = await pdfClient.unlock(source.uri, password);
       const info = await pdfClient.inspect(source.uri);
@@ -117,7 +125,7 @@ export const usePdfStore = create<PdfState>((set, get) => ({
     } catch (error) {
       // A wrong password is not a failure of the operation, it is a fact about the
       // attempt — the screen stays on the prompt rather than falling into an error state.
-      set({ status: 'locked', passwordFailed: true, error: message(error) });
+      set({ status: 'locked', passwordFailed: true, errorKey: errorKeyFor(error) });
     }
   },
 
@@ -128,12 +136,12 @@ export const usePdfStore = create<PdfState>((set, get) => ({
    * call, not in the lifecycle: pick, run, show, save.
    */
   async run(work) {
-    set({ status: 'running', error: null });
+    set({ status: 'running', errorKey: null });
     try {
       const produced = await work();
       set({ ...produced, status: 'done' });
     } catch (error) {
-      set({ status: 'failed', error: message(error) });
+      set({ status: 'failed', errorKey: errorKeyFor(error) });
     }
   },
 
@@ -146,8 +154,7 @@ export const usePdfStore = create<PdfState>((set, get) => ({
   },
 }));
 
-/** Native codes become the translated copy; anything else keeps its own message. */
-const message = (error: unknown): string => errorMessageFor(error);
+
 
 /** True while the screen should show a spinner rather than controls. */
 export const isPdfBusy = (status: PdfStatus): boolean =>

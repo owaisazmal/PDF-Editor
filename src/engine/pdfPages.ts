@@ -97,13 +97,27 @@ export function expandPageRanges(expression: string, pageCount: number): number[
  * Says the count rather than echoing the range back, because the count is the thing the
  * user cannot work out at a glance and the thing that catches a typo.
  */
-export function describePageSelection(expression: string, pageCount: number): string {
-  if (pageCount <= 0) return 'No pages';
+export type PageSelection =
+  | { kind: 'none' }
+  | { kind: 'unmatched' }
+  | { kind: 'all'; count: number }
+  | { kind: 'subset'; count: number; total: number };
+
+/**
+ * Returns the shape of the answer rather than the sentence.
+ *
+ * This module is the reference the Swift and Kotlin geometry mirrors, and its tests pin
+ * that reference. Putting display copy in it would have meant either tests that assert
+ * English or a reference implementation that depends on the translation layer — so the
+ * screen builds the sentence and this decides what the sentence is about.
+ */
+export function describePageSelection(expression: string, pageCount: number): PageSelection {
+  if (pageCount <= 0) return { kind: 'none' };
 
   const selected = expandPageRanges(expression, pageCount);
-  if (selected.length === 0) return 'That range does not match any pages';
-  if (selected.length === pageCount) return `All ${pageCount} pages`;
-  return `${selected.length} of ${pageCount} pages`;
+  if (selected.length === 0) return { kind: 'unmatched' };
+  if (selected.length === pageCount) return { kind: 'all', count: pageCount };
+  return { kind: 'subset', count: selected.length, total: pageCount };
 }
 
 /**

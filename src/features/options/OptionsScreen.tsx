@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { FORMATS } from '@/engine/formats';
@@ -13,6 +14,7 @@ import {
   Card,
   ChipRow,
   Screen,
+  SectionLabel,
   SegmentedControl,
   Slider,
   Text,
@@ -27,7 +29,7 @@ import { usePresetsStore } from '@/store/presets';
 import { appendToken, collides, NAME_TOKENS, previewNames } from '@/engine/naming';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
-import { formatBytes } from '@/utils/format';
+import { formatBytes, formatList, formatNumber } from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -38,6 +40,7 @@ const ESTIMATE_DEBOUNCE_MS = 400;
 
 export function OptionsScreen({ route, navigation }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const { options, patch, replace } = useOptionsStore();
   const conversionSource = useConversionStore((s) => s.source);
   const batchSources = useBatchStore((s) => s.sources);
@@ -50,7 +53,7 @@ export function OptionsScreen({ route, navigation }: Props) {
   const [namingPreset, setNamingPreset] = useState(false);
 
   const task = useMemo(
-    () => CONVERSION_TASKS.find((t) => t.id === route.params.taskId),
+    () => CONVERSION_TASKS.find((entry) => entry.id === route.params.taskId),
     [route.params.taskId],
   );
 
@@ -135,9 +138,9 @@ export function OptionsScreen({ route, navigation }: Props) {
   if (!task || !sample) {
     return (
       <Screen>
-        <Text variant="h2">Nothing selected</Text>
+        <Text variant="h2">{t('convert.nothingSelected')}</Text>
         <Button
-          label="Back"
+          label={t('common.back')}
           variant="secondary"
           onPress={() => navigation.popTo('Home')}
           style={{ marginTop: theme.space['2xl'] }}
@@ -152,39 +155,38 @@ export function OptionsScreen({ route, navigation }: Props) {
   const willFlatten = needsBackgroundChoice(sample.hasAlpha, targetFormat);
   const targetSizeMode = (options.targetByteSize ?? 0) > 0;
   const activePreset = matchPreset(options);
+  const metadataMode = (options.metadata?.mode ?? 'keepExceptGps') as MetadataMode;
+  const estimateSize = estimate === null ? '—' : formatBytes(estimate);
 
   return (
     // `Screen` rather than a bare ScrollView: it owns the safe-area insets, and without
     // it this heading renders underneath the status bar.
     <Screen scroll>
-      <Text variant="h1">Settings</Text>
+      <Text variant="h1">{t('options.title')}</Text>
       <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.xs }}>
-        {fileCount} {fileCount === 1 ? 'file' : 'files'} → {targetSpec.label}
+        {t('options.summary', { count: fileCount, format: targetSpec.label })}
       </Text>
 
       {/* Estimate first: it is the number every other control on this screen moves. */}
       <Card style={{ marginTop: theme.space.xl }} elevation="md">
-        <Text variant="label" color="textTertiary" heading>
-          ESTIMATED OUTPUT
-        </Text>
+        <SectionLabel color="textTertiary">{t('options.estimatedOutput')}</SectionLabel>
         <Text variant="monoLg" color="accentInk" style={{ marginTop: theme.space.xs }}>
-          {estimate === null ? '—' : formatBytes(estimate)}
-          {fileCount > 1 ? ' each' : ''}
+          {fileCount > 1 ? t('options.each', { size: estimateSize }) : estimateSize}
         </Text>
         <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.xs }}>
           {estimating
-            ? 'Measuring…'
+            ? t('options.measuring')
             : fileCount > 1
-              ? `Measured on ${sample.displayName}`
-              : 'Measured, not guessed'}
+              ? t('options.measuredOn', { name: sample.displayName })
+              : t('options.measured')}
         </Text>
       </Card>
 
       {lossy ? (
         <Card style={{ marginTop: theme.space.lg }}>
           <Toggle
-            label="Aim for a file size"
-            hint="Searches for the quality that lands just under your limit"
+            label={t('options.aimForSize')}
+            hint={t('options.aimForSizeHint')}
             value={targetSizeMode}
             testID="target-size-toggle"
             onChange={(on) => {
@@ -196,7 +198,7 @@ export function OptionsScreen({ route, navigation }: Props) {
           {targetSizeMode ? (
             <Slider
               testID="target-size-slider"
-              label="Maximum size"
+              label={t('options.maximumSize')}
               value={Math.round((options.targetByteSize ?? 500_000) / 50_000)}
               min={1}
               max={40}
@@ -209,12 +211,12 @@ export function OptionsScreen({ route, navigation }: Props) {
           ) : (
             <Slider
               testID="quality-slider"
-              label="Quality"
+              label={t('options.quality')}
               value={options.quality ?? 82}
               min={1}
               max={100}
               step={1}
-              valueLabel={`${options.quality ?? 82}`}
+              valueLabel={formatNumber(options.quality ?? 82)}
               onChange={(quality) => patch({ quality })}
               onCommit={scheduleEstimate}
               style={{ marginTop: theme.space.sm }}
@@ -224,18 +226,20 @@ export function OptionsScreen({ route, navigation }: Props) {
       ) : null}
 
       <Card style={{ marginTop: theme.space.lg }}>
-        <Text variant="label" color="textSecondary" heading>
-          SIZE
-        </Text>
+        <SectionLabel>{t('options.size')}</SectionLabel>
         <View style={styles.presets}>
           {RESIZE_PRESETS.map((preset) => {
             const selected = activePreset === preset.id;
+            const label = t(`options.resizePresets.${preset.id}.label`);
             return (
               <Pressable
                 key={preset.id}
                 testID={`preset-${preset.id}`}
                 accessibilityRole="button"
-                accessibilityLabel={`${preset.label}. ${preset.detail}`}
+                accessibilityLabel={t('a11y.labelledDetail', {
+                  label,
+                  detail: t(`options.resizePresets.${preset.id}.detail`),
+                })}
                 accessibilityState={{ selected }}
                 onPress={() => {
                   replace(preset.apply(options));
@@ -253,26 +257,28 @@ export function OptionsScreen({ route, navigation }: Props) {
                 ]}
               >
                 <Text variant="label" color={selected ? 'textOnAccentDeep' : 'textSecondary'}>
-                  {preset.label}
+                  {label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-          {RESIZE_PRESETS.find((p) => p.id === activePreset)?.detail ?? 'Custom size'}
+          {activePreset
+            ? t(`options.resizePresets.${activePreset}.detail`)
+            : t('options.customSize')}
         </Text>
       </Card>
 
       <Card style={{ marginTop: theme.space.lg }}>
         <SegmentedControl<'0' | '90' | '180' | '270'>
-          label="ROTATE"
+          label={t('options.rotate')}
           testID="rotate"
           segments={[
-            { value: '0', label: 'None' },
-            { value: '90', label: '90°', accessibilityLabel: '90 degrees' },
-            { value: '180', label: '180°', accessibilityLabel: '180 degrees' },
-            { value: '270', label: '270°', accessibilityLabel: '270 degrees' },
+            { value: '0', label: t('options.rotateNone') },
+            { value: '90', label: '90°', accessibilityLabel: t('options.rotateDegrees', { degrees: 90 }) },
+            { value: '180', label: '180°', accessibilityLabel: t('options.rotateDegrees', { degrees: 180 }) },
+            { value: '270', label: '270°', accessibilityLabel: t('options.rotateDegrees', { degrees: 270 }) },
           ]}
           value={String(options.rotate ?? 0) as '0' | '90' | '180' | '270'}
           onChange={(value) => patch({ rotate: Number(value) as 0 | 90 | 180 | 270 })}
@@ -280,12 +286,12 @@ export function OptionsScreen({ route, navigation }: Props) {
 
         <View style={{ marginTop: theme.space.sm }}>
           <Toggle
-            label="Flip horizontally"
+            label={t('options.flipHorizontally')}
             value={options.flipHorizontal ?? false}
             onChange={(flipHorizontal) => patch({ flipHorizontal })}
           />
           <Toggle
-            label="Flip vertically"
+            label={t('options.flipVertically')}
             value={options.flipVertical ?? false}
             onChange={(flipVertical) => patch({ flipVertical })}
           />
@@ -294,30 +300,24 @@ export function OptionsScreen({ route, navigation }: Props) {
 
       <Card style={{ marginTop: theme.space.lg }}>
         <SegmentedControl<MetadataMode>
-          label="METADATA"
+          label={t('options.metadata')}
           testID="metadata"
           segments={[
-            { value: 'keepExceptGps', label: 'No location', accessibilityLabel: 'Keep everything except location' },
-            { value: 'keepAll', label: 'Keep all' },
-            { value: 'stripAll', label: 'Strip all' },
+            { value: 'keepExceptGps', label: t('options.metadataNoLocation'), accessibilityLabel: t('options.metadataNoLocationLabel') },
+            { value: 'keepAll', label: t('options.metadataKeepAll') },
+            { value: 'stripAll', label: t('options.metadataStripAll') },
           ]}
-          value={(options.metadata?.mode ?? 'keepExceptGps') as MetadataMode}
+          value={metadataMode}
           onChange={(mode) => patch({ metadata: { mode } })}
         />
         <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
-          {
-            {
-              keepExceptGps: 'Camera and date survive. Where you were does not.',
-              keepAll: 'Everything is carried over, including location.',
-              stripAll: 'Nothing is carried over.',
-            }[(options.metadata?.mode ?? 'keepExceptGps') as MetadataMode]
-          }
+          {t(`options.metadataHint.${metadataMode}`)}
         </Text>
 
         <View style={{ marginTop: theme.space.xs }}>
           <Toggle
-            label="Convert to sRGB"
-            hint="Wide-gamut photos look over-saturated in apps that ignore the profile"
+            label={t('options.convertToSrgb')}
+            hint={t('options.convertToSrgbHint')}
             value={options.convertToSrgb ?? true}
             onChange={(convertToSrgb) => patch({ convertToSrgb })}
           />
@@ -326,11 +326,9 @@ export function OptionsScreen({ route, navigation }: Props) {
 
       {willFlatten ? (
         <Card style={{ marginTop: theme.space.lg }}>
-          <Text variant="label" color="textSecondary" heading>
-            BACKGROUND
-          </Text>
+          <SectionLabel>{t('options.background')}</SectionLabel>
           <Text variant="caption" color="textTertiary" style={{ marginTop: 2 }}>
-            {targetSpec.label} has no transparency. Transparent areas become this colour.
+            {t('options.backgroundHint', { format: targetSpec.label })}
           </Text>
 
           <View style={styles.swatches}>
@@ -341,7 +339,7 @@ export function OptionsScreen({ route, navigation }: Props) {
                   key={choice.id}
                   testID={`background-${choice.id}`}
                   accessibilityRole="button"
-                  accessibilityLabel={choice.label}
+                  accessibilityLabel={t(`options.backgroundColors.${choice.id}`)}
                   accessibilityState={{ selected }}
                   onPress={() => {
                     patch({ background: { color: choice.color } });
@@ -368,19 +366,17 @@ export function OptionsScreen({ route, navigation }: Props) {
           user chose when they saved it. */}
       {fileCount > 1 ? (
         <Card style={{ marginTop: theme.space.lg }}>
-          <Text variant="label" color="textSecondary" heading>
-            RENAME
-          </Text>
+          <SectionLabel>{t('options.rename')}</SectionLabel>
           <View style={{ marginTop: theme.space.md }}>
             <TextField
-              label="Pattern"
+              label={t('options.pattern')}
               value={namePattern}
               onChange={setNamePattern}
-              placeholder="Keep the original names"
+              placeholder={t('options.keepOriginalNames')}
               testID="name-pattern"
               {...(collides(namePattern)
                 ? {
-                    hint: 'Every file would get the same name. Add {name} or {index}.',
+                    hint: t('options.wouldCollide'),
                     hintIsProblem: true,
                   }
                 : {})}
@@ -390,29 +386,32 @@ export function OptionsScreen({ route, navigation }: Props) {
           <ChipRow
             chips={NAME_TOKENS.map((token) => ({
               value: token.token,
-              label: token.label,
-              detail: token.detail,
+              label: t(`options.tokens.${token.id}.label`),
+              detail: t(`options.tokens.${token.id}.detail`),
             }))}
             // Nothing is selected: these insert rather than choose. The row is the
             // keyboard for a syntax nobody should have to remember.
             value=""
             onChange={(token) => setNamePattern(appendToken(namePattern, token))}
-            accessibilityLabel="Insert a name token"
+            accessibilityLabel={t('options.tokens.insert')}
             testIDPrefix="name-token"
           />
 
           <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>
             {namePreview.length > 0
-              ? `${namePreview.join(', ')}${fileCount > namePreview.length ? ', …' : ''}`
-              : 'Names are kept as they are'}
+              ? t(
+                  fileCount > namePreview.length
+                    ? 'options.namePreviewMore'
+                    : 'options.namePreview',
+                  { names: formatList(namePreview) },
+                )
+              : t('options.namesKept')}
           </Text>
         </Card>
       ) : null}
 
       <Card style={{ marginTop: theme.space.lg }}>
-        <Text variant="label" color="textSecondary" heading>
-          PRESETS
-        </Text>
+        <SectionLabel>{t('options.presets')}</SectionLabel>
 
         {presets.length > 0 ? (
           <ChipRow
@@ -425,28 +424,28 @@ export function OptionsScreen({ route, navigation }: Props) {
               replace({ ...preset.options, targetFormat });
               scheduleEstimate();
             }}
-            accessibilityLabel="Apply a saved preset"
+            accessibilityLabel={t('options.applyPreset')}
             testIDPrefix="preset"
           />
         ) : (
           <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.sm }}>
-            Save these settings to reuse them without rebuilding them.
+            {t('options.presetsEmpty')}
           </Text>
         )}
 
         {namingPreset ? (
           <View style={{ marginTop: theme.space.md }}>
             <TextField
-              label="Preset name"
+              label={t('options.presetName')}
               value={presetName}
               onChange={setPresetName}
-              placeholder="Email attachments"
+              placeholder={t('options.presetNamePlaceholder')}
               autoFocus
               onSubmit={onSavePreset}
               testID="preset-name"
             />
             <Button
-              label="Save preset"
+              label={t('options.savePreset')}
               onPress={onSavePreset}
               disabled={presetName.trim().length === 0}
               style={{ marginTop: theme.space.md }}
@@ -454,7 +453,7 @@ export function OptionsScreen({ route, navigation }: Props) {
           </View>
         ) : (
           <Button
-            label="Save these settings"
+            label={t('options.saveTheseSettings')}
             variant="ghost"
             onPress={() => setNamingPreset(true)}
             style={{ marginTop: theme.space.md }}
@@ -463,8 +462,12 @@ export function OptionsScreen({ route, navigation }: Props) {
       </Card>
 
       <View style={{ marginTop: theme.space['2xl'], gap: theme.space.md }}>
-        <Button testID="convert-with-options" label={`Convert to ${targetSpec.label}`} onPress={onConvert} />
-        <Button label="Back" variant="ghost" onPress={() => navigation.goBack()} />
+        <Button
+          testID="convert-with-options"
+          label={t('options.convertTo', { format: targetSpec.label })}
+          onPress={onConvert}
+        />
+        <Button label={t('common.back')} variant="ghost" onPress={() => navigation.goBack()} />
       </View>
     </Screen>
   );

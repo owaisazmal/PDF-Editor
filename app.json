@@ -16,7 +16,7 @@
       "requireFullScreen": false,
       "infoPlist": {
         "NSHumanReadableCopyright": "Copyright (c) 2026 Owais Khan. Licensed under the Apache License, Version 2.0.",
-        "NSPhotoLibraryAddUsageDescription": "Converter saves your converted images straight to your photo library. It never reads your library \u2014 you choose files through the system picker.",
+        "NSPhotoLibraryAddUsageDescription": "Converter saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker.",
         "CFBundleAllowMixedLocalizations": true,
         "UIViewControllerBasedStatusBarAppearance": false,
         "ITSAppUsesNonExemptEncryption": false,
@@ -106,6 +106,7 @@
       "react-native-edge-to-edge",
       "./plugins/withOfflineRelease",
       "./plugins/withConverterCore",
+      "./plugins/withLocalizations",
       "./plugins/withShareExtension",
       "./plugins/withConverterCoreAndroid",
       [

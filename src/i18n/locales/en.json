@@ -5,8 +5,6 @@
     "done": "Done",
     "notNow": "Not now",
     "remove": "Remove",
-    "file_one": "file",
-    "file_other": "files",
     "before": "Before",
     "after": "After",
     "size": "Size",
@@ -14,8 +12,23 @@
     "saved": "Saved",
     "largerBy": "Larger by",
     "aboutTheSame": "About the same size",
+    "unrecognised": "Unrecognised",
+    "file_one": "file",
+    "file_other": "files",
     "pages_one": "page",
     "pages_other": "pages"
+  },
+  "a11y": {
+    "labelledDetail": "{{label}}. {{detail}}",
+    "fileRow": "{{name}}. {{state}}. {{detail}}",
+    "stat": "{{label}}: {{value}}",
+    "percentSmaller": "{{percent}} percent smaller",
+    "percentLarger": "{{percent}} percent larger",
+    "state": {
+      "waiting": "Waiting",
+      "done": "Done",
+      "failed": "Failed"
+    }
   },
   "home": {
     "title": "Convert",
@@ -29,39 +42,85 @@
       "settings": "Needs the settings screen",
       "later": "Coming in a later build"
     },
+    "nothingSelected": "Nothing was selected.",
     "mergeNeedsTwo": "Merging needs at least two PDFs. Pick another and try again."
   },
   "tasks": {
-    "heic-to-jpg": { "title": "HEIC to JPG", "subtitle": "iPhone photos anything can open" },
-    "webp-to-jpg": { "title": "WebP to JPG", "subtitle": "Saved images that will not open" },
-    "compress-image": { "title": "Compress Image", "subtitle": "Hit a size limit without the guesswork" },
-    "resize-image": { "title": "Resize Image", "subtitle": "Presets for social, email and print" },
-    "image-to-pdf": { "title": "Image to PDF", "subtitle": "Many photos, one document" },
-    "pdf-to-jpg": { "title": "PDF to JPG", "subtitle": "Pages as images, at your chosen DPI" },
-    "merge-pdf": { "title": "Merge PDF", "subtitle": "Combine and reorder in one pass" },
-    "split-pdf": { "title": "Split PDF", "subtitle": "Pull out pages, or break it up" },
-    "compress-pdf": { "title": "Compress PDF", "subtitle": "Smaller file, at a cost worth knowing" },
-    "png-to-jpg": { "title": "PNG to JPG", "subtitle": "Smaller files, with a background you pick" }
+    "hint": "Converts {{from}} files to {{to}}",
+    "unavailableHint": "Not available on this device",
+    "heic-to-jpg": {
+      "title": "HEIC to JPG",
+      "subtitle": "iPhone photos anything can open"
+    },
+    "webp-to-jpg": {
+      "title": "WebP to JPG",
+      "subtitle": "Saved images that will not open"
+    },
+    "compress-image": {
+      "title": "Compress Image",
+      "subtitle": "Hit a size limit without the guesswork"
+    },
+    "resize-image": {
+      "title": "Resize Image",
+      "subtitle": "Presets for social, email and print"
+    },
+    "image-to-pdf": {
+      "title": "Image to PDF",
+      "subtitle": "Many photos, one document"
+    },
+    "pdf-to-jpg": {
+      "title": "PDF to JPG",
+      "subtitle": "Pages as images, at your chosen DPI"
+    },
+    "merge-pdf": {
+      "title": "Merge PDF",
+      "subtitle": "Combine and reorder in one pass"
+    },
+    "split-pdf": {
+      "title": "Split PDF",
+      "subtitle": "Pull out pages, or break it up"
+    },
+    "compress-pdf": {
+      "title": "Compress PDF",
+      "subtitle": "Smaller file, at a cost worth knowing"
+    },
+    "png-to-jpg": {
+      "title": "PNG to JPG",
+      "subtitle": "Smaller files, with a background you pick"
+    },
+    "badge": {
+      "any": "ANY",
+      "img": "IMG"
+    }
   },
   "convert": {
-    "selectedFile": "SELECTED FILE",
+    "selectedFile": "Selected file",
+    "result": "Result",
     "dimensions": "Dimensions",
     "format": "Format",
     "nothingSelected": "Nothing selected",
     "pickToStart": "Pick a file from the home screen to get started.",
     "failed": "Could not convert this file",
     "convertAnother": "Convert another",
+    "convertTo": "Convert to {{format}}",
     "saveToPhotos": "Save to Photos",
     "savedToPhotos": "Saved to Photos",
-    "gpsFound": "Location data found. It will be removed from the converted file."
+    "gpsFound": "Location data found. It will be removed from the converted file.",
+    "claimedMismatch": "This file is named as {{claimed}} but its contents are {{actual}}. Converting the real format.",
+    "willFlatten": "{{format}} has no transparency, so transparent areas become white.",
+    "grewExplanation": "{{source}} compresses this image better than {{target}} can. The conversion is still correct — lower the quality if size matters more than fidelity, or keep the original.",
+    "announceDone": "Converted.",
+    "announceFailed": "Conversion failed."
   },
   "batch": {
-    "summary": "{{count}} files → {{format}}",
+    "summary_one": "{{count}} file → {{format}}",
+    "summary_other": "{{count}} files → {{format}}",
     "converting": "Converting. {{done}} of {{total}} done.",
     "finished": "Finished. {{done}} of {{total}} converted.",
     "finishingCurrent": "Finishing the current file…",
-    "failedCount": "{{count}} failed",
-    "total": "TOTAL",
+    "failedCount_one": "{{count}} failed",
+    "failedCount_other": "{{count}} failed",
+    "total": "Total",
     "couldNotStart": "Could not start",
     "notificationsOff": "Notifications are off, so this won’t appear in your shade. It still finishes if you leave the app.",
     "stopped_one": "Stopped. The {{count}} file already converted is below — the rest were left alone.",
@@ -69,49 +128,116 @@
     "cancelling": "Cancelling…",
     "nothingToConvert": "Nothing to convert",
     "saveAll_one": "Save {{count}} to Photos",
-    "saveAll_other": "Save {{count}} to Photos"
+    "saveAll_other": "Save {{count}} to Photos",
+    "retry_one": "Retry {{count}} failed file",
+    "retry_other": "Retry {{count}} failed files",
+    "announceFinished": "{{done}} of {{total}} converted.",
+    "announceFailures_one": "{{count}} file failed.",
+    "announceFailures_other": "{{count}} files failed.",
+    "progressCount": "{{done}} / {{total}}",
+    "percentDone": "{{percent}}",
+    "savedAll_one": "Saved {{count}} to Photos",
+    "savedAll_other": "Saved {{count}} to Photos"
   },
   "options": {
     "title": "Settings",
-    "estimatedOutput": "ESTIMATED OUTPUT",
+    "summary_one": "{{count}} file → {{format}}",
+    "summary_other": "{{count}} files → {{format}}",
+    "estimatedOutput": "Estimated output",
+    "measuring": "Measuring…",
     "measured": "Measured, not guessed",
     "measuredOn": "Measured on {{name}}",
+    "each": "{{size}} each",
     "aimForSize": "Aim for a file size",
     "aimForSizeHint": "Searches for the quality that lands just under your limit",
     "maximumSize": "Maximum size",
     "quality": "Quality",
-    "size": "SIZE",
+    "size": "Size",
     "customSize": "Custom size",
-    "rotate": "ROTATE",
+    "rotate": "Rotate",
+    "rotateNone": "None",
+    "rotateDegrees": "{{degrees}} degrees",
     "flipHorizontally": "Flip horizontally",
     "flipVertically": "Flip vertically",
-    "metadata": "METADATA",
+    "metadata": "Metadata",
     "metadataNoLocation": "No location",
+    "metadataNoLocationLabel": "Keep everything except location",
     "metadataKeepAll": "Keep all",
     "metadataStripAll": "Strip all",
-    "metadataHint": "Camera and date survive. Where you were does not.",
+    "metadataHint": {
+      "keepExceptGps": "Camera and date survive. Where you were does not.",
+      "keepAll": "Everything is carried over, including location.",
+      "stripAll": "Nothing is carried over."
+    },
     "convertToSrgb": "Convert to sRGB",
     "convertToSrgbHint": "Wide-gamut photos look over-saturated in apps that ignore the profile",
-    "background": "BACKGROUND",
-    "backgroundHint": "This format has no transparency. Pick what replaces it.",
+    "background": "Background",
+    "backgroundHint": "{{format}} has no transparency. Transparent areas become this colour.",
+    "backgroundColors": {
+      "white": "White",
+      "black": "Black",
+      "grey": "Grey",
+      "cream": "Cream",
+      "sand": "Sand"
+    },
     "convertTo": "Convert to {{format}}",
-    "rename": "RENAME",
+    "rename": "Rename",
     "pattern": "Pattern",
     "keepOriginalNames": "Keep the original names",
     "namesKept": "Names are kept as they are",
+    "namePreview": "{{names}}",
+    "namePreviewMore": "{{names}}, …",
     "wouldCollide": "Every file would get the same name. Add {name} or {index}.",
     "tokens": {
-      "name": "Name",
-      "nameDetail": "The original name, without its extension",
-      "index": "Number",
-      "indexDetail": "Position in the batch, from 001",
-      "date": "Date",
-      "dateDetail": "Today’s date, as 2026-08-18",
-      "format": "Format",
-      "formatDetail": "The format being written"
+      "insert": "Insert a name token",
+      "name": {
+        "label": "Name",
+        "detail": "The original name, without its extension"
+      },
+      "index": {
+        "label": "Number",
+        "detail": "Position in the batch, from 001"
+      },
+      "date": {
+        "label": "Date",
+        "detail": "Today’s date, as 2026-08-18"
+      },
+      "format": {
+        "label": "Format",
+        "detail": "The format being written"
+      }
     },
-    "insertToken": "Insert a name token",
-    "presets": "PRESETS",
+    "resizePresets": {
+      "original": {
+        "label": "Original",
+        "detail": "Keep the size it already is"
+      },
+      "email": {
+        "label": "Email",
+        "detail": "Under 1 MB, fits any attachment limit"
+      },
+      "instagram-square": {
+        "label": "Square",
+        "detail": "1080 × 1080 for a feed post"
+      },
+      "instagram-story": {
+        "label": "Story",
+        "detail": "1080 × 1920, full screen"
+      },
+      "hd": {
+        "label": "1080p",
+        "detail": "1920 × 1080 for screens and slides"
+      },
+      "uhd": {
+        "label": "4K",
+        "detail": "3840 × 2160, still plenty for print"
+      },
+      "passport": {
+        "label": "Passport",
+        "detail": "600 × 600 at 300 dpi"
+      }
+    },
+    "presets": "Presets",
     "presetsEmpty": "Save these settings to reuse them without rebuilding them.",
     "applyPreset": "Apply a saved preset",
     "presetName": "Preset name",
@@ -125,36 +251,49 @@
     "password": "Password",
     "wrongPassword": "That password did not open it.",
     "unlock": "Unlock",
-    "pageSize": "PAGE SIZE",
-    "orientation": "ORIENTATION",
-    "fit": "FIT",
+    "pageSize": "Page size",
+    "orientation": "Orientation",
+    "fit": "Fit",
     "margin": "Margin",
-    "imagesPerPage": "IMAGES PER PAGE",
+    "marginInches": "{{inches}} in",
+    "imagesPerPage": "Images per page",
     "pagesLabel": "Pages",
     "allPages": "All pages",
     "pagesHint": "Leave it empty for every page, or write something like 1-3, 7, 9-",
+    "noPages": "No pages",
+    "allNPages_one": "All {{count}} page",
+    "allNPages_other": "All {{count}} pages",
+    "pagesSelected_one": "{{count}} of {{total}} page",
+    "pagesSelected_other": "{{count}} of {{total}} pages",
     "rangeMatchesNothing": "That range does not match any pages",
-    "resolution": "RESOLUTION",
-    "format": "FORMAT",
+    "resolution": "Resolution",
+    "format": "Format",
+    "quality": "Quality",
     "pngLossless": "PNG is lossless, so there is no quality to choose. Larger files, exact pixels.",
-    "order": "ORDER",
+    "order": "Order",
     "orderHint": "Documents are joined in the order you picked them.",
-    "splitBy": "SPLIT BY",
+    "orderedFile": "{{index}}. {{name}}",
+    "splitBy": "Split by",
     "splitRanges": "Page ranges",
     "splitEvery": "Every N pages",
     "ranges": "Ranges",
+    "rangesPlaceholder": "1-3, 4-8",
     "rangesHint": "Each range becomes its own document",
     "pagesPerDocument": "Pages per document",
-    "documentsFrom": "{{documents}} documents from {{pages}} pages",
+    "documentsFrom_one": "{{count}} document from {{pages}} pages",
+    "documentsFrom_other": "{{count}} documents from {{pages}} pages",
     "flattensTitle": "This flattens text into pictures",
     "flattensBody": "Every page is redrawn as an image, so the result cannot be selected, searched, or read aloud. Neither platform can shrink a PDF without doing this. Keep the original if any of that matters.",
     "grayscale": "Grayscale",
     "grayscaleHint": "Halves the size of a scanned document at no readable cost",
-    "result": "RESULT",
+    "result": "Result",
     "documents": "Documents",
     "images": "Images",
     "couldNotFinish": "Could not finish",
     "nothingToDo": "Nothing to do",
+    "savedButton": "Saved",
+    "imageDetail": "{{width}} × {{height}} · {{size}}",
+    "partDetail": "{{pages}} · {{size}}",
     "actions": {
       "compose": "Make PDF",
       "render": "Export pages",
@@ -164,46 +303,139 @@
       "run": "Run"
     },
     "summary": {
-      "compose": "{{count}} files → PDF",
-      "merge": "{{count}} files → one PDF"
+      "compose_one": "{{count}} file → PDF",
+      "compose_other": "{{count}} files → PDF",
+      "merge_one": "{{count}} file → one PDF",
+      "merge_other": "{{count}} files → one PDF",
+      "pages_one": "{{count}} page",
+      "pages_other": "{{count}} pages",
+      "files_one": "{{count}} file",
+      "files_other": "{{count}} files"
     },
     "saveToPhotos_one": "Save {{count}} to Photos",
     "saveToPhotos_other": "Save {{count}} to Photos",
     "saveToFiles_one": "Save {{count}} to Files",
     "saveToFiles_other": "Save {{count}} to Files",
-    "page_one": "page {{first}}",
-    "pageRange": "pages {{first}}-{{last}}"
+    "singlePage": "page {{first}}",
+    "pageRange": "pages {{first}}-{{last}}",
+    "announceFinished": "Finished.",
+    "announceFailed": "Could not finish.",
+    "announceLocked": "This PDF needs a password.",
+    "pageSizes": {
+      "fit": {
+        "label": "Fit image",
+        "detail": "Each page takes the shape of its image"
+      },
+      "a4": {
+        "label": "A4",
+        "detail": "The standard almost everywhere"
+      },
+      "letter": {
+        "label": "Letter",
+        "detail": "The standard in the US and Canada"
+      },
+      "legal": {
+        "label": "Legal",
+        "detail": "Longer than Letter"
+      },
+      "a5": {
+        "label": "A5",
+        "detail": "Half of A4"
+      },
+      "a3": {
+        "label": "A3",
+        "detail": "Twice A4"
+      },
+      "tabloid": {
+        "label": "Tabloid",
+        "detail": "Twice Letter"
+      }
+    },
+    "orientations": {
+      "auto": "Auto",
+      "portrait": "Portrait",
+      "landscape": "Landscape"
+    },
+    "fitModes": {
+      "fit": {
+        "label": "Fit",
+        "hint": "The whole image, with space around it where the shapes differ"
+      },
+      "fill": {
+        "label": "Fill",
+        "hint": "Fills the page and crops what does not fit"
+      },
+      "stretch": {
+        "label": "Stretch",
+        "hint": "Fills the page by distorting the image"
+      }
+    },
+    "nUp": {
+      "single": "1 per page",
+      "many": "{{count}} up"
+    },
+    "dpi": {
+      "screen": {
+        "label": "Screen",
+        "detail": "{{dpi}} dots per inch"
+      },
+      "good": {
+        "label": "Good",
+        "detail": "{{dpi}} dots per inch"
+      },
+      "print": {
+        "label": "Print",
+        "detail": "{{dpi}} dots per inch"
+      },
+      "archive": {
+        "label": "Archive",
+        "detail": "{{dpi}} dots per inch, large files"
+      }
+    },
+    "renderFormats": {
+      "jpeg": "JPG",
+      "png": "PNG"
+    }
   },
   "incoming": {
     "title": "Sent here",
     "subtitle_one": "{{count}} file from another app",
     "subtitle_other": "{{count}} files from another app",
-    "whatToDo": "WHAT WOULD YOU LIKE TO DO?",
-    "partial": "{{count}} of {{total}} files",
-    "unreadable_one": "One file could not be identified and will be left out.",
+    "whatToDo": "What would you like to do?",
+    "partial_one": "{{count}} of {{total}} file",
+    "partial_other": "{{count}} of {{total}} files",
+    "fileDetail": "{{format}} · {{size}}",
+    "unreadable_one": "{{count}} file could not be identified and will be left out.",
     "unreadable_other": "{{count}} files could not be identified and will be left out.",
     "nothingUsable": "Nothing here can be converted",
-    "nothingUsableBody": "These files are not in a format this app reads. Images and PDFs both work.",
-    "unrecognised": "Unrecognised"
+    "nothingUsableBody": "These files are not in a format this app reads. Images and PDFs both work."
   },
   "history": {
     "title": "History",
     "empty": "Nothing converted yet",
     "count_one": "{{count}} conversion, on this device only",
     "count_other": "{{count}} conversions, on this device only",
-    "allTime": "ALL TIME",
+    "allTime": "All time",
     "emptyTitle": "Nothing here yet",
     "emptyBody": "Conversions you run will be listed here, on this device. Nothing is uploaded and nothing is shared.",
     "clear": "Clear history",
     "clearConfirm": "Tap again to clear everything",
-    "andMore": " and {{count}} more",
+    "names": "{{names}}",
+    "namesAndMore_one": "{{names}} and {{count}} more",
+    "namesAndMore_other": "{{names}} and {{count}} more",
     "justNow": "Just now",
-    "minutesAgo": "{{count}} min ago",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago",
     "hoursAgo_one": "{{count}} hour ago",
     "hoursAgo_other": "{{count}} hours ago",
     "daysAgo_one": "{{count}} day ago",
     "daysAgo_other": "{{count}} days ago",
-    "entryLabel": "{{task}}, {{count}} files, {{when}}",
+    "rowDetail_one": "{{when}} · {{count}} file",
+    "rowDetail_other": "{{when}} · {{count}} files",
+    "rowDetailFailed_one": "{{when}} · {{count}} file · {{failed}} failed",
+    "rowDetailFailed_other": "{{when}} · {{count}} files · {{failed}} failed",
+    "entryLabel_one": "{{task}}, {{count}} file, {{when}}",
+    "entryLabel_other": "{{task}}, {{count}} files, {{when}}",
     "entryHint": "Shows the file names and lets you remove this entry"
   },
   "errors": {
@@ -219,5 +451,37 @@
     "downloadFailed": "This file is stored in the cloud and could not be downloaded. Check your connection and try again.",
     "cancelled": "Conversion cancelled.",
     "unknown": "Something went wrong converting this file. Try again."
+  },
+  "notification": {
+    "channelName": "Conversion progress",
+    "channelDescription": "Shows how far a batch has got while the app is in the background.",
+    "progress": "Converting {{done}} of {{total}}",
+    "preparing": "Preparing to convert",
+    "cancelling": "Cancelling",
+    "cancel": "Cancel"
+  },
+  "share": {
+    "reading": "Reading…",
+    "nothingShared": "Nothing was shared.",
+    "unreadable": "Those files could not be read.",
+    "title_one": "Convert this file",
+    "title_other": "Convert {{count}} files",
+    "ready": "Ready",
+    "saveAsJpg": "Save as JPG",
+    "saveAsPng": "Save as PNG",
+    "makePdf": "Make a PDF",
+    "cancel": "Cancel",
+    "converting": "Converting…",
+    "makingPdf": "Making a PDF…",
+    "pdfFailed": "That PDF could not be made.",
+    "nothingConverted": "Nothing could be converted.",
+    "savedToPhotos_one": "Saved to Photos",
+    "savedToPhotos_other": "{{count}} saved to Photos",
+    "photosDenied": "Converted. Saving to Photos was not allowed.",
+    "someUnreadable_one": "{{count}} could not be read.",
+    "someUnreadable_other": "{{count}} could not be read."
+  },
+  "permissions": {
+    "photoLibraryAdd": "Converter saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker."
   }
 }

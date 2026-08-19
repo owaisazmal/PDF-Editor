@@ -1,7 +1,8 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { StyleSheet, View } from 'react-native';
+import { I18nManager, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Card } from './Card';
 import { Text } from './Text';
@@ -37,13 +38,14 @@ export function TaskTile({
   testID,
 }: TaskTileProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Card
       onPress={enabled ? onPress : undefined}
       testID={testID}
-      accessibilityLabel={`${title}. ${subtitle}`}
-      accessibilityHint={enabled ? `Converts ${from} files to ${to}` : 'Not available on this device'}
+      accessibilityLabel={t('a11y.labelledDetail', { label: title, detail: subtitle })}
+      accessibilityHint={enabled ? t('tasks.hint', { from, to }) : t('tasks.unavailableHint')}
       style={StyleSheet.flatten([styles.tile, !enabled && styles.disabled])}
     >
       <View style={[styles.pair, { marginBottom: theme.space.md }]}>
@@ -59,8 +61,15 @@ export function TaskTile({
             {from}
           </Text>
         </View>
+        {/*
+          The arrow is picked rather than mirrored. In RTL the row itself flips, so the
+          destination badge is drawn on the left — but U+2192 is not Bidi_Mirrored, so a
+          hard-coded → survives the flip pointing the same way and ends up aimed from the
+          destination back at the source. Swapping the glyph is the only thing that keeps
+          it pointing at the output.
+        */}
         <Text variant="mono" color="textTertiary" style={{ marginHorizontal: theme.space.sm }}>
-          →
+          {I18nManager.isRTL ? '←' : '→'}
         </Text>
         <View
           style={{

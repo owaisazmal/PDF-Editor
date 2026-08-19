@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Text, type TextColor } from './Text';
 import { useTheme } from '@/theme';
@@ -25,11 +26,12 @@ export type StatRowProps = {
  */
 export function StatRow({ label, value, emphasis, valueColor, accessibilityLabel }: StatRowProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View
       accessible
-      accessibilityLabel={accessibilityLabel ?? `${label}: ${value}`}
+      accessibilityLabel={accessibilityLabel ?? t('a11y.stat', { label, value })}
       style={[
         styles.row,
         {

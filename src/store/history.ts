@@ -26,8 +26,17 @@ export type HistoryEntry = {
   id: string;
   /** Milliseconds since the epoch, so it can be formatted in the user's locale. */
   at: number;
+  /** The task, by id. Its title is read from the catalogue when the row is drawn. */
   taskId: string;
-  taskTitle: string;
+  /**
+   * The English title, as written by builds before the catalogue covered this screen.
+   *
+   * Kept only so those rows still say something: a title captured at record time is
+   * frozen in whatever language was running then, so a user who switches to Spanish
+   * would otherwise carry English rows forever. Nothing writes it any more, and rows
+   * whose `taskId` is still a known task ignore it.
+   */
+  taskTitle?: string;
   targetFormat: FormatId | 'pdf';
   fileCount: number;
   failedCount: number;
