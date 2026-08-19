@@ -1,0 +1,253 @@
+{
+  "common": {
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "done": "Fertig",
+    "notNow": "Jetzt nicht",
+    "remove": "Entfernen",
+    "file_one": "Datei",
+    "file_other": "Dateien",
+    "before": "Vorher",
+    "after": "Nachher",
+    "size": "Größe",
+    "took": "Dauer",
+    "saved": "Gespart",
+    "largerBy": "Größer um",
+    "aboutTheSame": "Etwa gleich groß",
+    "pages_one": "Seite",
+    "pages_other": "Seiten"
+  },
+  "home": {
+    "title": "Konvertieren",
+    "promise": "Alles passiert auf deinem Gerät. Nichts wird hochgeladen, nichts getrackt, und es gibt kein Limit.",
+    "history": "Verlauf",
+    "historyLabel_one": "Verlauf, {{count}} Konvertierung",
+    "historyLabel_other": "Verlauf, {{count}} Konvertierungen",
+    "unavailable": {
+      "platform": "Auf dieser Plattform noch nicht verfügbar",
+      "device": "Auf diesem Gerät nicht unterstützt",
+      "settings": "Benötigt den Einstellungsbildschirm",
+      "later": "Kommt in einer späteren Version"
+    },
+    "mergeNeedsTwo": "Zum Zusammenführen braucht es mindestens zwei PDFs. Wähle ein weiteres und versuche es erneut."
+  },
+  "tasks": {
+    "heic-to-jpg": {
+      "title": "HEIC zu JPG",
+      "subtitle": "iPhone-Fotos, die sich überall öffnen lassen"
+    },
+    "webp-to-jpg": {
+      "title": "WebP zu JPG",
+      "subtitle": "Gespeicherte Bilder, die sich nicht öffnen"
+    },
+    "compress-image": {
+      "title": "Bild verkleinern",
+      "subtitle": "Ein Größenlimit treffen, ohne zu raten"
+    },
+    "resize-image": {
+      "title": "Größe ändern",
+      "subtitle": "Vorgaben für Social, E-Mail und Druck"
+    },
+    "image-to-pdf": {
+      "title": "Bild zu PDF",
+      "subtitle": "Viele Fotos, ein Dokument"
+    },
+    "pdf-to-jpg": {
+      "title": "PDF zu JPG",
+      "subtitle": "Seiten als Bilder, in deiner DPI-Wahl"
+    },
+    "merge-pdf": {
+      "title": "PDF zusammenführen",
+      "subtitle": "In einem Durchgang verbinden und ordnen"
+    },
+    "split-pdf": {
+      "title": "PDF teilen",
+      "subtitle": "Seiten herauslösen oder aufteilen"
+    },
+    "compress-pdf": {
+      "title": "PDF verkleinern",
+      "subtitle": "Kleinere Datei, mit einem Preis, den man kennen sollte"
+    },
+    "png-to-jpg": {
+      "title": "PNG zu JPG",
+      "subtitle": "Kleinere Dateien, mit dem Hintergrund deiner Wahl"
+    }
+  },
+  "convert": {
+    "selectedFile": "AUSGEWÄHLTE DATEI",
+    "dimensions": "Maße",
+    "format": "Format",
+    "nothingSelected": "Nichts ausgewählt",
+    "pickToStart": "Wähle auf dem Startbildschirm eine Datei aus, um zu beginnen.",
+    "failed": "Diese Datei konnte nicht konvertiert werden",
+    "convertAnother": "Weitere konvertieren",
+    "saveToPhotos": "In Fotos sichern",
+    "savedToPhotos": "In Fotos gesichert",
+    "gpsFound": "Standortdaten gefunden. Sie werden aus der konvertierten Datei entfernt."
+  },
+  "batch": {
+    "summary": "{{count}} Dateien → {{format}}",
+    "converting": "Konvertiere. {{done}} von {{total}} fertig.",
+    "finished": "Fertig. {{done}} von {{total}} konvertiert.",
+    "finishingCurrent": "Aktuelle Datei wird beendet…",
+    "failedCount": "{{count}} fehlgeschlagen",
+    "total": "GESAMT",
+    "couldNotStart": "Konnte nicht starten",
+    "notificationsOff": "Mitteilungen sind aus, deshalb erscheint dies nicht in deiner Leiste. Es läuft trotzdem zu Ende, wenn du die App verlässt.",
+    "stopped_one": "Gestoppt. Die {{count}} bereits konvertierte Datei steht unten; der Rest blieb unberührt.",
+    "stopped_other": "Gestoppt. Die {{count}} bereits konvertierten Dateien stehen unten; der Rest blieb unberührt.",
+    "cancelling": "Wird abgebrochen…",
+    "nothingToConvert": "Nichts zu konvertieren",
+    "saveAll_one": "{{count}} in Fotos sichern",
+    "saveAll_other": "{{count}} in Fotos sichern"
+  },
+  "options": {
+    "title": "Einstellungen",
+    "estimatedOutput": "GESCHÄTZTE GRÖSSE",
+    "measured": "Gemessen, nicht geraten",
+    "measuredOn": "Gemessen an {{name}}",
+    "aimForSize": "Auf eine Dateigröße zielen",
+    "aimForSizeHint": "Sucht die Qualität, die knapp unter deinem Limit landet",
+    "maximumSize": "Maximale Größe",
+    "quality": "Qualität",
+    "size": "GRÖSSE",
+    "customSize": "Eigene Größe",
+    "rotate": "DREHEN",
+    "flipHorizontally": "Horizontal spiegeln",
+    "flipVertically": "Vertikal spiegeln",
+    "metadata": "METADATEN",
+    "metadataNoLocation": "Ohne Standort",
+    "metadataKeepAll": "Alles behalten",
+    "metadataStripAll": "Alles entfernen",
+    "metadataHint": "Kamera und Datum bleiben. Wo du warst, nicht.",
+    "convertToSrgb": "In sRGB umwandeln",
+    "convertToSrgbHint": "Fotos mit weitem Farbraum wirken übersättigt in Apps, die das Profil ignorieren",
+    "background": "HINTERGRUND",
+    "backgroundHint": "Dieses Format kennt keine Transparenz. Wähle, was sie ersetzt.",
+    "convertTo": "In {{format}} konvertieren",
+    "rename": "UMBENENNEN",
+    "pattern": "Muster",
+    "keepOriginalNames": "Ursprüngliche Namen behalten",
+    "namesKept": "Namen bleiben unverändert",
+    "wouldCollide": "Alle Dateien bekämen denselben Namen. Füge {name} oder {index} hinzu.",
+    "tokens": {
+      "name": "Name",
+      "nameDetail": "Der ursprüngliche Name, ohne Endung",
+      "index": "Nummer",
+      "indexDetail": "Position im Stapel, ab 001",
+      "date": "Datum",
+      "dateDetail": "Das heutige Datum, als 2026-08-18",
+      "format": "Format",
+      "formatDetail": "Das Format, das geschrieben wird"
+    },
+    "insertToken": "Namensbaustein einfügen",
+    "presets": "VORLAGEN",
+    "presetsEmpty": "Sichere diese Einstellungen, um sie wiederzuverwenden.",
+    "applyPreset": "Gesicherte Vorlage anwenden",
+    "presetName": "Name der Vorlage",
+    "presetNamePlaceholder": "E-Mail-Anhänge",
+    "savePreset": "Vorlage sichern",
+    "saveTheseSettings": "Diese Einstellungen sichern"
+  },
+  "pdf": {
+    "locked": "Dieses PDF ist gesperrt",
+    "lockedHint": "Das Passwort dient nur zum Öffnen der Datei und wird nirgends gesichert, gesendet oder geschrieben.",
+    "password": "Passwort",
+    "wrongPassword": "Mit diesem Passwort ließ es sich nicht öffnen.",
+    "unlock": "Entsperren",
+    "pageSize": "SEITENGRÖSSE",
+    "orientation": "AUSRICHTUNG",
+    "fit": "EINPASSEN",
+    "margin": "Rand",
+    "imagesPerPage": "BILDER PRO SEITE",
+    "pagesLabel": "Seiten",
+    "allPages": "Alle Seiten",
+    "pagesHint": "Leer lassen für alle Seiten, oder etwas wie 1-3, 7, 9- schreiben",
+    "rangeMatchesNothing": "Dieser Bereich trifft auf keine Seite zu",
+    "resolution": "AUFLÖSUNG",
+    "format": "FORMAT",
+    "pngLossless": "PNG ist verlustfrei, es gibt also keine Qualität zu wählen. Größere Dateien, exakte Pixel.",
+    "order": "REIHENFOLGE",
+    "orderHint": "Dokumente werden in der Reihenfolge verbunden, in der du sie gewählt hast.",
+    "splitBy": "TEILEN NACH",
+    "splitRanges": "Seitenbereiche",
+    "splitEvery": "Alle N Seiten",
+    "ranges": "Bereiche",
+    "rangesHint": "Jeder Bereich wird ein eigenes Dokument",
+    "pagesPerDocument": "Seiten pro Dokument",
+    "documentsFrom": "{{documents}} Dokumente aus {{pages}} Seiten",
+    "flattensTitle": "Das macht aus Text Bilder",
+    "flattensBody": "Jede Seite wird als Bild neu gezeichnet, deshalb lässt sich das Ergebnis nicht mehr markieren, durchsuchen oder vorlesen. Keine Plattform kann ein PDF ohne das verkleinern. Behalte das Original, falls dir davon etwas wichtig ist.",
+    "grayscale": "Graustufen",
+    "grayscaleHint": "Halbiert die Größe eines Scans, ohne die Lesbarkeit zu kosten",
+    "result": "ERGEBNIS",
+    "documents": "Dokumente",
+    "images": "Bilder",
+    "couldNotFinish": "Konnte nicht abgeschlossen werden",
+    "nothingToDo": "Nichts zu tun",
+    "actions": {
+      "compose": "PDF erstellen",
+      "render": "Seiten exportieren",
+      "merge": "Zusammenführen",
+      "split": "Teilen",
+      "compress": "Verkleinern",
+      "run": "Ausführen"
+    },
+    "summary": {
+      "compose": "{{count}} Dateien → PDF",
+      "merge": "{{count}} Dateien → ein PDF"
+    },
+    "saveToPhotos_one": "{{count}} in Fotos sichern",
+    "saveToPhotos_other": "{{count}} in Fotos sichern",
+    "saveToFiles_one": "{{count}} in Dateien sichern",
+    "saveToFiles_other": "{{count}} in Dateien sichern",
+    "page_one": "Seite {{first}}",
+    "pageRange": "Seiten {{first}}-{{last}}"
+  },
+  "incoming": {
+    "title": "Hierher gesendet",
+    "subtitle_one": "{{count}} Datei aus einer anderen App",
+    "subtitle_other": "{{count}} Dateien aus einer anderen App",
+    "whatToDo": "WAS MÖCHTEST DU TUN?",
+    "partial": "{{count}} von {{total}} Dateien",
+    "unreadable_one": "Eine Datei konnte nicht erkannt werden und bleibt außen vor.",
+    "unreadable_other": "{{count}} Dateien konnten nicht erkannt werden und bleiben außen vor.",
+    "nothingUsable": "Hier lässt sich nichts konvertieren",
+    "nothingUsableBody": "Diese Dateien liegen in keinem Format vor, das diese App liest. Bilder und PDFs funktionieren.",
+    "unrecognised": "Nicht erkannt"
+  },
+  "history": {
+    "title": "Verlauf",
+    "empty": "Noch nichts konvertiert",
+    "count_one": "{{count}} Konvertierung, nur auf diesem Gerät",
+    "count_other": "{{count}} Konvertierungen, nur auf diesem Gerät",
+    "allTime": "INSGESAMT",
+    "emptyTitle": "Hier ist noch nichts",
+    "emptyBody": "Konvertierungen erscheinen hier, auf diesem Gerät. Nichts wird hochgeladen und nichts geteilt.",
+    "clear": "Verlauf löschen",
+    "clearConfirm": "Nochmal tippen, um alles zu löschen",
+    "andMore": " und {{count}} weitere",
+    "justNow": "Gerade eben",
+    "minutesAgo": "vor {{count}} Min.",
+    "hoursAgo_one": "vor {{count}} Stunde",
+    "hoursAgo_other": "vor {{count}} Stunden",
+    "daysAgo_one": "vor {{count}} Tag",
+    "daysAgo_other": "vor {{count}} Tagen",
+    "entryLabel": "{{task}}, {{count}} Dateien, {{when}}",
+    "entryHint": "Zeigt die Dateinamen und erlaubt, diesen Eintrag zu entfernen"
+  },
+  "errors": {
+    "unreadable": "Diese Datei ließ sich nicht öffnen. Vielleicht wurde sie verschoben oder gelöscht, seit du sie gewählt hast.",
+    "unsupportedSource": "Dieses Format wird auf diesem Gerät nicht unterstützt. Ältere Android-Versionen lesen kein HEIC.",
+    "unsupportedTarget": "Dieses Gerät kann dieses Format nicht schreiben. Wähle ein anderes Ausgabeformat.",
+    "corrupt": "Diese Datei ist beschädigt oder unvollständig und lässt sich nicht lesen. Lade sie erneut herunter.",
+    "outOfMemory": "Dieses Bild ist gerade zu groß zum Verarbeiten. Schließe andere Apps und versuche es erneut.",
+    "diskFull": "Es ist nicht genug Speicher frei, um das Ergebnis zu sichern. Schaffe Platz und versuche es erneut.",
+    "permissionDenied": "Zum Sichern wird die Erlaubnis gebraucht, Fotos hinzuzufügen. Du kannst sie in den Einstellungen erteilen.",
+    "passwordRequired": "Dieses PDF ist passwortgeschützt. Gib das Passwort ein, um fortzufahren.",
+    "wrongPassword": "Dieses Passwort hat nicht funktioniert. Prüfe es und versuche es erneut.",
+    "downloadFailed": "Diese Datei liegt in der Cloud und konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+    "cancelled": "Konvertierung abgebrochen.",
+    "unknown": "Beim Konvertieren dieser Datei ist etwas schiefgegangen. Versuche es erneut."
+  }
+}

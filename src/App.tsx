@@ -28,12 +28,18 @@ import { OptionsScreen } from '@/features/options/OptionsScreen';
 import { HistoryScreen } from '@/features/history/HistoryScreen';
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
+import { initI18n } from '@/i18n';
 import { useIncomingStore, watchIncomingFiles } from '@/store/incoming';
 import { ThemeProvider, useTheme, colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 // Held until the fonts resolve so the first frame is never rendered in a fallback face.
 void SplashScreen.preventAutoHideAsync();
+
+// Before the first render, not in an effect: React Native fixes the layout direction at
+// startup, so a right-to-left language decided later would leave half the tree laid out
+// the other way.
+initI18n();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
