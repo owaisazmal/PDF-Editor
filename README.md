@@ -9,6 +9,30 @@ Licensed under the Apache License, Version 2.0
 
 ---
 
+## Screenshots
+
+| Home | Options | Result |
+|---|---|---|
+| <img src="store/screenshots/ios/01-home.png" width="240" alt="The home grid: one tile per task, each labelled with the formats it converts between."> | <img src="store/screenshots/android/02-options.png" width="240" alt="Options: a measured size estimate, a quality slider, and named size presets."> | <img src="store/screenshots/android/07-result.png" width="240" alt="A finished batch, reporting that the files got larger rather than hiding it."> |
+
+| Appearance | Dark | Arabic |
+|---|---|---|
+| <img src="store/screenshots/ios/04-settings.png" width="240" alt="Settings: appearance, why there is no language picker, and who made it."> | <img src="store/screenshots/android/05-settings-dark.png" width="240" alt="The same screen in dark, which applies without a relaunch."> | <img src="store/screenshots/ios/08-home-arabic.png" width="240" alt="The home grid in Arabic, mirrored right to left with the arrows reversed."> |
+
+Captured from release builds on an iPhone 17 Pro Max simulator and a Pixel-class Android
+emulator. The full set, both platforms, is in
+[`store/screenshots`](store/screenshots).
+
+Two of these are doing more work than they look. The result card says **Larger by 55%**
+because that is what happened: flat artwork encodes worse as JPEG than as PNG, and a
+converter that reports 0% saved when a file grew is lying about the one number it exists to
+report. And the Arabic screen is not the English one with the text swapped. The grid runs
+right to left, the format badges trade places, and the arrow points the other way, because
+an arrow that survives a mirror unchanged ends up pointing from the output back at the
+input.
+
+---
+
 ## What makes this different
 
 Every competing converter is either a website that uploads your photos to someone
