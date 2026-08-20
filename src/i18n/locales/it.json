@@ -516,6 +516,6 @@
     "someUnreadable_other": "{{count}} file non sono stati letti."
   },
   "permissions": {
-    "photoLibraryAdd": "Converter salva le immagini convertite direttamente nella tua libreria foto. Non legge mai la libreria: i file li scegli tu con il selettore di sistema."
+    "photoLibraryAdd": "{{app}} salva le immagini convertite direttamente nella tua libreria foto. Non legge mai la libreria: i file li scegli tu con il selettore di sistema."
   }
 }

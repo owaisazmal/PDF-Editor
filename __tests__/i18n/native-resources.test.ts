@@ -129,6 +129,28 @@ describe('the strings the platforms read, not the app', () => {
   });
 
   /**
+   * A placeholder that reaches a plist is shown to the user verbatim.
+   *
+   * `{{app}}` is substituted with the product name at prebuild so that renaming the app is
+   * one edit in app.json rather than nine careful ones across the locale files — careful
+   * because in Portuguese "Converter" is also the ordinary verb, and a find-and-replace
+   * would have destroyed eight real translations in that file. If the substitution ever
+   * stops happening, the permission dialog reads "{{app}} saves your converted images".
+   */
+  it('leaves no unsubstituted placeholder in a generated plist string', () => {
+    const output = fs.mkdtempSync(path.join(os.tmpdir(), 'converter-l10n-app-'));
+    try {
+      generate.writeIosStrings(catalogue, path.join(output, 'ios'), 'Converter', 'Testname');
+      const strings = path.join(output, 'ios', 'ShareExtension', 'fr.lproj', 'InfoPlist.strings');
+      const body = fs.readFileSync(strings, 'utf8');
+      expect(body).toContain('Testname');
+      expect(body).not.toMatch(/\{\{\s*\w+\s*\}\}/);
+    } finally {
+      fs.rmSync(output, { recursive: true, force: true });
+    }
+  });
+
+  /**
    * Arabic selects `few` for three files. If that form is missing the platform falls back,
    * and the fallback is English — which is the bug this whole catalogue exists to prevent.
    */

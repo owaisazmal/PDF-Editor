@@ -516,6 +516,6 @@
     "someUnreadable_other": "No se pudieron leer {{count}}."
   },
   "permissions": {
-    "photoLibraryAdd": "Converter guarda las imágenes convertidas directamente en tu fototeca. Nunca lee tu fototeca: tú eliges los archivos con el selector del sistema."
+    "photoLibraryAdd": "{{app}} guarda las imágenes convertidas directamente en tu fototeca. Nunca lee tu fototeca: tú eliges los archivos con el selector del sistema."
   }
 }
