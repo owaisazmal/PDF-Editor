@@ -108,7 +108,7 @@
     "gpsFound": "Location data found. It will be removed from the converted file.",
     "claimedMismatch": "This file is named as {{claimed}} but its contents are {{actual}}. Converting the real format.",
     "willFlatten": "{{format}} has no transparency, so transparent areas become white.",
-    "grewExplanation": "{{source}} compresses this image better than {{target}} can. The conversion is still correct — lower the quality if size matters more than fidelity, or keep the original.",
+    "grewExplanation": "{{source}} compresses this image better than {{target}} can. The conversion is still correct. Lower the quality if size matters more than fidelity, or keep the original.",
     "announceDone": "Converted.",
     "announceFailed": "Conversion failed."
   },
@@ -123,8 +123,8 @@
     "total": "Total",
     "couldNotStart": "Could not start",
     "notificationsOff": "Notifications are off, so this won’t appear in your shade. It still finishes if you leave the app.",
-    "stopped_one": "Stopped. The {{count}} file already converted is below — the rest were left alone.",
-    "stopped_other": "Stopped. The {{count}} files already converted are below — the rest were left alone.",
+    "stopped_one": "Stopped. The {{count}} file already converted is below. The rest were left alone.",
+    "stopped_other": "Stopped. The {{count}} files already converted are below. The rest were left alone.",
     "cancelling": "Cancelling…",
     "nothingToConvert": "Nothing to convert",
     "saveAll_one": "Save {{count}} to Photos",
@@ -135,12 +135,11 @@
     "announceFailures_one": "{{count}} file failed.",
     "announceFailures_other": "{{count}} files failed.",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}",
     "savedAll_one": "Saved {{count}} to Photos",
     "savedAll_other": "Saved {{count}} to Photos"
   },
   "options": {
-    "title": "Settings",
+    "title": "Options",
     "summary_one": "{{count}} file → {{format}}",
     "summary_other": "{{count}} files → {{format}}",
     "estimatedOutput": "Estimated output",
@@ -238,12 +237,12 @@
       }
     },
     "presets": "Presets",
-    "presetsEmpty": "Save these settings to reuse them without rebuilding them.",
+    "presetsEmpty": "Save these options to reuse them without rebuilding them.",
     "applyPreset": "Apply a saved preset",
     "presetName": "Preset name",
     "presetNamePlaceholder": "Email attachments",
     "savePreset": "Save preset",
-    "saveTheseSettings": "Save these settings"
+    "saveTheseOptions": "Save these options"
   },
   "pdf": {
     "locked": "This PDF is locked",
@@ -482,6 +481,23 @@
     "someUnreadable_other": "{{count}} could not be read."
   },
   "permissions": {
-    "photoLibraryAdd": "{{app}} saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker."
+    "photoLibraryAdd": "{{app}} saves your converted images straight to your photo library. It never reads your library. You choose files through the system picker."
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "Match device"
+    },
+    "themeHint": "Only the app changes. A photo converted in dark mode does not come out dark. The fill behind a transparent image is a separate setting, and it never follows this one.",
+    "language": "Language",
+    "languageHint": "Kitefold speaks {{count}} languages and follows the one your device is set to. There is no picker here because your phone already has one, and unlike this screen it can restart the app, which is what switching to or from a right-to-left language needs.",
+    "openSystemSettings": "Open system settings",
+    "about": "About",
+    "madeBy": "Made by Owais Khan. No team, no investors, and no analytics, so there is no way for me to know whether anyone has read this.",
+    "sourceLink": "Source on GitHub",
+    "privacy": "No trackers, no accounts, nothing leaving this device. That is not a promise in a policy. The release build ships without the internet permission, so the system enforces it rather than trusting the code."
   }
 }

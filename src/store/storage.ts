@@ -81,4 +81,5 @@ export const KEYS = {
   history: 'history',
   presets: 'presets',
   lastOptions: 'lastOptions',
+  appearance: 'appearance',
 } as const;

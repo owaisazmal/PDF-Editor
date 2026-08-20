@@ -26,6 +26,7 @@ import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { OptionsScreen } from '@/features/options/OptionsScreen';
 import { HistoryScreen } from '@/features/history/HistoryScreen';
+import { SettingsScreen } from '@/features/settings/SettingsScreen';
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { initI18n } from '@/i18n';
@@ -97,6 +98,7 @@ function Navigation() {
         <Stack.Screen name="Pdf" component={PdfScreen} />
         <Stack.Screen name="Incoming" component={IncomingScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

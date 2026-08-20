@@ -165,3 +165,24 @@ describe('plural resolution reaches the translation', () => {
     expect(resolved.filter((value) => value === englishOther)).toEqual([]);
   });
 });
+
+/**
+ * House style, enforced rather than remembered.
+ *
+ * The em dash is out of the app's copy. It is the kind of rule that holds for exactly as
+ * long as the person who made it is the one writing, and nine translated files are nine
+ * chances for it to come back in — usually because a translator faithfully mirrored an
+ * English construction that no longer exists.
+ *
+ * Only the em dash. The en dash still has a job in ranges, and the hyphen is a letter's
+ * worth of punctuation in half these languages.
+ */
+describe('punctuation the copy does not use', () => {
+  it.each(Object.keys(locales))('%s contains no em dash', (code) => {
+    const offenders = [...flatten(locales[code]!).entries()]
+      .filter(([, value]) => value.includes('\u2014'))
+      .map(([key, value]) => `${key}: ${value}`);
+
+    expect(offenders).toEqual([]);
+  });
+});

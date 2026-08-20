@@ -13,7 +13,13 @@ import { fileGateway } from '@/native';
 import { isBatchFinished, isBatchRunning, useBatchStore } from '@/store/batch';
 import { useTheme } from '@/theme';
 import { imageDefaults } from '@/theme/tokens';
-import { describeSizeChange, formatBytes, formatDuration, formatNumber } from '@/utils/format';
+import {
+  describeSizeChange,
+  formatBytes,
+  formatDuration,
+  formatNumber,
+  formatPercent,
+} from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
 import { errorKey, errorKeyFor, type ErrorKey } from '../convert/errors';
 import { useRecordConversion } from '../history/recording';
@@ -198,9 +204,7 @@ export function BatchScreen({ route, navigation }: Props) {
           <Text variant="mono" color={progress.failedCount > 0 ? 'dangerInk' : 'textTertiary'}>
             {progress.failedCount > 0
               ? t('batch.failedCount', { count: progress.failedCount })
-              : t('batch.percentDone', {
-                  percent: formatNumber(Math.round(progress.fraction * 100)),
-                })}
+              : formatPercent(progress.fraction)}
           </Text>
         </View>
 

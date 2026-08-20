@@ -111,7 +111,7 @@
     "gpsFound": "Données de localisation détectées. Elles seront retirées du fichier converti.",
     "claimedMismatch": "Le nom de ce fichier annonce un {{claimed}}, mais son contenu est un {{actual}}. C’est le format réel qui est converti.",
     "willFlatten": "{{format}} n’a pas de transparence : les zones transparentes deviennent blanches.",
-    "grewExplanation": "{{source}} compresse mieux cette image que {{target}} ne peut le faire. La conversion reste correcte — baissez la qualité si la taille compte plus que la fidélité, ou gardez l’original.",
+    "grewExplanation": "{{source}} compresse mieux cette image que {{target}} ne peut le faire. La conversion reste correcte. Baissez la qualité si la taille compte plus que la fidélité, ou gardez l’original.",
     "announceDone": "Converti.",
     "announceFailed": "Échec de la conversion."
   },
@@ -144,13 +144,12 @@
     "announceFailures_many": "{{count}} fichiers ont échoué.",
     "announceFailures_other": "{{count}} fichiers ont échoué.",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}",
     "savedAll_one": "{{count}} enregistré dans Photos",
     "savedAll_many": "{{count}} enregistrés dans Photos",
     "savedAll_other": "{{count}} enregistrés dans Photos"
   },
   "options": {
-    "title": "Réglages",
+    "title": "Options",
     "summary_one": "{{count}} fichier → {{format}}",
     "summary_many": "{{count}} fichiers → {{format}}",
     "summary_other": "{{count}} fichiers → {{format}}",
@@ -249,12 +248,12 @@
       }
     },
     "presets": "Préréglages",
-    "presetsEmpty": "Enregistrez ces réglages pour les réutiliser sans les refaire.",
+    "presetsEmpty": "Enregistrez ces options pour les réutiliser sans les refaire.",
     "applyPreset": "Appliquer un préréglage enregistré",
     "presetName": "Nom du préréglage",
     "presetNamePlaceholder": "Pièces jointes e-mail",
     "savePreset": "Enregistrer le préréglage",
-    "saveTheseSettings": "Enregistrer ces réglages"
+    "saveTheseOptions": "Enregistrer ces options"
   },
   "pdf": {
     "locked": "Ce PDF est verrouillé",
@@ -516,6 +515,23 @@
     "someUnreadable_other": "{{count}} n’ont pas pu être lus."
   },
   "permissions": {
-    "photoLibraryAdd": "{{app}} enregistre vos images converties directement dans votre photothèque. Il ne lit jamais votre photothèque — vous choisissez les fichiers via le sélecteur du système."
+    "photoLibraryAdd": "{{app}} enregistre vos images converties directement dans votre photothèque. Il ne lit jamais votre photothèque. Vous choisissez les fichiers via le sélecteur du système."
+  },
+  "settings": {
+    "title": "Réglages",
+    "appearance": "Apparence",
+    "theme": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Système"
+    },
+    "themeHint": "Seule l’app change d’apparence. Une photo convertie en mode sombre n’en ressort pas sombre. Le fond appliqué derrière une image transparente est un réglage distinct, qui ne suit jamais celui-ci.",
+    "language": "Langue",
+    "languageHint": "Kitefold parle {{count}} langues et suit celle de votre appareil. Il n’y a pas de sélecteur ici parce que votre téléphone en a déjà un, et contrairement à cet écran, il peut redémarrer l’app, ce qu’exige tout passage vers ou depuis une langue qui s’écrit de droite à gauche.",
+    "openSystemSettings": "Ouvrir les réglages système",
+    "about": "À propos",
+    "madeBy": "Fait par Owais Khan. Pas d’équipe, pas d’investisseurs, aucune statistique d’utilisation. Je n’ai donc aucun moyen de savoir si quelqu’un a lu cette phrase.",
+    "sourceLink": "Code source sur GitHub",
+    "privacy": "Aucun traceur, aucun compte, rien ne quitte cet appareil. Ce n’est pas une promesse dans une politique de confidentialité. La version publiée est livrée sans l’autorisation d’accès à Internet : le système l’impose au lieu de faire confiance au code."
   }
 }

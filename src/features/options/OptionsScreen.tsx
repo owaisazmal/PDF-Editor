@@ -453,7 +453,7 @@ export function OptionsScreen({ route, navigation }: Props) {
           </View>
         ) : (
           <Button
-            label={t('options.saveTheseSettings')}
+            label={t('options.saveTheseOptions')}
             variant="ghost"
             onPress={() => setNamingPreset(true)}
             style={{ marginTop: theme.space.md }}

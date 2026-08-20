@@ -108,7 +108,7 @@
     "gpsFound": "Standortdaten gefunden. Sie werden aus der konvertierten Datei entfernt.",
     "claimedMismatch": "Diese Datei heißt nach {{claimed}}, ihr Inhalt ist aber {{actual}}. Konvertiert wird das echte Format.",
     "willFlatten": "{{format}} kennt keine Transparenz, deshalb werden transparente Bereiche weiß.",
-    "grewExplanation": "{{source}} komprimiert dieses Bild besser, als {{target}} es kann. Die Konvertierung ist trotzdem korrekt — senke die Qualität, wenn die Größe wichtiger ist als die Treue, oder behalte das Original.",
+    "grewExplanation": "{{source}} komprimiert dieses Bild besser, als {{target}} es kann. Die Konvertierung ist trotzdem korrekt. Senke die Qualität, wenn die Größe wichtiger ist als die Treue, oder behalte das Original.",
     "announceDone": "Konvertiert.",
     "announceFailed": "Konvertierung fehlgeschlagen."
   },
@@ -123,8 +123,8 @@
     "total": "Gesamt",
     "couldNotStart": "Konnte nicht starten",
     "notificationsOff": "Mitteilungen sind aus, deshalb erscheint dies nicht in deiner Leiste. Es läuft trotzdem zu Ende, wenn du die App verlässt.",
-    "stopped_one": "Gestoppt. Die {{count}} bereits konvertierte Datei steht unten — der Rest blieb unberührt.",
-    "stopped_other": "Gestoppt. Die {{count}} bereits konvertierten Dateien stehen unten — der Rest blieb unberührt.",
+    "stopped_one": "Gestoppt. Die {{count}} bereits konvertierte Datei steht unten. Der Rest blieb unberührt.",
+    "stopped_other": "Gestoppt. Die {{count}} bereits konvertierten Dateien stehen unten. Der Rest blieb unberührt.",
     "cancelling": "Wird abgebrochen…",
     "nothingToConvert": "Nichts zu konvertieren",
     "saveAll_one": "{{count}} in Fotos sichern",
@@ -135,12 +135,11 @@
     "announceFailures_one": "{{count}} Datei fehlgeschlagen.",
     "announceFailures_other": "{{count}} Dateien fehlgeschlagen.",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}",
     "savedAll_one": "{{count}} in Fotos gesichert",
     "savedAll_other": "{{count}} in Fotos gesichert"
   },
   "options": {
-    "title": "Einstellungen",
+    "title": "Optionen",
     "summary_one": "{{count}} Datei → {{format}}",
     "summary_other": "{{count}} Dateien → {{format}}",
     "estimatedOutput": "Geschätzte Größe",
@@ -238,12 +237,12 @@
       }
     },
     "presets": "Vorlagen",
-    "presetsEmpty": "Sichere diese Einstellungen, um sie wiederzuverwenden, statt sie neu aufzubauen.",
+    "presetsEmpty": "Sichere diese Optionen, um sie wiederzuverwenden, statt sie neu aufzubauen.",
     "applyPreset": "Gesicherte Vorlage anwenden",
     "presetName": "Name der Vorlage",
     "presetNamePlaceholder": "E-Mail-Anhänge",
     "savePreset": "Vorlage sichern",
-    "saveTheseSettings": "Diese Einstellungen sichern"
+    "saveTheseOptions": "Diese Optionen sichern"
   },
   "pdf": {
     "locked": "Dieses PDF ist gesperrt",
@@ -482,6 +481,23 @@
     "someUnreadable_other": "{{count}} ließen sich nicht lesen."
   },
   "permissions": {
-    "photoLibraryAdd": "{{app}} sichert deine konvertierten Bilder direkt in deine Fotomediathek. Die Mediathek selbst wird nie gelesen — du wählst Dateien über die Systemauswahl."
+    "photoLibraryAdd": "{{app}} sichert deine konvertierten Bilder direkt in deine Fotomediathek. Die Mediathek selbst wird nie gelesen. Du wählst Dateien über die Systemauswahl."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "appearance": "Erscheinungsbild",
+    "theme": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "Systemstandard"
+    },
+    "themeHint": "Nur die App ändert sich. Ein Foto, das du bei dunkler Darstellung konvertierst, kommt nicht dunkel heraus. Die Farbe hinter einem transparenten Bild ist eine eigene Einstellung und richtet sich nie nach dieser hier.",
+    "language": "Sprache",
+    "languageHint": "Kitefold spricht {{count}} Sprachen und folgt der, die auf deinem Gerät eingestellt ist. Hier gibt es keine Auswahl, weil dein Telefon schon eine hat, und anders als dieser Bildschirm kann es die App neu starten, was der Wechsel zu oder von einer Rechts-nach-links-Sprache verlangt.",
+    "openSystemSettings": "Systemeinstellungen öffnen",
+    "about": "Über die App",
+    "madeBy": "Gebaut von Owais Khan. Kein Team, keine Investoren, keine Analysedaten und damit keine Möglichkeit für mich, je zu erfahren, ob das hier jemand gelesen hat.",
+    "sourceLink": "Quellcode auf GitHub",
+    "privacy": "Keine Tracker, keine Konten, nichts verlässt dieses Gerät. Das ist kein Versprechen in einer Datenschutzerklärung. Die veröffentlichte Version wird ohne die Internet-Berechtigung ausgeliefert, das System erzwingt es also, statt dem Code zu vertrauen."
   }
 }

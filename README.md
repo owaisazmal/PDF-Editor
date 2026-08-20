@@ -1,7 +1,7 @@
 # Kitefold
 
 A free, fast, 100% on-device image and document converter. HEIC to JPG, WebP, PDF in
-both directions, batch conversion, resize and compress — with no uploads, no account
+both directions, batch conversion, resize and compress, with no uploads, no account
 and no paywall.
 
 Copyright (c) 2026 Owais Khan
@@ -19,10 +19,10 @@ That is a claim, so it is enforced rather than asserted:
 
 | Claim | How it is enforced |
 |---|---|
-| No file ever leaves the device | Android release builds ship **without `android.permission.INTERNET`** — the OS makes a network request impossible. A CI job asserts the permission is absent. |
+| No file ever leaves the device | Android release builds ship **without `android.permission.INTERNET`**, so the OS makes a network request impossible. A CI job asserts the permission is absent. |
 | No tracking, no analytics | `npm run telemetry:check` fails the build if any ads, analytics or telemetry package appears in the dependency tree, transitively included. |
 | "No data collected" on both stores | The generated iOS privacy manifest is verified in CI to declare no tracking and no collected data types. Crash reports come from Xcode Organizer and Play Console Vitals, which need no SDK. |
-| One permission, asked once, refusable | The only runtime permission is `POST_NOTIFICATIONS`, requested on the first batch big enough to outlive the screen. It grants no access to any data, and refusing it does not stop a conversion — Android just does not draw the progress notification. iOS asks for nothing. |
+| One permission, asked once, refusable | The only runtime permission is `POST_NOTIFICATIONS`, requested on the first batch big enough to outlive the screen. It grants no access to any data, and refusing it does not stop a conversion. Android just does not draw the progress notification. iOS asks for nothing. |
 | No copyleft dependency | `npm run license:check` fails on GPL, AGPL, LGPL, SSPL and non-commercial terms. |
 | Accessible colour throughout | Every foreground/background pair in the design system is measured against WCAG AA by a test. |
 
@@ -38,7 +38,7 @@ That is a claim, so it is enforced rather than asserted:
 | JDK | 17 or 21 | `brew install --cask temurin@17` |
 | Android SDK | API 36 | Minimum supported device is API 26. |
 
-This app **cannot run in Expo Go** — it ships custom native code. Use a development
+This app **cannot run in Expo Go**, because it ships custom native code. Use a development
 build.
 
 ### Two environment gotchas
@@ -107,7 +107,7 @@ cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a
 The full document is [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The short version:
 
 **The batch queue lives in native code, not in JavaScript.** JavaScript submits one
-declarative job and then only observes — it never loops over files, holds a buffer, or
+declarative job and then only observes. It never loops over files, holds a buffer, or
 schedules work. That single decision is what makes four things possible at once:
 
 - **Converting while backgrounded.** iOS suspends the JavaScript runtime, so a
@@ -138,7 +138,7 @@ without a second copy of either table. CI fails if a generated file is stale.
 
 ### Nine languages, one catalogue
 
-`src/i18n/locales/*.json` is the only place a user-visible string is written — including
+`src/i18n/locales/*.json` is the only place a user-visible string is written, including
 the ones no JavaScript can reach. The Android foreground service runs while the runtime is
 dead, and the iOS share extension runs none at all, so `plugins/withLocalizations.js`
 compiles their resources out of the same files at prebuild: `values-xx/strings.xml`,
@@ -147,15 +147,15 @@ express. A notification therefore cannot drift out of step with the screen that 
 and the locale test covers both.
 
 Plural forms come from the language, not from English. i18next resolves a count through
-`Intl.PluralRules` and falls back to English when the category is missing — so a catalogue
+`Intl.PluralRules` and falls back to English when the category is missing, so a catalogue
 carrying only `_one` and `_other` leaves an Arabic reader an English sentence for two, three
 and eleven files, which is most of them. Each file carries exactly its own CLDR categories:
 six for Arabic, three for the Romance languages, one for Japanese and Chinese. The test
 asserts that per language rather than against English.
 
 There is no in-app language picker, deliberately. iOS and Android both ship one, both
-relaunch the app when it changes — which is what switching to or from a right-to-left
-language requires — and a picker we built would be the one that could not. What the app owes
+relaunch the app when it changes, which is what switching to or from a right-to-left
+language requires, and a picker we built would be the one that could not. What the app owes
 theirs is a declared list, which the same plugin writes as `CFBundleLocalizations` and
 `res/xml/locales_config.xml`.
 
@@ -173,7 +173,7 @@ src/
   native/      TurboModule specs and typed wrappers
   engine/      format table, detection, options schema, planner
   features/    home, convert, batch, options, pdf, incoming, history
-  components/  design-system primitives — all token-driven
+  components/  design-system primitives, all token-driven
   store/       zustand slices
   theme/       tokens.ts, the contrast utility, the provider
   i18n/        the catalogue: nine locale files and the instance
@@ -183,14 +183,14 @@ native/
   ios/generated/        Tokens.swift, FormatTable.swift
   android/converter/    Kotlin: ImageDecoder, PdfRenderer, PdfDocument
   android/generated/    Tokens.kt, FormatTable.kt
-plugins/       Expo config plugins — native sources, share extension, localisations
+plugins/       Expo config plugins: native sources, share extension, localisations
 scripts/       generators and CI gates
 __tests__/     unit and integration
 docs/          architecture, dependencies, measured contrast
 ```
 
 `ios/` and `android/` are generated by `expo prebuild` and are not the home of any
-hand-written code — everything custom lives under `native/` and is applied during
+hand-written code. Everything custom lives under `native/` and is applied during
 prebuild, so `--clean` is always safe.
 
 ---
@@ -199,8 +199,8 @@ prebuild, so `--clean` is always safe.
 
 1. `npm run verify` must pass before a pull request.
 2. **No colour literal outside `src/theme/tokens.ts`.** ESLint fails the build on a hex
-   or `rgba()` value anywhere else. Colours written into converted image data — the
-   background fill used when flattening transparency — live in `imageDefaults` and are
+   or `rgba()` value anywhere else. Colours written into converted image data, such as the
+   background fill used when flattening transparency, live in `imageDefaults` and are
    deliberately outside the light and dark schemes, because a file converted in dark
    mode must not come out with a dark background.
 3. **Adding a colour means updating `CONTRAST_CONTRACT`.** If a new pairing is not
@@ -213,6 +213,25 @@ prebuild, so `--clean` is always safe.
 
 ## Licence
 
-Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Third-party licences
-are inventoried in [LICENSES.md](LICENSES.md) and shown in the app under
-**Settings › Open Source Licenses**.
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Third-party licences
+are inventoried in [LICENSES.md](LICENSES.md), regenerated by `npm run license:report`
+and enforced in CI by `npm run license:check`.
+
+An in-app licences screen is **not built yet**. This file used to claim there was one,
+under Settings, which was wrong. Worth stating plainly rather than quietly deleting,
+because conveying third-party notices with the binary is an obligation the repository
+inventory does not discharge on its own. It is tracked for release.
+
+## Colophon
+
+Made by [Owais Khan](https://github.com/owaisazmal). No team, no investors, and no
+analytics, which means I have no idea whether anyone has ever read this far, and no way
+to find out. That is the deal, and I would take it again.
+
+Source: **[github.com/owaisazmal/PDF-Editor](https://github.com/owaisazmal/PDF-Editor)**.
+Public, and staying public.
+
+No trackers, no accounts, no data collection, nothing leaving the device. That is not a
+promise in a privacy policy. The release build ships without the `INTERNET` permission,
+so if I ever had second thoughts, Android would refuse to let me act on them. There is no
+server on the other end either, which makes it a short conversation.
