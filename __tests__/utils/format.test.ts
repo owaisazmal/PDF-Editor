@@ -135,3 +135,26 @@ describe('describing how the size changed', () => {
     );
   });
 });
+
+/**
+ * Pins the rounding rather than the formatter.
+ *
+ * These pass on Node whether or not the value is pre-rounded, because Node's ICU honours
+ * `maximumFractionDigits` with `style: 'unit'`. Hermes on iOS does not, and rendered
+ * `4.433 MB` where one decimal was asked for. The rounding is what makes the two agree, so
+ * it is asserted on the value that reaches the screen.
+ */
+describe('sizes and durations round before they are formatted', () => {
+  it('keeps a megabyte to one decimal', () => {
+    expect(formatBytes(4_433_000, 'en-US')).toBe('4.4MB');
+    expect(formatBytes(1_013_000, 'en-US')).toBe('1.0MB');
+  });
+
+  it('keeps a sub-second duration to one decimal', () => {
+    expect(formatDuration(311, 'en-US')).toBe('0.3s');
+  });
+
+  it('drops the decimal once a unit is into double figures', () => {
+    expect(formatBytes(45_600_000, 'en-US')).toBe('46MB');
+  });
+});

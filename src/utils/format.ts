@@ -31,6 +31,23 @@ const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
 const INTL_UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'] as const;
 
 /**
+ * Rounds before formatting, because not every engine rounds afterwards.
+ *
+ * Node's ICU honours `maximumFractionDigits` alongside `style: 'unit'`. Hermes on iOS does
+ * not: its `Intl` is backed by Foundation, and the option is dropped, so a size asked for
+ * to one decimal place came out as `4.433 MB` next to `1.013 MB` next to `2.014 MB`. A
+ * column of file sizes that changes width row by row reads as a bug, and this one was
+ * invisible on the machine the code was written on.
+ *
+ * Rounding here makes the request unnecessary: the number handed to the formatter already
+ * has no digits to drop, so every engine prints the same thing.
+ */
+const roundTo = (value: number, digits: number): number => {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+};
+
+/**
  * Formats a byte count the way a file manager does: 1000-based, one decimal place
  * below 10 of a unit and none above, so sizes stay the same width as they change.
  */
@@ -63,6 +80,7 @@ export function formatBytes(bytes: number, locale: string = activeLocale()): str
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   };
+  const rounded = roundTo(value, fractionDigits);
 
   try {
     return new Intl.NumberFormat(locale, {
@@ -70,11 +88,11 @@ export function formatBytes(bytes: number, locale: string = activeLocale()): str
       style: 'unit',
       unit: INTL_UNITS[unit],
       unitDisplay: 'narrow',
-    }).format(value);
+    }).format(rounded);
   } catch {
     // `style: 'unit'` is the newest part of `Intl` and the first thing a trimmed ICU
     // build drops. English units in the right number format beat no number at all.
-    return `${new Intl.NumberFormat(locale, options).format(value)} ${UNITS[unit]}`;
+    return `${new Intl.NumberFormat(locale, options).format(rounded)} ${UNITS[unit]}`;
   }
 }
 
@@ -121,15 +139,18 @@ export function formatDuration(ms: number, locale: string = activeLocale()): str
       maximumFractionDigits: digits,
       ...(pad ? { minimumIntegerDigits: 2 } : {}),
     };
+    // Same reason as `formatBytes`: an engine that drops the digit limit turned 311 ms
+    // into "0.311 sec" where one decimal was asked for.
+    const amount = roundTo(value, digits);
     try {
       return new Intl.NumberFormat(locale, {
         ...options,
         style: 'unit',
         unit: name,
         unitDisplay: 'narrow',
-      }).format(value);
+      }).format(amount);
     } catch {
-      return `${new Intl.NumberFormat(locale, options).format(value)}${name === 'second' ? 's' : 'm'}`;
+      return `${new Intl.NumberFormat(locale, options).format(amount)}${name === 'second' ? 's' : 'm'}`;
     }
   };
 
