@@ -3,6 +3,7 @@
 
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
+import { SectionLabel } from './SectionLabel';
 import { Text } from './Text';
 import { useTheme } from '@/theme';
 
@@ -53,9 +54,13 @@ export function SegmentedControl<T extends string>({
 
   return (
     <View style={style} testID={testID}>
-      <Text variant="label" color="textSecondary">
-        {label}
-      </Text>
+      {/*
+        The same component every other section heading uses, so a segmented control's
+        label is not the one heading on a screen in a different case. When SectionLabel
+        started uppercasing, this was left behind and the settings screen ended up
+        reading "Appearance" above "LANGUAGE" and "ABOUT".
+      */}
+      <SectionLabel>{label}</SectionLabel>
 
       <View
         style={[
