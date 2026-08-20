@@ -200,11 +200,11 @@ module.exports = function withShareExtension(config) {
       project.addToPbxGroup(resources.uuid, rootGroupKey);
     }
 
-    project.addResourceFile(
-      `${TARGET_NAME}/PrivacyInfo.xcprivacy`,
-      { target: target.uuid },
-      group.uuid,
-    );
+    // Bare filename, for the same reason the sources above are: this group carries the
+    // path. Prefixing it asked the build for
+    // `ios/ShareExtension/ShareExtension/PrivacyInfo.xcprivacy`, which is precisely what
+    // the comment four lines up predicts and exactly how it failed.
+    project.addResourceFile('PrivacyInfo.xcprivacy', { target: target.uuid }, group.uuid);
 
     /**
      * The engine files are referenced where the app already has them, so the two targets
