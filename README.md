@@ -1,4 +1,4 @@
-# Converter
+# Kitefold
 
 A free, fast, 100% on-device image and document converter. HEIC to JPG, WebP, PDF in
 both directions, batch conversion, resize and compress — with no uploads, no account

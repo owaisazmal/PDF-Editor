@@ -124,7 +124,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import plistlib, sys
-          manifest = plistlib.load(open('ios/Converter/PrivacyInfo.xcprivacy', 'rb'))
+          manifest = plistlib.load(open('ios/Kitefold/PrivacyInfo.xcprivacy', 'rb'))
           problems = []
           if manifest.get('NSPrivacyTracking') is not False:
               problems.append('NSPrivacyTracking must be false')
@@ -147,8 +147,8 @@ jobs:
         run: |
           cd ios
           xcodebuild build \
-            -workspace Converter.xcworkspace \
-            -scheme Converter \
+            -workspace Kitefold.xcworkspace \
+            -scheme Kitefold \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \

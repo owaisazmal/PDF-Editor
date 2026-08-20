@@ -24,16 +24,16 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Convert</string>
+	<string>Kitefold</string>
 	<key>CFBundleName</key>
-	<string>Convert</string>
+	<string>Kitefold</string>
 	<key>CFBundlePackageType</key>
 	<string>XPC!</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (c) 2026 Owais Khan. Licensed under the Apache License, Version 2.0.</string>
 	<!-- The extension writes converted images to the library and never reads from it. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Converter saves your converted images straight to your photo library. It never reads your library.</string>
+	<string>Kitefold saves your converted images straight to your photo library. It never reads your library.</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

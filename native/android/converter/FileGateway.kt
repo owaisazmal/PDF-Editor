@@ -99,7 +99,7 @@ public object FileGateway {
         put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
         put(MediaStore.MediaColumns.MIME_TYPE, mimeTypeFor(file))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Converter")
+          put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Kitefold")
           put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
       }
@@ -128,7 +128,7 @@ public object FileGateway {
       val values = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
         put(MediaStore.MediaColumns.MIME_TYPE, mimeTypeFor(file))
-        put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Converter")
+        put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Kitefold")
         put(MediaStore.MediaColumns.IS_PENDING, 1)
       }
 
