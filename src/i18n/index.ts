@@ -22,6 +22,11 @@ import zh from './locales/zh.json';
 /**
  * Nine languages, chosen for reach rather than for how easy they are.
  *
+ * There is no list of which ones are right-to-left, and there deliberately is not: the app
+ * no longer decides direction. Both platforms resolve it from the locale before the process
+ * starts, and `applyDirection` below only permits it. A hand-kept list of RTL languages here
+ * would look load-bearing while affecting nothing.
+ *
  * Eight of them cover the largest App Store and Play markets for a utility of this kind.
  * The ninth is Arabic, and it is here to make right-to-left a real constraint rather than
  * a theoretical one: a layout that has never been run in RTL is a layout that does not
@@ -46,8 +51,6 @@ export const SUPPORTED_LANGUAGES = {
 export type LanguageCode = keyof typeof SUPPORTED_LANGUAGES;
 
 export const LANGUAGE_CODES = Object.keys(SUPPORTED_LANGUAGES) as LanguageCode[];
-
-export const RTL_LANGUAGES: readonly LanguageCode[] = ['ar'];
 
 const resources = {
   en: { translation: en },
@@ -77,36 +80,45 @@ export function deviceLanguage(): LanguageCode {
   return 'en';
 }
 
-export const isRTL = (language: LanguageCode): boolean => RTL_LANGUAGES.includes(language);
-
 /**
- * Aligns the layout direction with the language.
+ * Permits right-to-left, and then gets out of the way.
  *
- * React Native decides direction once, at startup, from `I18nManager`. Changing it at
- * runtime leaves half the tree laid out the old way, so this only ever runs before the
- * first render.
+ * It is tempting to call `forceRTL` with the direction the chosen language wants. Doing
+ * that is wrong here, and wrong in a way that only shows up on a real device: `forceRTL`
+ * writes a native preference that is read at process start, so it never affects the launch
+ * that calls it — only the next one.
  *
- * There is deliberately no in-app language picker. Both platforms now carry one of their
- * own — Settings › Converter › Language on iOS, and the same under App info on Android 13
- * and later — and they restart the app when the choice changes, which is exactly what
- * changing direction requires. Building a second picker inside the app would mean two
- * places to set one thing, and the one we built would be the one that cannot relaunch.
- * What the app owes those pickers is a declared language list, which
- * `plugins/withLocalizations.js` writes into both platforms from this same catalogue.
+ * Play that through. Someone switches the app from Arabic to English in the system's
+ * per-app language setting. The OS kills and relaunches the app, which is the restart the
+ * direction change needs. But the relaunch happens BEFORE any JavaScript runs, so this
+ * function is called during a process that has already laid itself out right-to-left, sets
+ * the preference for a launch that has not happened, and returns. The user gets English
+ * text in a mirrored layout — arrows pointing backwards, the grid reversed — until they
+ * kill the app and open it a second time. Caught in a screenshot, not in a test.
+ *
+ * `allowRTL(true)` alone is correct because this app follows the system rather than
+ * overriding it. Both platforms resolve the app's locale before the process starts and lay
+ * the first frame out accordingly, so direction is already right on the launch that matters
+ * — including the very first one after a language change. The catalogue and the layout read
+ * the same resolved locale, so they cannot disagree.
+ *
+ * That resolution is only trustworthy because the app declares its languages: Android reads
+ * `res/xml/locales_config.xml` and iOS reads `CFBundleLocalizations`, both written by
+ * `plugins/withLocalizations.js`. A device set to Hebrew therefore falls back to English
+ * AND to left-to-right, rather than to an English catalogue in a mirrored frame.
+ *
+ * There is deliberately no in-app language picker. Both platforms carry one already, and
+ * theirs relaunches the app; ours could not.
  */
-function applyDirection(language: LanguageCode): void {
-  const wantsRTL = isRTL(language);
-  if (I18nManager.isRTL === wantsRTL) return;
-
-  I18nManager.allowRTL(wantsRTL);
-  I18nManager.forceRTL(wantsRTL);
+function applyDirection(): void {
+  I18nManager.allowRTL(true);
 }
 
 /** One instance, created here rather than taken from the module's default export. */
 export const i18n = createInstance();
 
 export function initI18n(language: LanguageCode = deviceLanguage()): typeof i18n {
-  applyDirection(language);
+  applyDirection();
 
   void i18n.use(initReactI18next).init({
     resources,

@@ -5,6 +5,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 // eslint-disable-next-line no-restricted-imports -- the one place the OS scheme is read.
 import { useColorScheme, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
 
+import { resolveScheme, useAppearanceStore } from '@/store/appearance';
 import {
   colors,
   duration,
@@ -53,11 +54,14 @@ const ThemeContext = createContext<Theme | null>(null);
 const MAX_FONT_SCALE = 1.6;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Still subscribed even when the mode is not `system`: the hook has to be called
+  // unconditionally, and its value is simply ignored for an explicit choice.
   const osScheme = useColorScheme();
+  const mode = useAppearanceStore((state) => state.mode);
   const { fontScale } = useWindowDimensions();
 
   const value = useMemo<Theme>(() => {
-    const scheme: ColorSchemeName = osScheme === 'dark' ? 'dark' : 'light';
+    const scheme: ColorSchemeName = resolveScheme(mode, osScheme);
     const color = colors[scheme];
     const scale = Math.min(Math.max(fontScale, 1), MAX_FONT_SCALE);
 
@@ -92,7 +96,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         };
       },
     };
-  }, [osScheme, fontScale]);
+  }, [mode, osScheme, fontScale]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

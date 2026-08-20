@@ -144,13 +144,12 @@
     "announceFailures_many": "{{count}} de archivos fallaron.",
     "announceFailures_other": "{{count}} archivos fallaron.",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}",
     "savedAll_one": "{{count}} guardado en Fotos",
     "savedAll_many": "{{count}} guardados en Fotos",
     "savedAll_other": "{{count}} guardados en Fotos"
   },
   "options": {
-    "title": "Ajustes",
+    "title": "Opciones",
     "summary_one": "{{count}} archivo → {{format}}",
     "summary_many": "{{count}} de archivos → {{format}}",
     "summary_other": "{{count}} archivos → {{format}}",
@@ -249,12 +248,12 @@
       }
     },
     "presets": "Preajustes",
-    "presetsEmpty": "Guarda estos ajustes para reutilizarlos sin volver a configurarlos.",
+    "presetsEmpty": "Guarda estas opciones para reutilizarlas sin volver a configurarlas.",
     "applyPreset": "Aplicar un preajuste guardado",
     "presetName": "Nombre del preajuste",
     "presetNamePlaceholder": "Adjuntos de correo",
     "savePreset": "Guardar preajuste",
-    "saveTheseSettings": "Guardar estos ajustes"
+    "saveTheseOptions": "Guardar estas opciones"
   },
   "pdf": {
     "locked": "Este PDF está bloqueado",
@@ -517,5 +516,22 @@
   },
   "permissions": {
     "photoLibraryAdd": "{{app}} guarda las imágenes convertidas directamente en tu fototeca. Nunca lee tu fototeca: tú eliges los archivos con el selector del sistema."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "appearance": "Aspecto",
+    "theme": {
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Del sistema"
+    },
+    "themeHint": "Solo cambia la app. Una foto convertida en modo oscuro no sale oscura: el fondo que se pone detrás de una imagen transparente es otro ajuste y nunca sigue a este.",
+    "language": "Idioma",
+    "languageHint": "Kitefold habla {{count}} idiomas y usa el que tenga configurado tu dispositivo. Aquí no hay selector porque tu teléfono ya tiene uno y, a diferencia de esta pantalla, puede reiniciar la app, que es justo lo que hace falta al cambiar a un idioma que se escribe de derecha a izquierda, o al dejarlo.",
+    "openSystemSettings": "Abrir los ajustes del sistema",
+    "about": "Acerca de",
+    "madeBy": "Hecha por Owais Khan. Sin equipo, sin inversores y sin analíticas, así que nunca sabré si alguien ha llegado a leer esto.",
+    "sourceLink": "Código fuente en GitHub",
+    "privacy": "Sin rastreadores, sin cuentas y sin nada que salga de este dispositivo. No es una promesa escrita en una política: la versión que se publica va sin el permiso de internet, así que lo impone el sistema en lugar de fiarse del código."
   }
 }

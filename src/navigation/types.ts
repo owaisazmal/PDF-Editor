@@ -12,6 +12,8 @@ export type RootStackParamList = {
   Incoming: undefined;
   /** What has been converted on this device. */
   History: undefined;
+  /** The app's own settings — appearance, language, and who made it. */
+  Settings: undefined;
 };
 
 declare global {

@@ -187,6 +187,17 @@ export function describeSizeChange(
   };
 }
 
+/**
+ * A fraction as a percentage.
+ *
+ * Takes the fraction rather than the whole number, because `Intl` wants it that way and
+ * because the alternative — interpolating a number into a key that carries a literal `%` —
+ * is how the progress readout came to render a bare `100`. The sign is punctuation, and
+ * punctuation belongs to the formatter.
+ */
+export const formatPercent = (fraction: number, locale: string = activeLocale()): string =>
+  new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(fraction);
+
 /** A bare number for display — slider values, page counts, anything not a size. */
 export const formatNumber = (value: number, locale: string = activeLocale()): string =>
   new Intl.NumberFormat(locale).format(value);

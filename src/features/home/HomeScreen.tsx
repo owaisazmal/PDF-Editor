@@ -143,14 +143,38 @@ export function HomeScreen({ navigation }: Props) {
       <View style={{ marginBottom: theme.space['3xl'] }}>
         <View style={styles.header}>
           <Text variant="display">{t('home.title')}</Text>
-          {/* Only once there is something to look at. An empty history behind a
-              permanent button is a dead end offered on every launch. */}
-          {historyCount > 0 ? (
+
+          <View style={styles.headerActions}>
+            {/* Only once there is something to look at. An empty history behind a
+                permanent button is a dead end offered on every launch. */}
+            {historyCount > 0 ? (
+              <Pressable
+                testID="open-history"
+                accessibilityRole="button"
+                accessibilityLabel={t('home.historyLabel', { count: historyCount })}
+                onPress={() => navigation.navigate('History')}
+                style={({ pressed }) => [
+                  styles.headerAction,
+                  {
+                    backgroundColor: theme.color.bgSunken,
+                    borderRadius: theme.radius.pill,
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <Text variant="label" color="textSecondary" heading>
+                  {t('home.history')}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {/* Always present, unlike History: it is where the appearance setting lives,
+                and a setting nobody can reach is a setting nobody has. */}
             <Pressable
-              testID="open-history"
+              testID="open-settings"
               accessibilityRole="button"
-              accessibilityLabel={t('home.historyLabel', { count: historyCount })}
-              onPress={() => navigation.navigate('History')}
+              accessibilityLabel={t('settings.title')}
+              onPress={() => navigation.navigate('Settings')}
               style={({ pressed }) => [
                 styles.headerAction,
                 {
@@ -161,10 +185,10 @@ export function HomeScreen({ navigation }: Props) {
               ]}
             >
               <Text variant="label" color="textSecondary" heading>
-                {t('home.history')}
+                {t('settings.title')}
               </Text>
             </Pressable>
-          ) : null}
+          </View>
         </View>
         <Text variant="body" color="textSecondary" style={{ marginTop: theme.space.sm }}>
           {t('home.promise')}
@@ -211,6 +235,7 @@ export function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerAction: { paddingHorizontal: 16, paddingVertical: 8 },
   // Negative margin cancels the per-cell padding so the grid aligns with the page edge.
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },

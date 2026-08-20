@@ -144,13 +144,12 @@
     "announceFailures_many": "{{count}} di file non riusciti.",
     "announceFailures_other": "{{count}} file non riusciti.",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}",
     "savedAll_one": "Salvato {{count}} in Foto",
     "savedAll_many": "Salvati {{count}} in Foto",
     "savedAll_other": "Salvati {{count}} in Foto"
   },
   "options": {
-    "title": "Impostazioni",
+    "title": "Opzioni",
     "summary_one": "{{count}} file → {{format}}",
     "summary_many": "{{count}} di file → {{format}}",
     "summary_other": "{{count}} file → {{format}}",
@@ -249,12 +248,12 @@
       }
     },
     "presets": "Preset",
-    "presetsEmpty": "Salva queste impostazioni per riutilizzarle senza rifarle.",
+    "presetsEmpty": "Salva queste opzioni per riutilizzarle senza rifarle.",
     "applyPreset": "Applica un preset salvato",
     "presetName": "Nome del preset",
     "presetNamePlaceholder": "Allegati email",
     "savePreset": "Salva preset",
-    "saveTheseSettings": "Salva queste impostazioni"
+    "saveTheseOptions": "Salva queste opzioni"
   },
   "pdf": {
     "locked": "Questo PDF è bloccato",
@@ -517,5 +516,22 @@
   },
   "permissions": {
     "photoLibraryAdd": "{{app}} salva le immagini convertite direttamente nella tua libreria foto. Non legge mai la libreria: i file li scegli tu con il selettore di sistema."
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "appearance": "Aspetto",
+    "theme": {
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "system": "Sistema"
+    },
+    "themeHint": "Cambia solo l’app. Una foto convertita in modalità scura non viene scura: lo sfondo dietro un’immagine trasparente è un’impostazione a parte e non segue mai questa.",
+    "language": "Lingua",
+    "languageHint": "Kitefold parla {{count}} lingue e segue quella impostata sul dispositivo. Qui non c’è un selettore perché il telefono ne ha già uno e, a differenza di questa schermata, può riavviare l’app: cosa che serve per entrare o uscire da una lingua che si scrive da destra a sinistra.",
+    "openSystemSettings": "Apri le impostazioni di sistema",
+    "about": "Informazioni",
+    "madeBy": "Fatto da Owais Khan. Nessun team, nessun investitore e nessuna statistica d’uso: non saprò mai se qualcuno ha letto questa frase.",
+    "sourceLink": "Codice sorgente su GitHub",
+    "privacy": "Nessun tracciamento, nessun account, niente che esca da questo dispositivo. Non è una promessa scritta in un’informativa: la versione pubblicata non ha il permesso di accedere a internet, quindi a garantirlo è il sistema operativo, non la fiducia nel codice."
   }
 }

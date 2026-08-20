@@ -126,11 +126,10 @@
     "announceFinished": "{{total}} 件中 {{done}} 件を変換しました。",
     "announceFailures_other": "{{count}} 件のファイルが失敗しました。",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}",
     "savedAll_other": "{{count}} 件を写真に保存しました"
   },
   "options": {
-    "title": "設定",
+    "title": "オプション",
     "summary_other": "{{count}} ファイル → {{format}}",
     "estimatedOutput": "推定サイズ",
     "measuring": "計測中…",
@@ -227,12 +226,12 @@
       }
     },
     "presets": "プリセット",
-    "presetsEmpty": "この設定を保存すると、次回は作り直さずに使えます。",
+    "presetsEmpty": "このオプションを保存すると、次回は作り直さずに使えます。",
     "applyPreset": "保存したプリセットを適用",
     "presetName": "プリセット名",
     "presetNamePlaceholder": "メール添付用",
     "savePreset": "プリセットを保存",
-    "saveTheseSettings": "この設定を保存"
+    "saveTheseOptions": "このオプションを保存"
   },
   "pdf": {
     "locked": "この PDF はロックされています",
@@ -449,5 +448,22 @@
   },
   "permissions": {
     "photoLibraryAdd": "{{app}} は変換した画像を写真ライブラリに直接保存します。ライブラリを読み取ることはありません。ファイルはシステムの選択画面から選びます。"
+  },
+  "settings": {
+    "title": "設定",
+    "appearance": "外観",
+    "theme": {
+      "light": "ライト",
+      "dark": "ダーク",
+      "system": "システムに合わせる"
+    },
+    "themeHint": "変わるのはアプリの見た目だけです。ダークモードで変換しても写真が暗くなることはありません。透明な部分を塗る背景色は別の設定で、この設定に従うことはありません。",
+    "language": "言語",
+    "languageHint": "Kitefold は {{count}} 言語に対応し、端末で設定されている言語に従います。ここに切り替えがないのは、端末の設定にすでにあるからです。端末の設定ならアプリを再起動でき、右から左に書く言語との切り替えにはそれが必要です。",
+    "openSystemSettings": "端末の設定を開く",
+    "about": "このアプリについて",
+    "madeBy": "Owais Khan が作りました。チームも出資者もおらず、解析も入れていないので、この一文が誰かに読まれたのかどうかは知りようがありません。",
+    "sourceLink": "GitHub のソースコード",
+    "privacy": "トラッカーもアカウントもなく、この端末から出ていくデータもありません。これはポリシーに書いた約束ではありません。リリース版はインターネット権限を持たずに配布されるため、コードを信用するのではなく、OS が強制します。"
   }
 }

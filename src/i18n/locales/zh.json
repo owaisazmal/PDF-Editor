@@ -105,7 +105,7 @@
     "gpsFound": "检测到位置信息。转换后的文件中会被移除。",
     "claimedMismatch": "此文件名标示为 {{claimed}}，但内容实际是 {{actual}}。将按实际格式转换。",
     "willFlatten": "{{format}} 不支持透明，透明区域会变成白色。",
-    "grewExplanation": "{{source}} 对这张图片的压缩效果好于 {{target}}。转换结果本身没有问题——如果大小比画质更重要，可以降低画质，或者保留原文件。",
+    "grewExplanation": "{{source}} 对这张图片的压缩效果好于 {{target}}。转换结果本身没有问题。如果大小比画质更重要，可以降低画质，或者保留原文件。",
     "announceDone": "转换完成。",
     "announceFailed": "转换失败。"
   },
@@ -126,11 +126,10 @@
     "announceFinished": "已转换 {{done}}/{{total}}。",
     "announceFailures_other": "{{count}} 个文件转换失败。",
     "progressCount": "{{done}} / {{total}}",
-    "percentDone": "{{percent}}%",
     "savedAll_other": "已保存 {{count}} 个到照片"
   },
   "options": {
-    "title": "设置",
+    "title": "选项",
     "summary_other": "{{count}} 个文件 → {{format}}",
     "estimatedOutput": "预计大小",
     "measuring": "正在测量…",
@@ -227,12 +226,12 @@
       }
     },
     "presets": "预设",
-    "presetsEmpty": "保存当前设置，下次无需重新调整。",
+    "presetsEmpty": "保存当前选项，下次无需重新调整即可复用。",
     "applyPreset": "应用已保存的预设",
     "presetName": "预设名称",
     "presetNamePlaceholder": "邮件附件",
     "savePreset": "保存预设",
-    "saveTheseSettings": "保存当前设置"
+    "saveTheseOptions": "保存当前选项"
   },
   "pdf": {
     "locked": "此 PDF 已加密",
@@ -448,6 +447,23 @@
     "someUnreadable_other": "有 {{count}} 个无法读取。"
   },
   "permissions": {
-    "photoLibraryAdd": "{{app}} 会把转换后的图片直接保存到你的照片图库。它从不读取你的图库——文件由你通过系统选择器来选。"
+    "photoLibraryAdd": "{{app}} 会把转换后的图片直接保存到你的照片图库。它从不读取你的图库。文件由你通过系统选择器来选。"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "theme": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    },
+    "themeHint": "只有应用本身会变。在深色模式下转换的照片不会变暗。透明区域的填充色是另一项设置，永远不会跟随这里。",
+    "language": "语言",
+    "languageHint": "Kitefold 支持 {{count}} 种语言，跟随你设备设定的那一种。这里没有语言选项，因为手机上已经有一个，而且不同于本页面，它能重启应用。切换到或离开从右往左书写的语言时，正需要重启。",
+    "openSystemSettings": "打开系统设置",
+    "about": "关于",
+    "madeBy": "由 Owais Khan 制作。没有团队，没有投资人，也没有任何数据统计，所以这句话有没有人看过，我也无从得知。",
+    "sourceLink": "在 GitHub 上查看源码",
+    "privacy": "没有追踪器，没有账号，没有任何东西离开这台设备。这不是隐私政策里的一句承诺。正式版在打包时就不带联网权限，所以这一点由系统强制执行，而不是靠代码自觉。"
   }
 }
