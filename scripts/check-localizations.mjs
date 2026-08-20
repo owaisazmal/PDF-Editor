@@ -20,6 +20,14 @@ import path from 'node:path';
 import process from 'node:process';
 
 const root = process.cwd();
+
+/**
+ * The iOS project and target are named after the app, so the paths below follow whatever
+ * app.json says rather than a literal. Hardcoding the name meant a rename silently pointed
+ * this check at a directory that no longer existed — and a check that cannot find its
+ * subject passes.
+ */
+const appName = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo.name;
 const locales = fs
   .readdirSync(path.join(root, 'src', 'i18n', 'locales'))
   .filter((entry) => entry.endsWith('.json'))
@@ -78,7 +86,7 @@ function checkAndroid() {
  * right, built clean, and shipped an extension with no translations in it.
  */
 function checkIos() {
-  const projectFile = path.join(root, 'ios', 'Converter.xcodeproj', 'project.pbxproj');
+  const projectFile = path.join(root, 'ios', `${appName}.xcodeproj`, 'project.pbxproj');
   if (!fs.existsSync(projectFile)) return;
   checked.push('ios');
 
@@ -106,7 +114,7 @@ function checkIos() {
     }
   }
 
-  for (const directory of ['Converter', 'ShareExtension']) {
+  for (const directory of [appName, 'ShareExtension']) {
     for (const language of locales) {
       const lproj = path.join(root, 'ios', directory, `${language}.lproj`);
       if (!fs.existsSync(lproj)) {
@@ -115,7 +123,7 @@ function checkIos() {
     }
   }
 
-  const plist = path.join(root, 'ios', 'Converter', 'Info.plist');
+  const plist = path.join(root, 'ios', appName, 'Info.plist');
   if (fs.existsSync(plist) && !fs.readFileSync(plist, 'utf8').includes('CFBundleLocalizations')) {
     problems.push('ios: Info.plist does not declare CFBundleLocalizations, so the system language picker will not list this app');
   }

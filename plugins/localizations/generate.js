@@ -69,16 +69,15 @@ const IOS_PLURALS = [
 /**
  * Info.plist values read by the system rather than by our code.
  *
- * `CFBundleDisplayName` is the one people actually see most: it is the label under the
- * icon in the share sheet, and without a localised override it says the English word to
- * everyone. It reuses `home.title` rather than getting a key of its own, because the entry
- * in the share sheet and the verb on the home screen should be the same word — and that
- * word is already translated nine times.
+ * Only the usage description is here, and `CFBundleDisplayName` deliberately is not.
+ * Localising it was a mistake worth recording: the label under the icon in the share sheet
+ * is an app's *identity*, not a description of what it does. Translating it to the local
+ * word for "convert" means a Japanese user picking between several converters sees 変換 and
+ * cannot tell which app it is — and a brand name is the one string that should read the
+ * same everywhere. The extension's Info.plist carries the product name statically.
  */
 const IOS_INFO_PLIST_STRINGS = [
   { entry: 'NSPhotoLibraryAddUsageDescription', key: 'permissions.photoLibraryAdd' },
-  { entry: 'CFBundleDisplayName', key: 'home.title' },
-  { entry: 'CFBundleName', key: 'home.title' },
 ];
 
 function readCatalogue(projectRoot) {

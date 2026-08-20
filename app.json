@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Converter",
-    "slug": "converter",
+    "name": "Kitefold",
+    "slug": "kitefold",
     "version": "0.1.0",
     "orientation": "default",
-    "scheme": "converter",
+    "scheme": "kitefold",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.owaiskhan.converter",
+      "bundleIdentifier": "com.owaiskhan.kitefold",
       "supportsTablet": true,
       "requireFullScreen": false,
       "infoPlist": {
         "NSHumanReadableCopyright": "Copyright (c) 2026 Owais Khan. Licensed under the Apache License, Version 2.0.",
-        "NSPhotoLibraryAddUsageDescription": "Converter saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker.",
+        "NSPhotoLibraryAddUsageDescription": "Kitefold saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker.",
         "CFBundleAllowMixedLocalizations": true,
         "UIViewControllerBasedStatusBarAppearance": false,
         "ITSAppUsesNonExemptEncryption": false,
@@ -72,7 +72,7 @@
       }
     },
     "android": {
-      "package": "com.owaiskhan.converter",
+      "package": "com.owaiskhan.kitefold",
       "permissions": [],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",

@@ -14,7 +14,9 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
-import com.owaiskhan.converter.R
+// `R` is generated into the module's namespace, which is the applicationId — not
+// into this file's own Kotlin package. The two are deliberately different.
+import com.owaiskhan.kitefold.R
 import com.owaiskhan.converter.theme.Tokens
 import java.util.concurrent.atomic.AtomicLong
 
