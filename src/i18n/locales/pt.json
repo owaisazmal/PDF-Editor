@@ -516,6 +516,6 @@
     "someUnreadable_other": "{{count}} não puderam ser lidos."
   },
   "permissions": {
-    "photoLibraryAdd": "O Converter salva as imagens convertidas direto na sua fototeca. Ele nunca lê a sua fototeca — você escolhe os arquivos pelo seletor do sistema."
+    "photoLibraryAdd": "O {{app}} salva as imagens convertidas direto na sua fototeca. Ele nunca lê a sua fototeca — você escolhe os arquivos pelo seletor do sistema."
   }
 }

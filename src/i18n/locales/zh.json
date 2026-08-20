@@ -448,6 +448,6 @@
     "someUnreadable_other": "有 {{count}} 个无法读取。"
   },
   "permissions": {
-    "photoLibraryAdd": "Converter 会把转换后的图片直接保存到你的照片图库。它从不读取你的图库——文件由你通过系统选择器来选。"
+    "photoLibraryAdd": "{{app}} 会把转换后的图片直接保存到你的照片图库。它从不读取你的图库——文件由你通过系统选择器来选。"
   }
 }

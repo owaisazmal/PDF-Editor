@@ -482,6 +482,6 @@
     "someUnreadable_other": "{{count}} could not be read."
   },
   "permissions": {
-    "photoLibraryAdd": "Converter saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker."
+    "photoLibraryAdd": "{{app}} saves your converted images straight to your photo library. It never reads your library — you choose files through the system picker."
   }
 }

@@ -482,6 +482,6 @@
     "someUnreadable_other": "{{count}} ließen sich nicht lesen."
   },
   "permissions": {
-    "photoLibraryAdd": "Converter sichert deine konvertierten Bilder direkt in deine Fotomediathek. Die Mediathek selbst wird nie gelesen — du wählst Dateien über die Systemauswahl."
+    "photoLibraryAdd": "{{app}} sichert deine konvertierten Bilder direkt in deine Fotomediathek. Die Mediathek selbst wird nie gelesen — du wählst Dateien über die Systemauswahl."
   }
 }

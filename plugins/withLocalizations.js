@@ -104,6 +104,7 @@ module.exports = function withLocalizations(config) {
       readCatalogue(modConfig.modRequest.projectRoot),
       modConfig.modRequest.platformProjectRoot,
       appName,
+      config.name,
     );
 
     for (const language of languages()) {

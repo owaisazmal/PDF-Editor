@@ -516,6 +516,6 @@
     "someUnreadable_other": "{{count}} n’ont pas pu être lus."
   },
   "permissions": {
-    "photoLibraryAdd": "Converter enregistre vos images converties directement dans votre photothèque. Il ne lit jamais votre photothèque — vous choisissez les fichiers via le sélecteur du système."
+    "photoLibraryAdd": "{{app}} enregistre vos images converties directement dans votre photothèque. Il ne lit jamais votre photothèque — vous choisissez les fichiers via le sélecteur du système."
   }
 }
