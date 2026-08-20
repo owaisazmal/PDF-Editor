@@ -55,7 +55,7 @@ jobs:
         # that skipped the extension entirely because a target lookup came back null.
         run: |
           npx expo prebuild --clean --no-install
-          npm run localizations:check
+          node scripts/check-localizations.mjs --require-both
 
       - name: Unit and integration tests
         run: npm run test:ci

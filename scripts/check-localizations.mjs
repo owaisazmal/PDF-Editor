@@ -129,8 +129,72 @@ function checkIos() {
   }
 }
 
+/**
+ * The app's identity, as it actually landed in each platform project.
+ *
+ * Added because a rename is the one change that can leave every other check green while
+ * the app is half-renamed: the gates read generated paths, and a path that no longer
+ * exists makes a check skip rather than fail. Nothing in CI asserted the applicationId,
+ * the namespace or the bundle identifier at all until this.
+ */
+function checkIdentity() {
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo;
+
+  const gradle = path.join(root, 'android', 'app', 'build.gradle');
+  if (fs.existsSync(gradle)) {
+    const body = fs.readFileSync(gradle, 'utf8');
+    for (const field of ['namespace', 'applicationId']) {
+      const found = new RegExp(`${field}\\s+['"]([^'"]+)['"]`).exec(body)?.[1];
+      if (found !== config.android.package) {
+        problems.push(`android: ${field} is ${found}, expected ${config.android.package}`);
+      }
+    }
+  }
+
+  const plist = path.join(root, 'ios', appName, 'Info.plist');
+  if (fs.existsSync(plist)) {
+    const body = fs.readFileSync(plist, 'utf8');
+    // The template leaves this as $(PRODUCT_BUNDLE_IDENTIFIER); the real value is in the
+    // build settings, so the project file is where it has to be read from.
+    const project = fs.readFileSync(
+      path.join(root, 'ios', `${appName}.xcodeproj`, 'project.pbxproj'),
+      'utf8',
+    );
+    if (!project.includes(config.ios.bundleIdentifier)) {
+      problems.push(`ios: no build setting carries ${config.ios.bundleIdentifier}`);
+    }
+    // The extension's id is derived, and a non-clean prebuild can leave it stale.
+    if (!project.includes(`${config.ios.bundleIdentifier}.ShareExtension`)) {
+      problems.push(
+        `ios: the share extension is not ${config.ios.bundleIdentifier}.ShareExtension — ` +
+          'a prebuild without --clean leaves the old identifier in place',
+      );
+    }
+    if (!body.includes('CFBundleDisplayName') && !body.includes('CFBundleName')) {
+      problems.push('ios: Info.plist declares neither CFBundleName nor CFBundleDisplayName');
+    }
+  }
+
+  // A rename leaves the previous platform directories behind, and they build.
+  for (const stale of fs.existsSync(path.join(root, 'ios')) ? fs.readdirSync(path.join(root, 'ios')) : []) {
+    if (stale.endsWith('.xcodeproj') && stale !== `${appName}.xcodeproj`) {
+      problems.push(`ios: ${stale} is left over from a previous name — run a --clean prebuild`);
+    }
+  }
+}
+
 checkAndroid();
 checkIos();
+checkIdentity();
+
+// CI passes this so a platform that failed to generate cannot pass as "skipped".
+if (process.argv.includes('--require-both') && checked.length < 2) {
+  console.error(
+    `Localisation check: expected both platforms, only generated ${checked.join(', ') || 'none'}. ` +
+      'Run `npx expo prebuild` for both before this gate.',
+  );
+  process.exit(1);
+}
 
 if (checked.length === 0) {
   console.log('Localisation check skipped: run `npx expo prebuild` first.');
