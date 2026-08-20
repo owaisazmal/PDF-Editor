@@ -62,6 +62,44 @@ const PACKAGE_REGISTRATION = 'add(ConverterCorePackage())';
 
 const SERVICE_NAME = 'com.owaiskhan.converter.core.ConversionService';
 
+const RTL_IMPORTS = [
+  'import androidx.core.text.TextUtilsCompat',
+  'import android.view.View',
+  'import com.facebook.react.modules.i18nmanager.I18nUtil',
+];
+
+/**
+ * Decides layout direction from the locale Android already resolved for this process.
+ *
+ * React Native works this out for itself and gets it wrong. `I18nUtil.isRTL` falls through
+ * to a device-language check whose implementation is, verbatim:
+ *
+ *     TextUtilsCompat.getLayoutDirectionFromLocale(Locale.getAvailableLocales()[0])
+ *
+ * `getAvailableLocales()` is every locale the JVM knows about, in unspecified order, and
+ * `[0]` of it is a value with no relationship to what the user has chosen. So an Arabic app
+ * lays itself out left to right: the text is Arabic, the grid is not mirrored, and the
+ * arrows point away from the thing they name.
+ *
+ * `forceRTL` is the documented escape hatch for this — its own comment says it should be
+ * used very early during start up, before the bridge is initialised — and
+ * `Application.onCreate` is exactly that point. Reading `resources.configuration` rather
+ * than `Locale.getDefault()` matters too: on Android 13 and later the per-app language
+ * lands in the configuration, and that is the locale the app is actually running in.
+ *
+ * The alternative, calling `forceRTL` from JavaScript, cannot work. It writes a preference
+ * read at process start, so it never affects the launch that calls it — a user switching to
+ * Arabic would get one launch of Arabic text in a mirrored-the-wrong-way layout.
+ */
+const RTL_SETUP = `
+    // Direction is decided here rather than by React Native, which reads an arbitrary
+    // locale for this. See plugins/withConverterCoreAndroid.js for the whole story.
+    val locale = resources.configuration.locales[0]
+    val rtl = TextUtilsCompat.getLayoutDirectionFromLocale(locale) == View.LAYOUT_DIRECTION_RTL
+    I18nUtil.getInstance().allowRTL(this, true)
+    I18nUtil.getInstance().forceRTL(this, rtl)
+`;
+
 /**
  * The MIME types the app will accept from a share sheet or an Open With.
  *
@@ -265,6 +303,27 @@ module.exports = function withConverterCoreAndroid(config) {
         /^import com\.facebook\.react\.PackageList$/m,
         (match) => `${match}\n${PACKAGE_IMPORT}`,
       );
+    }
+
+    for (const line of RTL_IMPORTS) {
+      if (!contents.includes(line)) {
+        contents = contents.replace(
+          /^import com\.facebook\.react\.PackageList$/m,
+          (match) => `${match}\n${line}`,
+        );
+      }
+    }
+
+    if (!contents.includes('I18nUtil.getInstance().forceRTL')) {
+      const anchor = 'override fun onCreate() {\n    super.onCreate()';
+      if (!contents.includes(anchor)) {
+        throw new Error(
+          'withConverterCoreAndroid: could not find onCreate in MainApplication.kt. ' +
+            'The Expo template changed; update this plugin.',
+        );
+      }
+      // Before `loadReactNative`, which is where the bridge reads the direction.
+      contents = contents.replace(anchor, `${anchor}\n${RTL_SETUP}`);
     }
 
     if (!contents.includes(PACKAGE_REGISTRATION)) {

@@ -96,16 +96,21 @@ export function deviceLanguage(): LanguageCode {
  * text in a mirrored layout — arrows pointing backwards, the grid reversed — until they
  * kill the app and open it a second time. Caught in a screenshot, not in a test.
  *
- * `allowRTL(true)` alone is correct because this app follows the system rather than
- * overriding it. Both platforms resolve the app's locale before the process starts and lay
- * the first frame out accordingly, so direction is already right on the launch that matters
- * — including the very first one after a language change. The catalogue and the layout read
- * the same resolved locale, so they cannot disagree.
+ * `allowRTL(true)` alone is correct on iOS, which asks `NSLocale.preferredLanguages` and
+ * gets the answer the user actually chose.
  *
- * That resolution is only trustworthy because the app declares its languages: Android reads
- * `res/xml/locales_config.xml` and iOS reads `CFBundleLocalizations`, both written by
- * `plugins/withLocalizations.js`. A device set to Hebrew therefore falls back to English
- * AND to left-to-right, rather than to an English catalogue in a mirrored frame.
+ * Android needed more, because React Native's own check is wrong there. `I18nUtil.isRTL`
+ * falls through to a device-language test implemented as
+ * `getLayoutDirectionFromLocale(Locale.getAvailableLocales()[0])`, and index zero of every
+ * locale the JVM knows about is unrelated to anything the user has set. An Arabic app came
+ * out with Arabic text in an unmirrored layout. Direction is therefore decided in
+ * `MainApplication.onCreate`, from the configuration Android resolved for the process, and
+ * `plugins/withConverterCoreAndroid.js` carries the reasoning.
+ *
+ * Either way the resolution is only trustworthy because the app declares its languages:
+ * Android reads `res/xml/locales_config.xml` and iOS reads `CFBundleLocalizations`, both
+ * written by `plugins/withLocalizations.js`. A device set to Hebrew therefore falls back to
+ * English AND to left-to-right, rather than to an English catalogue in a mirrored frame.
  *
  * There is deliberately no in-app language picker. Both platforms carry one already, and
  * theirs relaunches the app; ours could not.
