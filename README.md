@@ -235,6 +235,31 @@ prebuild, so `--clean` is always safe.
    licence. Both gates run in CI.
 6. Commit messages describe the change and why it was made.
 
+## Releasing
+
+`version` is what people read. `ios.buildNumber` and `android.versionCode` are what the
+stores key uploads on, and both are written explicitly in `app.json` rather than left to
+default.
+
+That distinction is the point. Expo fills both in as `1` when they are absent, so a first
+submission succeeds and nothing looks wrong. The second is rejected at upload, by a number
+nobody chose and nobody can find in the config. Neither store lets a number be reused, and
+it is spent whether or not the build was ever released, so there is no correcting it
+afterwards.
+
+Bump both together for every build you upload, keeping them equal, and let `version` change
+only when the release is worth a new number to a user. A test asserts they are present, well
+formed and in step.
+
+    "version": "0.1.0",
+    "ios":     { "buildNumber": "1" },
+    "android": { "versionCode": 1 }
+
+Signing is not in the repository and is not going to be. Both stores need credentials that
+belong to the developer account, so an upload is the one step here that a person has to do.
+
+---
+
 ## Licence
 
 Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Third-party licences
