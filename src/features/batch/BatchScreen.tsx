@@ -11,8 +11,8 @@ import { Button, Card, FileRow, ProgressBar, Screen, SectionLabel, StatRow, Text
 import { FORMATS } from '@/engine/formats';
 import { fileGateway } from '@/native';
 import { isBatchFinished, isBatchRunning, useBatchStore } from '@/store/batch';
+import { optionsForTask } from '@/store/options';
 import { useTheme } from '@/theme';
-import { imageDefaults } from '@/theme/tokens';
 import {
   describeSizeChange,
   formatBytes,
@@ -50,11 +50,7 @@ export function BatchScreen({ route, navigation }: Props) {
   // before the first progress event can arrive.
   useEffect(() => {
     if (!task || batch.status !== 'idle' || batch.sources.length === 0) return;
-    void batch.start(batch.sources, {
-      targetFormat: task.targetFormat,
-      quality: 82,
-      background: { color: imageDefaults.backgroundFill },
-    });
+    void batch.start(batch.sources, optionsForTask(task));
   }, [task, batch]);
 
   useEffect(() => {

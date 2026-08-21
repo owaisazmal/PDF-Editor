@@ -12,10 +12,10 @@ import { FORMATS } from '@/engine/formats';
 import { needsBackgroundChoice } from '@/engine/options';
 import { fileGateway } from '@/native';
 import { useConversionStore } from '@/store/conversion';
+import { optionsForTask } from '@/store/options';
 import { useRecordConversion } from '../history/recording';
 import { useAnnouncement } from '@/utils/useAnnouncement';
 import { useTheme } from '@/theme';
-import { imageDefaults } from '@/theme/tokens';
 import {
   describeSizeChange,
   formatBytes,
@@ -43,18 +43,11 @@ export function ConvertScreen({ route, navigation }: Props) {
 
   const onConvert = useCallback(async () => {
     if (!task) return;
-    await convert(
-      {
-        targetFormat: task.targetFormat,
-        quality: 82,
-        // Transparency only matters when the source has it and the target cannot
-        // keep it. This fill is image data, not interface, so it comes from
-        // `imageDefaults` and never from the active theme — a file converted in
-        // dark mode must not come out with a dark background.
-        background: { color: imageDefaults.backgroundFill },
-      },
-      '',
-    );
+    // Whatever the user chose, if this task let them choose. The background fill inside
+    // these options is image data rather than interface, so it comes from `imageDefaults`
+    // and never from the active theme: a file converted in dark mode must not come out
+    // with a dark background.
+    await convert(optionsForTask(task), '');
     const next = useConversionStore.getState();
     await Haptics.notificationAsync(
       next.phase === 'done'
