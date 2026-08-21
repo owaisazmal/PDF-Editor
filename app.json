@@ -69,7 +69,8 @@
             ]
           }
         ]
-      }
+      },
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.owaiskhan.kitefold",
@@ -84,7 +85,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FDFBD4",
         "monochromeImage": "./assets/adaptive-icon.png"
-      }
+      },
+      "versionCode": 1
     },
     "plugins": [
       "expo-dev-client",
