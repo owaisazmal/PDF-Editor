@@ -99,3 +99,31 @@ export const useOptionsStore = create<OptionsState>((set, get) => {
     validated: () => buildOptions(get().options),
   };
 });
+
+/**
+ * The settings a task should actually be converted with.
+ *
+ * This exists because for a long time nothing called it and the two screens that submit
+ * work built an options object from scratch instead, pinning quality at 82 and the
+ * background to the default fill. Every control on the settings screen was therefore
+ * decorative: the quality slider, the size target, the resize presets, rotation, flips,
+ * the metadata mode, sRGB conversion and the background swatch were all read back to the
+ * user, remembered across launches, used to compute a genuine size estimate, and then
+ * dropped on the floor. "Compress Image" could not compress to a size and "Resize Image"
+ * could not resize, which are the two tasks that exist only to do those things.
+ *
+ * A task that offers settings uses them. A task that does not offer them gets the defaults
+ * for its format, rather than whatever the last job happened to leave behind: someone
+ * tapping "HEIC to JPG" for a three-tap conversion has not asked to inherit the 1080p
+ * preset they picked for something else last week.
+ *
+ * The target format always comes from the task. It is the one thing the task decides and
+ * the user does not.
+ */
+export function optionsForTask(task: {
+  targetFormat: FormatId;
+  needsOptions?: boolean;
+}): ConversionOptionsInput {
+  if (!task.needsOptions) return defaultOptionsFor(task.targetFormat);
+  return { ...useOptionsStore.getState().options, targetFormat: task.targetFormat };
+}
