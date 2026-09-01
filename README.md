@@ -271,14 +271,6 @@ under Settings, which was wrong. Worth stating plainly rather than quietly delet
 because conveying third-party notices with the binary is an obligation the repository
 inventory does not discharge on its own. It is tracked for release.
 
-## Colophon
-
-Made by [Owais Khan](https://github.com/owaisazmal). No team, no investors, and no
-analytics, which means I have no idea whether anyone has ever read this far, and no way
-to find out. That is the deal, and I would take it again.
-
-Source: **[github.com/owaisazmal/PDF-Editor](https://github.com/owaisazmal/PDF-Editor)**.
-Public, and staying public.
 
 No trackers, no accounts, no data collection, nothing leaving the device. That is not a
 promise in a privacy policy. The release build ships without the `INTERNET` permission,
