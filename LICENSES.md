@@ -9,7 +9,7 @@ Every production dependency and its licence. The same data backs the in-app
 **Settings › Open Source Licenses** screen, so the two cannot disagree. Attribution
 required by Apache 2.0 and the other notice-bearing licences is in `NOTICE`.
 
-580 packages. Where a package is dual-licensed, the **Relied on** column names
+581 packages. Where a package is dual-licensed, the **Relied on** column names
 the alternative this project takes.
 
 | Package | Version | Declared | Relied on | Repository |
@@ -310,6 +310,7 @@ the alternative this project takes.
 | `expo-server` | 57.0.3 | MIT | — | https://github.com/expo/expo |
 | `expo-splash-screen` | 57.0.6 | MIT | — | https://github.com/expo/expo |
 | `expo-status-bar` | 57.0.1 | MIT | — | https://github.com/expo/expo |
+| `expo-system-ui` | 57.0.2 | MIT | — | https://github.com/expo/expo |
 | `expo-updates-interface` | 57.0.1 | MIT | — | https://github.com/expo/expo |
 | `exponential-backoff` | 3.1.3 | Apache-2.0 | — | https://github.com/coveooss/exponential-backoff |
 | `fast-deep-equal` | 3.1.3 | MIT | — | https://github.com/epoberezkin/fast-deep-equal |

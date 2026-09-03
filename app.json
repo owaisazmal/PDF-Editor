@@ -86,7 +86,8 @@
         "backgroundColor": "#FDFBD4",
         "monochromeImage": "./assets/adaptive-icon.png"
       },
-      "versionCode": 1
+      "versionCode": 1,
+      "allowBackup": false
     },
     "plugins": [
       "expo-dev-client",

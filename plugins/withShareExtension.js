@@ -89,9 +89,13 @@ module.exports = function withShareExtension(config) {
     const platformRoot = modConfig.modRequest.platformProjectRoot;
     const appName = modConfig.modRequest.projectName;
     const appBundleId = config.ios?.bundleIdentifier;
+    const appVersion = config.version;
+    const appBuildNumber = config.ios?.buildNumber ?? '1';
 
-    if (!appName || !appBundleId) {
-      throw new Error('withShareExtension: the app name and bundle identifier are required.');
+    if (!appName || !appBundleId || !appVersion) {
+      throw new Error(
+        'withShareExtension: the app name, bundle identifier and version are required.',
+      );
     }
 
     // Already added on a previous pass through the mod chain.
@@ -243,8 +247,12 @@ module.exports = function withShareExtension(config) {
         // guard rail wanted: the rule is a review rejection, not just a crash.
         APPLICATION_EXTENSION_API_ONLY: 'YES',
         CLANG_ENABLE_MODULES: 'YES',
-        MARKETING_VERSION: '1.0',
-        CURRENT_PROJECT_VERSION: '1',
+        // Taken from app.json rather than written here. App Store Connect rejects an
+        // upload whose extension version does not match the app's, and two hardcoded
+        // numbers in two files agree only by coincidence: the app shipped 0.1.0 against
+        // an extension pinned at 1.0.
+        MARKETING_VERSION: appVersion,
+        CURRENT_PROJECT_VERSION: appBuildNumber,
         CODE_SIGN_STYLE: 'Automatic',
       });
     }
