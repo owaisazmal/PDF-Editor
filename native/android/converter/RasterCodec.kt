@@ -149,8 +149,19 @@ public object RasterCodec {
       throw ConversionException.corrupt(input.name)
     }
 
-    val target = resolveTargetSize(bounds.outWidth, bounds.outHeight, options)
-    val decoded = decode(input, maxOf(target.first, target.second), options)
+    // A decode hint only. Subsampling is symmetric, so the stored dimensions are fine for
+    // deciding how much to throw away on the way in.
+    val hint = resolveTargetSize(bounds.outWidth, bounds.outHeight, options)
+    val decoded = decode(input, maxOf(hint.first, hint.second), options)
+
+    // Resolved against the decoded bitmap rather than the stored bounds, because the two
+    // disagree for any photo with an orientation tag: `bounds` come from BitmapFactory,
+    // which never reads EXIF, while `decode` returns pixels that are already upright. A
+    // portrait photo stored landscape therefore got a landscape target and was stretched to
+    // it -- and not only when a resize was asked for. With no resize at all the target is
+    // the source size unchanged, which is the transposed one, so every rotated phone photo
+    // came out distorted on the plainest HEIC-to-JPG conversion there is.
+    val target = resolveTargetSize(decoded.width, decoded.height, options)
 
     val flatten = FormatMatcher.spec(options.targetFormat)?.supportsAlpha != true
     val transformed = try {
@@ -209,7 +220,10 @@ public object RasterCodec {
     }
 
     // API 26-27: HEIF cannot be decoded at all, and BitmapFactory ignores EXIF
-    // orientation, so the rotation is applied by matrix in transform().
+    // orientation. The comment here used to claim `transform` applied it; it never did.
+    // `transform` only applies the rotation and flips the user asked for, so a portrait
+    // photo was written sideways with its orientation tag reset to 1 -- the tag saying it
+    // was upright, and the pixels saying otherwise.
     val opts = BitmapFactory.Options().apply {
       inSampleSize = if (maxPixelSize > 0) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -221,10 +235,12 @@ public object RasterCodec {
       inPreferredConfig = Bitmap.Config.ARGB_8888
       inMutable = true
     }
-    return input.inputStream().use { BitmapFactory.decodeStream(it, null, opts) }
+    val bitmap = input.inputStream().use { BitmapFactory.decodeStream(it, null, opts) }
       ?: throw ConversionException.unsupportedSource(
         FormatMatcher.spec(options.targetFormat)?.label ?: "this format",
       )
+
+    return ExifOrientation.apply(bitmap, input)
   }
 
   /** Powers of two only — anything else makes BitmapFactory round anyway. */
@@ -244,8 +260,10 @@ public object RasterCodec {
   ): Bitmap {
     val matrix = Matrix()
 
-    // ImageDecoder already applied EXIF orientation on API 28+; below that it has to
-    // be done here. Either way the output file is written with orientation 1.
+    // Orientation is already in the pixels by this point: `ImageDecoder` applies it on
+    // API 28 and above, and `decode` applies it through `ExifOrientation` below that. What
+    // is left here is only what the user asked for, and the output is written with
+    // orientation 1 because the pixels no longer need a tag to be read correctly.
     if (options.rotate != 0) matrix.postRotate(options.rotate.toFloat())
     if (options.flipHorizontal) matrix.postScale(-1f, 1f)
     if (options.flipVertical) matrix.postScale(1f, -1f)

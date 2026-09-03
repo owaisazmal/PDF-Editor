@@ -23,7 +23,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
-import androidx.exifinterface.media.ExifInterface
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
@@ -794,37 +793,13 @@ public object PdfEngine {
         decoder.isMutableRequired = false
       }
     } else {
-      BitmapFactory.decodeFile(file.absolutePath)?.let { applyExifOrientation(it, file) }
+      BitmapFactory.decodeFile(file.absolutePath)?.let { ExifOrientation.apply(it, file) }
     }
   } catch (error: Throwable) {
     null
   }
 
-  private fun applyExifOrientation(bitmap: Bitmap, file: File): Bitmap {
-    val orientation = try {
-      ExifInterface(file).getAttributeInt(
-        ExifInterface.TAG_ORIENTATION,
-        ExifInterface.ORIENTATION_NORMAL,
-      )
-    } catch (error: IOException) {
-      ExifInterface.ORIENTATION_NORMAL
-    }
 
-    val matrix = Matrix()
-    when (orientation) {
-      ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-      ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-      ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-      ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
-      ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
-      ExifInterface.ORIENTATION_TRANSPOSE -> { matrix.postRotate(90f); matrix.postScale(-1f, 1f) }
-      ExifInterface.ORIENTATION_TRANSVERSE -> { matrix.postRotate(270f); matrix.postScale(-1f, 1f) }
-      else -> return bitmap
-    }
-
-    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-      .also { if (it !== bitmap) bitmap.recycle() }
-  }
 
   private fun compressFormat(format: String): Bitmap.CompressFormat = when (format) {
     "png" -> Bitmap.CompressFormat.PNG

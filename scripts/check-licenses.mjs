@@ -27,6 +27,67 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WRITE = process.argv.includes('--write');
 
 /**
+ * The libraries that reach the binary without going through npm.
+ *
+ * `npm ls` cannot see these: they arrive through Gradle, and two of the three arrive
+ * through each other. Bouncy Castle in particular ships inside every Android build as a
+ * transitive dependency of PdfBox-Android, and appeared in no inventory at all until
+ * somebody read the pom. A dependency that ships is a dependency that needs a licence,
+ * whether or not the tool that checks licences can see it.
+ *
+ * Curated rather than resolved, because resolving them means running Gradle, and a licence
+ * inventory that only exists after a twelve-minute build is one nobody regenerates. The
+ * list is short and changes rarely; `plugins/withConverterCoreAndroid.js` is where new ones
+ * are added, and this list has to be updated alongside it.
+ */
+const NATIVE_DEPENDENCIES = [
+  {
+    name: 'Manrope (font)',
+    version: '2018',
+    license: 'OFL-1.1',
+    repository: 'https://github.com/sharanda/manrope',
+    reason:
+      'The typeface. Bundled as font files, so its licence has to travel with the binary; ' +
+      'the full text is in assets/fonts/OFL.txt.',
+  },
+  {
+    name: 'androidx.exifinterface:exifinterface',
+    version: '1.4.1',
+    license: 'Apache-2.0',
+    repository: 'https://developer.android.com/jetpack/androidx/releases/exifinterface',
+    reason: 'Reads and writes the metadata a conversion has to preserve.',
+  },
+  {
+    name: 'com.tom-roush:pdfbox-android',
+    version: '2.0.27.0',
+    license: 'Apache-2.0',
+    repository: 'https://github.com/TomRoush/PdfBox-Android',
+    reason: 'Page-level PDF work Android has no platform API for.',
+  },
+  {
+    name: 'org.bouncycastle:bcprov-jdk15to18',
+    version: '1.72',
+    license: 'MIT',
+    repository: 'https://github.com/bcgit/bc-java',
+    reason: 'Transitive dependency of PdfBox-Android; decrypts password-protected PDFs.',
+  },
+  {
+    name: 'org.bouncycastle:bcpkix-jdk15to18',
+    version: '1.72',
+    license: 'MIT',
+    repository: 'https://github.com/bcgit/bc-java',
+    reason: 'Transitive dependency of PdfBox-Android.',
+  },
+  {
+    name: 'org.bouncycastle:bcutil-jdk15to18',
+    version: '1.72',
+    license: 'MIT',
+    repository: 'https://github.com/bcgit/bc-java',
+    reason: 'Transitive dependency of PdfBox-Android.',
+  },
+];
+
+/**
  * Permitted licences. Decisions D5 added OFL-1.1 for font assets; IJG accompanies
  * libjpeg-turbo's BSD-3 and Zlib grants. Everything else is a standard permissive
  * licence. See docs/DEPENDENCIES.md.
@@ -184,7 +245,58 @@ ${body}
 `,
     'utf8',
   );
-  console.log(`wrote LICENSES.md (${rows.length} packages)`);
+  const nativeBody = NATIVE_DEPENDENCIES.map(
+    (d) => `| \`${d.name}\` | ${d.version} | ${d.license} | ${d.reason} | ${d.repository} |`,
+  ).join('\n');
+
+  await writeFile(
+    join(ROOT, 'LICENSES.md'),
+    (await readFile(join(ROOT, 'LICENSES.md'), 'utf8')) +
+      `
+## Native dependencies
+
+These reach the binary through Gradle rather than npm, so \`npm ls\` cannot see them and
+the check above does not cover them. Bouncy Castle arrives transitively, inside
+PdfBox-Android.
+
+| Library | Version | Licence | Why it is here | Repository |
+|---|---|---|---|---|
+${nativeBody}
+
+iOS adds none: the engine there uses ImageIO, PDFKit and vImage, which are part of the
+operating system rather than libraries this project ships.
+`,
+    'utf8',
+  );
+
+  // One source, two outputs. The screen in the app reads this rather than a second list,
+  // so the inventory a user can see and the inventory in the repository cannot disagree.
+  await writeFile(
+    join(ROOT, 'src/generated/licenses.json'),
+    `${JSON.stringify(
+      {
+        generated: 'npm run license:report',
+        packages: rows.map((r) => ({
+          name: r.name,
+          version: r.version,
+          license: r.chosen || r.license,
+        })),
+        native: NATIVE_DEPENDENCIES.map((d) => ({
+          name: d.name,
+          version: d.version,
+          license: d.license,
+        })),
+      },
+      null,
+      2,
+    )}\n`,
+    'utf8',
+  );
+
+  console.log(
+    `wrote LICENSES.md and src/generated/licenses.json ` +
+      `(${rows.length} packages, ${NATIVE_DEPENDENCIES.length} native)`,
+  );
 }
 
 if (violations.length > 0) {

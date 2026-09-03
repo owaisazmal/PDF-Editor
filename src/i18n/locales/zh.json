@@ -464,6 +464,16 @@
     "about": "关于",
     "madeBy": "由 Owais Khan 制作。没有团队，没有投资人，也没有任何数据统计，所以这句话有没有人看过，我也无从得知。",
     "sourceLink": "在 GitHub 上查看源码",
-    "privacy": "没有追踪器，没有账号，没有任何东西离开这台设备。这不是隐私政策里的一句承诺。正式版在打包时就不带联网权限，所以这一点由系统强制执行，而不是靠代码自觉。"
+    "privacy": "没有追踪器，没有账号，没有任何东西离开这台设备。这不是隐私政策里的一句承诺。正式版在打包时就不带联网权限，所以这一点由系统强制执行，而不是靠代码自觉。",
+    "licenses": "开源许可"
+  },
+  "licenses": {
+    "title": "开源许可",
+    "subtitle_other": "{{count}} 个库，以及各自的使用条款",
+    "appNotice": "Kitefold 本身的版权声明是 Copyright (c) 2026 Owais Khan，依据 Apache License, Version 2.0 授权。下方列出的库各有自己的条款。",
+    "packages": "随应用一同打包",
+    "native": "内置于 Android 引擎",
+    "entry": "{{version}} · {{license}}",
+    "open": "开源许可"
   }
 }

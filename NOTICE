@@ -19,9 +19,10 @@ THIRD-PARTY NOTICES
 
 This product includes software developed by third parties. The complete,
 machine-generated inventory of every transitive dependency and its license is in
-LICENSES.md, and is also reachable in the app under Settings > Open Source
-Licenses. The entries below are those whose licenses require an explicit notice
-to be reproduced in distributions.
+LICENSES.md, and is reproduced in the app itself under Settings > Open source
+licences, which is generated from the same pass so the two cannot disagree. The
+entries below are those whose licenses require an explicit notice to be
+reproduced in distributions.
 
 Apache License 2.0
 ------------------
@@ -35,15 +36,15 @@ Apache License 2.0
   TypeScript
   Copyright (c) Microsoft Corporation.
 
-  AndroidSVG
-  Copyright (c) 2013-2020 Paul LeBeau, Cave Rock Software Ltd.
-
   AndroidX libraries
   Copyright (c) The Android Open Source Project
 
   Apache PDFBox, via PdfBox-Android
   Copyright (c) The Apache Software Foundation.
   PdfBox-Android port copyright (c) Tom Roush.
+
+  AndroidX libraries, including ExifInterface
+  Copyright (c) The Android Open Source Project
 
   This product includes software developed by The Apache Software Foundation
   (http://www.apache.org/).
@@ -54,25 +55,14 @@ BSD 3-Clause
   MMKV
   Copyright (c) 2018 THL A29 Limited, a Tencent company.
 
-  libwebp
-  Copyright (c) 2010, Google Inc. All rights reserved.
+Bouncy Castle License (MIT-style)
+---------------------------------
 
-BSD 2-Clause and Alliance for Open Media Patent License 1.0
------------------------------------------------------------
+  Bouncy Castle (bcprov, bcpkix, bcutil)
+  Copyright (c) 2000-2023 The Legion of the Bouncy Castle Inc.
 
-  libavif
-  Copyright (c) 2019 Joe Drago. All rights reserved.
-
-  libaom / AOMedia AV1 Codec
-  Copyright (c) 2016, Alliance for Open Media. All rights reserved.
-
-Independent JPEG Group license, BSD 3-Clause and zlib
------------------------------------------------------
-
-  libjpeg-turbo
-  Copyright (c) 1991-2020, Thomas G. Lane, Guido Vollbeding.
-  Copyright (c) 1999-2006, MIYASAKA Masaru.
-  Copyright (c) 2009-2024, D. R. Commander.
+  Ships inside every Android build as a transitive dependency of PdfBox-Android,
+  where it decrypts password-protected documents.
 
 SIL Open Font License 1.1
 -------------------------
@@ -83,7 +73,21 @@ SIL Open Font License 1.1
   Manrope is licensed under the SIL Open Font License, Version 1.1. The font
   software is bundled with this application as an asset. It is not sold on its
   own, and this application is not named "Manrope" or any Reserved Font Name.
-  The full license text accompanies the font files.
+  The full license text is reproduced in assets/fonts/OFL.txt in this repository,
+  and Manrope is listed with its licence in the app under Settings > Open source
+  licences, which is where a person who installed the app rather than cloned the
+  repository can read it.
+
+--------------------------------------------------------------------------------
+CODECS THIS PRODUCT USES BUT DOES NOT INCLUDE
+--------------------------------------------------------------------------------
+
+Reading and writing JPEG, PNG, WebP, HEIC, AVIF and TIFF is done by the operating
+system: ImageIO and vImage on iOS, ImageDecoder and Bitmap on Android. libjpeg-turbo,
+libwebp, libavif, libaom and their kin are part of those platforms rather than
+libraries this project ships, so no copy of them is distributed here and no notice
+for them is owed. Earlier versions of this file listed them as included, which was
+not true of any build.
 
 --------------------------------------------------------------------------------
 WHAT THIS PRODUCT DOES NOT INCLUDE
