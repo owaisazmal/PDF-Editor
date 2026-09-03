@@ -283,7 +283,7 @@
     "quality": "Qualità",
     "pngLossless": "Il PNG è senza perdita, quindi non c’è qualità da scegliere. File più grandi, pixel esatti.",
     "order": "Ordine",
-    "orderHint": "I documenti vengono uniti nell’ordine in cui li hai scelti.",
+    "orderHint": "I documenti vengono uniti in quest’ordine. Usa le frecce per cambiarlo.",
     "orderedFile": "{{index}}. {{name}}",
     "splitBy": "Dividi per",
     "splitRanges": "Intervalli di pagine",
@@ -414,7 +414,9 @@
     "renderFormats": {
       "jpeg": "JPG",
       "png": "PNG"
-    }
+    },
+    "moveUp": "Sposta {{name}} prima",
+    "moveDown": "Sposta {{name}} dopo"
   },
   "incoming": {
     "title": "Inviato qui",

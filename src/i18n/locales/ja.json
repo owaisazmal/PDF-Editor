@@ -257,7 +257,7 @@
     "quality": "画質",
     "pngLossless": "PNG は劣化しないため画質の選択はありません。ファイルは大きく、ピクセルは正確です。",
     "order": "順序",
-    "orderHint": "選んだ順に書類が結合されます。",
+    "orderHint": "この順に書類が結合されます。順序は矢印で変更できます。",
     "orderedFile": "{{index}}. {{name}}",
     "splitBy": "分割方法",
     "splitRanges": "ページ範囲",
@@ -374,7 +374,9 @@
     "renderFormats": {
       "jpeg": "JPG",
       "png": "PNG"
-    }
+    },
+    "moveUp": "{{name}} を前へ移動",
+    "moveDown": "{{name}} を後ろへ移動"
   },
   "incoming": {
     "title": "送られてきたファイル",

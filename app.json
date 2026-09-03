@@ -112,6 +112,7 @@
       "./plugins/withLocalizations",
       "./plugins/withShareExtension",
       "./plugins/withConverterCoreAndroid",
+      "./plugins/withReleaseSigning",
       [
         "expo-build-properties",
         {
