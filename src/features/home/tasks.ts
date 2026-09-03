@@ -155,7 +155,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
 ];
 
 /** The phase this build implements. Bumped as each phase lands. */
-export const CURRENT_PHASE = 3 as const;
+export const CURRENT_PHASE = 6 as const;
 
 /** Set once the transform options screen exists; until then, see `needsOptions`. */
 export const HAS_TRANSFORM_OPTIONS = true;

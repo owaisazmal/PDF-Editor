@@ -42,8 +42,15 @@ public object Capabilities {
       // on Android at all: every permissive decoder is copyleft.
       add("dng")
 
-      // PDF via PdfRenderer, and SVG via androidsvg. Both are import-only here.
-      addAll(listOf("pdf", "svg"))
+      // PDF via PdfRenderer, import-only.
+      //
+      // SVG used to be listed here alongside it, citing androidsvg. That library is not a
+      // dependency and never was, so the capability report claimed a decoder that does not
+      // exist. Nothing on the home grid asked for it, which is the only reason it never
+      // produced a failure a user could see. A capability table is a promise about what the
+      // engine can do, and an untrue entry in it is a crash waiting for the task that
+      // finally believes it.
+      add("pdf")
     }
 
     val encode = buildList {
