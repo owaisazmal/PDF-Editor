@@ -185,6 +185,74 @@ function encodePng(width, height, rgba) {
   ]);
 }
 
+/**
+ * The Play Store feature graphic: 1024x500, mandatory, and refused if it is absent.
+ *
+ * Composed from the same primitives as the icons rather than drawn by hand, so it cannot
+ * drift from the palette and CI can tell when it is stale.
+ *
+ * The mark sits left of centre and the rest is empty cream on purpose. Play overlays the app
+ * icon and title across the middle of this image in several placements, and anything put
+ * there is either hidden or fighting for the same space. Empty is a composition here, not a
+ * shortage of ideas.
+ */
+function renderFeatureGraphic({ width, height, background, plate, mark, stroke }) {
+  const samples = 4;
+  const pixels = Buffer.alloc(width * height * 4);
+  const backgroundRgb = hexToRgb(background);
+  const plateRgb = hexToRgb(plate);
+  const markRgb = hexToRgb(mark);
+
+  // The square the mark is drawn into, in pixels: centred vertically, a third of the way
+  // across, and sized to leave generous air above and below.
+  const box = Math.round(height * 0.62);
+  const boxLeft = Math.round(width * 0.14);
+  const boxTop = Math.round((height - box) / 2);
+
+  for (let py = 0; py < height; py += 1) {
+    for (let px = 0; px < width; px += 1) {
+      let plateHits = 0;
+      let markHits = 0;
+
+      for (let sy = 0; sy < samples; sy += 1) {
+        for (let sx = 0; sx < samples; sx += 1) {
+          // Sample position expressed inside the mark's own square, so the icon geometry
+          // is reused unchanged rather than re-derived for a rectangle.
+          const x = (px + (sx + 0.5) / samples - boxLeft) / box;
+          const y = (py + (sy + 0.5) / samples - boxTop) / box;
+          if (x < 0 || x > 1 || y < 0 || y > 1) continue;
+          plateHits += roundedSquareCoverage(x, y, 0.02, 0.17);
+          markHits += arrowCoverage(x, y, 0.052);
+        }
+      }
+
+      const total = samples * samples;
+      const plateAlpha = plateHits / total;
+      const markAlpha = markHits / total;
+
+      let [r, g, b] = backgroundRgb;
+      if (plateAlpha > 0) {
+        r = r * (1 - plateAlpha) + plateRgb[0] * plateAlpha;
+        g = g * (1 - plateAlpha) + plateRgb[1] * plateAlpha;
+        b = b * (1 - plateAlpha) + plateRgb[2] * plateAlpha;
+      }
+      if (markAlpha > 0) {
+        r = r * (1 - markAlpha) + markRgb[0] * markAlpha;
+        g = g * (1 - markAlpha) + markRgb[1] * markAlpha;
+        b = b * (1 - markAlpha) + markRgb[2] * markAlpha;
+      }
+
+      const offset = (py * width + px) * 4;
+      pixels[offset] = Math.round(r);
+      pixels[offset + 1] = Math.round(g);
+      pixels[offset + 2] = Math.round(b);
+      pixels[offset + 3] = 255;
+    }
+  }
+
+  return encodePng(width, height, pixels);
+}
+
 /* -------------------------------------------------------------------- write ----- */
 
 const outputs = [
@@ -224,6 +292,24 @@ const outputs = [
     plateRadius: 0.18,
     mark: colors.light.textOnAccent,
     stroke: 0.055,
+  })],
+  // Play refuses a listing without this, at exactly this size.
+  ['store/play/feature-graphic.png', renderFeatureGraphic({
+    width: 1024,
+    height: 500,
+    background: palette.cream,
+    plate: palette.amber,
+    mark: colors.light.textOnAccent,
+  })],
+  // Play also wants a 512x512 icon, separately from the one in the binary.
+  ['store/play/icon-512.png', renderIcon({
+    size: 512,
+    background: palette.cream,
+    plate: palette.amber,
+    plateInset: 0.13,
+    plateRadius: 0.17,
+    mark: colors.light.textOnAccent,
+    stroke: 0.052,
   })],
 ];
 
