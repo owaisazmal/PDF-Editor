@@ -14,6 +14,7 @@
  */
 
 import en from '@/i18n/locales/en.json';
+import { columnsFor } from '@/features/home/HomeScreen';
 import {
   CONVERSION_TASKS,
   CURRENT_PHASE,
@@ -186,5 +187,31 @@ describe('every tile has words in the catalogue', () => {
       'platform',
       'settings',
     ]);
+  });
+});
+
+/**
+ * How many tiles fit across.
+ *
+ * Pulled out and tested because the number was hardcoded to two, which is right on a phone
+ * and wrong on a tablet: a 13-inch iPad rendered ten tiles a thousand points wide, each
+ * holding two short lines, and the grid ran out halfway down the screen. The breakpoints
+ * are measured against the window rather than a device class, so a Split View pane behaves
+ * like the narrow window it is.
+ */
+describe('the home grid column count', () => {
+  it('stays at two on a phone', () => {
+    expect(columnsFor(375)).toBe(2);
+    expect(columnsFor(430)).toBe(2);
+  });
+
+  it('opens up on a tablet', () => {
+    expect(columnsFor(834)).toBe(3);
+    expect(columnsFor(1024)).toBe(4);
+    expect(columnsFor(1366)).toBe(4);
+  });
+
+  it('treats a narrow Split View pane as the narrow window it is', () => {
+    expect(columnsFor(320)).toBe(2);
   });
 });
