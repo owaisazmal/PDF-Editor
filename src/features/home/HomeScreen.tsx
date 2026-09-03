@@ -36,7 +36,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
  *
  * Tapping a tile opens the system picker immediately rather than routing to an
  * intermediate screen. That is what keeps a common conversion inside three taps —
- * tile, pick, convert — which `e2e/three-taps.yaml` asserts rather than assumes.
+ * tile, pick, convert. There is no end-to-end test asserting it; a comment here used to
+ * cite `e2e/three-taps.yaml`, and no such file or harness has ever existed.
  */
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();

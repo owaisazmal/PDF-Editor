@@ -48,10 +48,11 @@ public enum Capabilities {
                 encode.append(formatId)
                 continue
             }
-            // SVG has no ImageIO rasteriser on any iOS version; it is rendered through
-            // react-native-svg instead. Declared as import-only.
+            // SVG has no ImageIO rasteriser on any iOS version, and this app ships no
+            // other one: the comment here used to name react-native-svg, which is not a
+            // dependency. A vector format is therefore not decodable, and saying otherwise
+            // promised a capability that would fail the moment something used it.
             if spec.kind == "vector" {
-                decode.append(formatId)
                 continue
             }
 
