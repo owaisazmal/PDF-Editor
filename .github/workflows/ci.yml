@@ -179,11 +179,34 @@ jobs:
       - name: Verify no INTERNET permission ships in release
         # The strongest possible proof of the offline claim: without this permission
         # Android cannot make a network request at all, whatever the code does.
+        #
+        # Checked on the MERGED manifest, which is the one that ships. The previous version
+        # of this step grepped android/app/src/release/AndroidManifest.xml, which is the
+        # file that performs the removal and therefore contains the literal string
+        # `android.permission.INTERNET` inside a tools:node="remove" directive. It matched
+        # every time, so the step failed whenever the protection was present and passed if
+        # the file were deleted. It was exactly inverted, and it was the single strongest
+        # enforcement claim in the README.
         run: |
-          if grep -q 'android.permission.INTERNET' android/app/src/release/AndroidManifest.xml 2>/dev/null; then
-            echo "::error::The release manifest must remove android.permission.INTERNET"
+          cd android
+          ./gradlew :app:processReleaseManifest --no-daemon
+          cd ..
+          MERGED=$(find android/app/build/intermediates -name AndroidManifest.xml -path '*release*' | head -1)
+          if [ -z "$MERGED" ]; then
+            echo "::error::Could not find the merged release manifest to check."
             exit 1
           fi
+          echo "Checking $MERGED"
+          if grep -q 'android.permission.INTERNET' "$MERGED"; then
+            echo "::error::android.permission.INTERNET survived into the merged release manifest."
+            grep -n 'uses-permission' "$MERGED"
+            exit 1
+          fi
+          if grep -q 'android:allowBackup="true"' "$MERGED"; then
+            echo "::error::Auto Backup is enabled; the OS would upload app files to Drive."
+            exit 1
+          fi
+          echo "Merged release manifest carries no INTERNET permission and no Auto Backup."
 
       - name: Assemble
         run: |
