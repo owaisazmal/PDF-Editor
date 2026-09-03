@@ -31,6 +31,7 @@ import { LicensesScreen } from '@/features/settings/LicensesScreen';
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { initI18n } from '@/i18n';
+import { fileGateway } from '@/native';
 import { useIncomingStore, watchIncomingFiles } from '@/store/incoming';
 import { ThemeProvider, useTheme, colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
@@ -58,6 +59,25 @@ function Navigation() {
   useEffect(() => {
     void useIncomingStore.getState().collect();
     return watchIncomingFiles();
+  }, []);
+
+  /**
+   * Throws away last session's scratch copies.
+   *
+   * Choosing a file through a system picker copies it into the app's cache, because the URL
+   * a picker hands over is only valid for the life of the callback. Those copies are whole
+   * photographs, and nothing was deleting them: `clearTemporaryFiles` existed on both
+   * platforms, was exposed across the bridge, and had no caller, so a privacy-first
+   * converter was quietly accumulating copies of everything anyone had ever converted.
+   *
+   * At launch rather than after each conversion, because at launch nothing is in flight.
+   * Clearing while a batch is running would delete the inputs out from under it.
+   */
+  useEffect(() => {
+    void fileGateway.clearTemporaryFiles().catch(() => {
+      // A cache that could not be cleared is not worth interrupting a launch for; the OS
+      // reclaims this directory under pressure anyway.
+    });
   }, []);
 
   useEffect(() => {
