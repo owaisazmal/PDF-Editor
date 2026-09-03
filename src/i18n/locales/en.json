@@ -270,7 +270,7 @@
     "quality": "Quality",
     "pngLossless": "PNG is lossless, so there is no quality to choose. Larger files, exact pixels.",
     "order": "Order",
-    "orderHint": "Documents are joined in the order you picked them.",
+    "orderHint": "Documents are joined in this order. Use the arrows to change it.",
     "orderedFile": "{{index}}. {{name}}",
     "splitBy": "Split by",
     "splitRanges": "Page ranges",
@@ -394,7 +394,9 @@
     "renderFormats": {
       "jpeg": "JPG",
       "png": "PNG"
-    }
+    },
+    "moveUp": "Move {{name}} earlier",
+    "moveDown": "Move {{name}} later"
   },
   "incoming": {
     "title": "Sent here",

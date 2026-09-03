@@ -257,7 +257,7 @@
     "quality": "画质",
     "pngLossless": "PNG 是无损格式，因此无需选择画质。文件更大，像素精确。",
     "order": "顺序",
-    "orderHint": "文档将按你选择的顺序合并。",
+    "orderHint": "文档将按此顺序合并。用箭头可以调整。",
     "orderedFile": "{{index}}. {{name}}",
     "splitBy": "拆分方式",
     "splitRanges": "页面范围",
@@ -374,7 +374,9 @@
     "renderFormats": {
       "jpeg": "JPG",
       "png": "PNG"
-    }
+    },
+    "moveUp": "将 {{name}} 前移",
+    "moveDown": "将 {{name}} 后移"
   },
   "incoming": {
     "title": "收到的文件",

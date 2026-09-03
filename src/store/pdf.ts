@@ -46,6 +46,8 @@ export type PdfState = {
   elapsedMs: number;
 
   begin: (sources: DetectedFile[]) => Promise<void>;
+  /** Moves one document within the merge order. Out-of-range indices are ignored. */
+  moveSource: (from: number, to: number) => void;
   unlock: (password: string) => Promise<void>;
   run: (work: () => Promise<Partial<PdfState>>) => Promise<void>;
   reset: () => void;
@@ -85,6 +87,21 @@ export const usePdfStore = create<PdfState>((set, get) => ({
    * Merging is the exception: it takes many documents and needs nothing from any of them
    * up front, so it lands straight on `ready`.
    */
+  /**
+   * Reordering is the merge order, and the merge order is just this array: the engine
+   * joins documents in the order it receives them. No native call is involved, which is
+   * why the home screen was able to advertise "combine and reorder" for some time while
+   * offering no way to do the second half.
+   */
+  moveSource(from, to) {
+    const sources = [...usePdfStore.getState().sources];
+    if (from < 0 || to < 0 || from >= sources.length || to >= sources.length) return;
+    const [moved] = sources.splice(from, 1);
+    if (!moved) return;
+    sources.splice(to, 0, moved);
+    set({ sources });
+  },
+
   async begin(sources) {
     set({ sources, status: 'inspecting', ...empty() });
 

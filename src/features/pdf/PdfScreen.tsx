@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -634,19 +634,76 @@ export function PdfScreen({ route, navigation }: Props) {
             <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.sm }}>
               {t('pdf.orderHint')}
             </Text>
+            {/*
+              Buttons rather than a drag handle. Dragging is the gesture people expect, and
+              it is also the one that fights the surrounding scroll view, needs a long-press
+              to disambiguate, and is close to unusable with a screen reader. Two controls
+              per row work by touch, by keyboard and by voice, and a merge is rarely more
+              than a handful of documents.
+            */}
             <View style={{ marginTop: theme.space.md }}>
               {pdf.sources.map((source, index) => (
-                <FileRow
-                  key={source.uri}
-                  name={t('pdf.orderedFile', {
-                    index: formatNumber(index + 1),
-                    name: source.displayName,
-                  })}
-                  detail={formatBytes(source.byteSize)}
-                  // These are inputs, not outputs, so they are only ever waiting or
-                  // finished — a merge that has happened should not still say WAITING.
-                  state={pdf.status === 'done' ? 'done' : 'pending'}
-                />
+                <View key={source.uri} style={styles.orderRow}>
+                  <View style={styles.orderFile}>
+                    <FileRow
+                      name={t('pdf.orderedFile', {
+                        index: formatNumber(index + 1),
+                        name: source.displayName,
+                      })}
+                      detail={formatBytes(source.byteSize)}
+                      // These are inputs, not outputs, so they are only ever waiting or
+                      // finished: a merge that has happened should not still say WAITING.
+                      state={pdf.status === 'done' ? 'done' : 'pending'}
+                    />
+                  </View>
+                  <Pressable
+                    testID={`move-up-${index}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('pdf.moveUp', { name: source.displayName })}
+                    accessibilityState={{ disabled: index === 0 }}
+                    disabled={index === 0}
+                    onPress={() => {
+                      pdf.moveSource(index, index - 1);
+                      settingChanged();
+                    }}
+                    style={({ pressed }) => [
+                      styles.orderButton,
+                      {
+                        borderRadius: theme.radius.sm,
+                        backgroundColor: theme.color.bgSunken,
+                        opacity: index === 0 ? 0.35 : pressed ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    <Text variant="mono" color="textSecondary">
+                      {'\u2191'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    testID={`move-down-${index}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('pdf.moveDown', { name: source.displayName })}
+                    accessibilityState={{ disabled: index === pdf.sources.length - 1 }}
+                    disabled={index === pdf.sources.length - 1}
+                    onPress={() => {
+                      pdf.moveSource(index, index + 1);
+                      settingChanged();
+                    }}
+                    style={({ pressed }) => [
+                      styles.orderButton,
+                      {
+                        borderRadius: theme.radius.sm,
+                        backgroundColor: theme.color.bgSunken,
+                        opacity:
+                          index === pdf.sources.length - 1 ? 0.35 : pressed ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    <Text variant="mono" color="textSecondary">
+                      {'\u2193'}
+                    </Text>
+                  </Pressable>
+                </View>
               ))}
             </View>
           </Card>
@@ -783,3 +840,10 @@ export function PdfScreen({ route, navigation }: Props) {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  orderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  orderFile: { flex: 1, minWidth: 0 },
+  // A full 44pt target, which the glyph on its own is nowhere near.
+  orderButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+});

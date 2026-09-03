@@ -255,8 +255,31 @@ formed and in step.
     "ios":     { "buildNumber": "1" },
     "android": { "versionCode": 1 }
 
-Signing is not in the repository and is not going to be. Both stores need credentials that
-belong to the developer account, so an upload is the one step here that a person has to do.
+### Signing
+
+The Android release build takes its key from Gradle properties or the environment, never
+from the repository:
+
+    KITEFOLD_STORE_FILE      path to the upload keystore
+    KITEFOLD_STORE_PASSWORD
+    KITEFOLD_KEY_ALIAS
+    KITEFOLD_KEY_PASSWORD
+
+Without them the build still works, so a release variant can be built locally to check
+permissions and behaviour, but it is signed with the debug key and prints a banner saying
+so. That matters because the template it replaces did the same thing silently: Play rejects
+a debug-signed upload, and the rejection is the first anyone hears about it.
+
+iOS signing belongs to the developer account and is done by Xcode or a build service. An
+upload is the one step here that a person has to do.
+
+### Screenshots
+
+`sh scripts/pad-play-screenshots.sh` pads the Android captures to 2:1. Google Play rejects
+any screenshot whose longest side is more than twice its shortest, and a modern phone is
+taller than that, so the raw 1080x2400 captures cannot be uploaded as they are. The pad
+colour is the canvas colour, so the result reads as a slightly wider phone rather than as
+letterboxing. iOS captures at 1320x2868 need nothing.
 
 ---
 
