@@ -532,6 +532,18 @@
     "about": "Sobre",
     "madeBy": "Feito por Owais Khan. Sem equipe, sem investidores e sem métricas de uso, então não faço ideia se alguém leu esta frase.",
     "sourceLink": "Código no GitHub",
-    "privacy": "Sem rastreadores, sem contas, nada sai deste dispositivo. Isso não é uma promessa numa política de privacidade. A versão de lançamento é publicada sem a permissão de internet, então quem garante isso é o sistema, e não a confiança no código."
+    "privacy": "Sem rastreadores, sem contas, nada sai deste dispositivo. Isso não é uma promessa numa política de privacidade. A versão de lançamento é publicada sem a permissão de internet, então quem garante isso é o sistema, e não a confiança no código.",
+    "licenses": "Licenças de código aberto"
+  },
+  "licenses": {
+    "title": "Licenças de código aberto",
+    "subtitle_one": "{{count}} biblioteca, e sob quais termos ela é usada",
+    "subtitle_many": "{{count}} de bibliotecas, e sob quais termos elas são usadas",
+    "subtitle_other": "{{count}} bibliotecas, e sob quais termos elas são usadas",
+    "appNotice": "O Kitefold em si é Copyright (c) 2026 Owais Khan, licenciado sob a Apache License, Version 2.0. As bibliotecas abaixo têm os próprios termos.",
+    "packages": "Incluídas no app",
+    "native": "Integradas ao mecanismo do Android",
+    "entry": "{{version}} · {{license}}",
+    "open": "Licenças de código aberto"
   }
 }

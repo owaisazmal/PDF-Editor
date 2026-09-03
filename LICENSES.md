@@ -595,3 +595,21 @@ the alternative this project takes.
 | `zod` | 3.25.76 | MIT | — | https://github.com/colinhacks/zod |
 | `zod` | 4.4.3 | MIT | — | https://github.com/colinhacks/zod |
 | `zustand` | 5.0.15 | MIT | — | https://github.com/pmndrs/zustand |
+
+## Native dependencies
+
+These reach the binary through Gradle rather than npm, so `npm ls` cannot see them and
+the check above does not cover them. Bouncy Castle arrives transitively, inside
+PdfBox-Android.
+
+| Library | Version | Licence | Why it is here | Repository |
+|---|---|---|---|---|
+| `Manrope (font)` | 2018 | OFL-1.1 | The typeface. Bundled as font files, so its licence has to travel with the binary; the full text is in assets/fonts/OFL.txt. | https://github.com/sharanda/manrope |
+| `androidx.exifinterface:exifinterface` | 1.4.1 | Apache-2.0 | Reads and writes the metadata a conversion has to preserve. | https://developer.android.com/jetpack/androidx/releases/exifinterface |
+| `com.tom-roush:pdfbox-android` | 2.0.27.0 | Apache-2.0 | Page-level PDF work Android has no platform API for. | https://github.com/TomRoush/PdfBox-Android |
+| `org.bouncycastle:bcprov-jdk15to18` | 1.72 | MIT | Transitive dependency of PdfBox-Android; decrypts password-protected PDFs. | https://github.com/bcgit/bc-java |
+| `org.bouncycastle:bcpkix-jdk15to18` | 1.72 | MIT | Transitive dependency of PdfBox-Android. | https://github.com/bcgit/bc-java |
+| `org.bouncycastle:bcutil-jdk15to18` | 1.72 | MIT | Transitive dependency of PdfBox-Android. | https://github.com/bcgit/bc-java |
+
+iOS adds none: the engine there uses ImageIO, PDFKit and vImage, which are part of the
+operating system rather than libraries this project ships.

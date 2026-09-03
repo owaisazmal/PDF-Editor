@@ -27,6 +27,7 @@ import { HomeScreen } from '@/features/home/HomeScreen';
 import { OptionsScreen } from '@/features/options/OptionsScreen';
 import { HistoryScreen } from '@/features/history/HistoryScreen';
 import { SettingsScreen } from '@/features/settings/SettingsScreen';
+import { LicensesScreen } from '@/features/settings/LicensesScreen';
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { initI18n } from '@/i18n';
@@ -99,6 +100,7 @@ function Navigation() {
         <Stack.Screen name="Incoming" component={IncomingScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Licenses" component={LicensesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

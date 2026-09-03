@@ -100,6 +100,23 @@ export function SettingsScreen({ navigation }: Props) {
         <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.md }}>
           {t('settings.privacy')}
         </Text>
+
+        {/*
+          The copyright and the licence, in the app rather than only in the repository.
+          Both strings are fixed rather than translated: a copyright notice and the name of
+          a licence are legal identifiers, and translating either would misstate it.
+        */}
+        <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.md }}>
+          Copyright (c) 2026 Owais Khan{'\n'}Licensed under the Apache License, Version 2.0
+        </Text>
+
+        <Button
+          testID="open-licenses"
+          label={t('settings.licenses')}
+          variant="secondary"
+          onPress={() => navigation.navigate('Licenses')}
+          style={{ marginTop: theme.space.md }}
+        />
       </Card>
 
       <View style={{ marginTop: theme.space['2xl'] }}>
