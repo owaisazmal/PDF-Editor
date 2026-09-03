@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -39,8 +39,25 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
  * tile, pick, convert. There is no end-to-end test asserting it; a comment here used to
  * cite `e2e/three-taps.yaml`, and no such file or harness has ever existed.
  */
+/**
+ * How many tiles fit across, by how wide the window is.
+ *
+ * Two was hardcoded, which is right on a phone and wrong on anything larger: on a 13-inch
+ * iPad it produced tiles a thousand points wide holding two short lines of text, with the
+ * whole grid finishing halfway down the screen. Measured against the window rather than a
+ * device class, so a Split View pane and a small phone get the same answer for the same
+ * reason.
+ */
+export function columnsFor(width: number): number {
+  if (width >= 1000) return 4;
+  if (width >= 700) return 3;
+  return 2;
+}
+
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const columns = columnsFor(width);
   const theme = useTheme();
   const setPicking = useConversionStore((s) => s.setPicking);
   const fail = useConversionStore((s) => s.fail);
@@ -216,7 +233,10 @@ export function HomeScreen({ navigation }: Props) {
           // "not built yet" is a promise, "your device cannot" is a fact.
           const reason = unavailableReason(task, capabilities);
           return (
-            <View key={task.id} style={[styles.cell, { padding: theme.space.sm }]}>
+            <View
+              key={task.id}
+              style={[{ width: `${100 / columns}%` }, { padding: theme.space.sm }]}
+            >
               <TaskTile
                 testID={`task-${task.id}`}
                 title={t(`tasks.${task.id}.title`)}
@@ -240,5 +260,4 @@ const styles = StyleSheet.create({
   headerAction: { paddingHorizontal: 16, paddingVertical: 8 },
   // Negative margin cancels the per-cell padding so the grid aligns with the page edge.
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },
-  cell: { width: '50%' },
 });
