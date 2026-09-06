@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Screen, Text, TaskTile } from '@/components';
+import { Logo, Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
@@ -159,8 +159,14 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <Screen scroll>
       <View style={{ marginBottom: theme.space['3xl'] }}>
+        {/*
+          A masthead: the mark on one side, the actions on the other, and the title on its
+          own line beneath. The mark is not put beside the title because the title is a
+          verb, and "Konvertieren" with a kite in front of it and two pills after it does
+          not fit a phone.
+        */}
         <View style={styles.header}>
-          <Text variant="display">{t('home.title')}</Text>
+          <Logo size={28} testID="home-logo" />
 
           <View style={styles.headerActions}>
             {/* Only once there is something to look at. An empty history behind a
@@ -208,6 +214,9 @@ export function HomeScreen({ navigation }: Props) {
             </Pressable>
           </View>
         </View>
+        <Text variant="display" style={{ marginTop: theme.space.md }}>
+          {t('home.title')}
+        </Text>
         <Text variant="body" color="textSecondary" style={{ marginTop: theme.space.sm }}>
           {t('home.promise')}
         </Text>

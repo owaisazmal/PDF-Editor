@@ -3,315 +3,338 @@
 // Licensed under the Apache License, Version 2.0
 
 /**
- * Draws the app icon, adaptive icon and splash mark from the token palette.
+ * Draws every brand asset from one piece of geometry and the token palette.
  *
- * The alternative was checking in binary artwork that nobody can regenerate and that
- * silently stops matching the palette the moment a colour changes. Generating them
- * keeps the brand assets on the same footing as `Tokens.swift` and `FormatTable.kt`:
- * one source, reproducible output, and a CI check that they are current.
+ * The alternative was checking in artwork that nobody can regenerate and that silently
+ * stops matching the palette the moment a colour changes. Generating it keeps the brand
+ * on the same footing as `Tokens.swift` and `FormatTable.kt`: one source, reproducible
+ * output, and a CI check that the files are current.
  *
- * The mark is an arrow — the whole product is "this file becomes that file", and an
- * arrow says it in every locale without a word of text.
+ * The mark is a folded paper kite — see scripts/brand/mark.mjs for what it means and why.
+ * It is drawn here in three colourways, each taken from the tokens rather than chosen:
  *
- * PNGs are written by hand with zlib because the toolchain has no image library, and
- * adding one for four static files is not a trade worth making.
+ *   on amber   the app icon: ink face and tail, cream flaps, on the accent fill
+ *   on cream   the light logo: ink face and tail, amber flaps, on the light canvas
+ *   on dark    the dark logo: cream face and tail, amber flaps, on the dark canvas
+ *
+ * Amber is the one colour the light and dark schemes share, so the flaps stay amber
+ * wherever the ground is a canvas, and the "ink" is whatever the scheme uses for text.
+ *
+ * Outputs: the iOS icon in its light, dark and tinted forms; the Android adaptive
+ * foreground and its monochrome layer; the light and dark splash marks; the favicon; the
+ * Play Store icon and feature graphic; the SVG mark and lockup for the README; the
+ * template layers the app tints at run time; the Android notification glyph; and the
+ * hinge geometry the launch animation folds along.
  *
  * Usage:
  *   node scripts/gen-app-icons.mjs            write the files
  *   node scripts/gen-app-icons.mjs --check    fail if they are stale (CI)
  */
 
-import { deflateSync } from 'node:zlib';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { markAndroidVector, markLayers, markShapes, markSvg, markSvgPaths } from './brand/mark.mjs';
+import { render } from './brand/raster.mjs';
+import { layoutText, loadTrueType, textPathData } from './brand/wordmark.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECK_ONLY = process.argv.includes('--check');
 
 const { palette, colors } = await import(pathToFileURL(join(ROOT, 'src/theme/tokens.ts')).href);
 
-/* ------------------------------------------------------------------- drawing ---- */
+/* --------------------------------------------------------------- colourways ---- */
 
-const hexToRgb = (hex) => [
-  parseInt(hex.slice(1, 3), 16),
-  parseInt(hex.slice(3, 5), 16),
-  parseInt(hex.slice(5, 7), 16),
-];
+const ON_AMBER = { ink: colors.light.textOnAccent, fill: palette.cream };
+const ON_CREAM = { ink: colors.light.textPrimary, fill: colors.light.accentFill };
+const ON_DARK = { ink: colors.dark.textPrimary, fill: colors.dark.accentFill };
 
-/** Distance from a point to a line segment, used to draw strokes with round caps. */
-function distanceToSegment(px, py, ax, ay, bx, by) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const lengthSquared = dx * dx + dy * dy;
-  const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSquared));
-  const cx = ax + t * dx;
-  const cy = ay + t * dy;
-  return Math.hypot(px - cx, py - cy);
+/**
+ * iOS tints its "tinted" icon from luminance alone: white takes the full tint, darker
+ * greys take a darker shade. These are therefore not colours, and not from the palette;
+ * they are the two brightness levels that keep the fold visible once the system has
+ * recoloured everything.
+ */
+const TINTED = { ink: '#FFFFFF', fill: '#B3B3B3' };
+
+/** A mask. Android and the notification shade keep the alpha and discard the colour. */
+const MASK = { ink: '#FFFFFF', fill: '#FFFFFF' };
+
+/* ---------------------------------------------------------------- placement ---- */
+
+/**
+ * Where the mark sits on a square canvas.
+ *
+ * Centring its bounding box leaves the kite riding high and right, because the tail
+ * drags the box down and left. Centring the kite alone leaves the tail sprawling into a
+ * corner. The point that sits at the centre of the canvas is midway between the two: the
+ * kite reads as centred, and the tail still belongs to the composition.
+ */
+function squarePlacement(canvas, box, overrides = {}) {
+  const unit = markShapes({ x: 0, y: 0, size: 1, ...overrides });
+  const [top, , bottom] = unit.outline;
+  const kiteCentre = [(top[0] + bottom[0]) / 2, (top[1] + bottom[1]) / 2];
+  const anchor = [(kiteCentre[0] + 0.5) / 2, (kiteCentre[1] + 0.5) / 2];
+  return markShapes({
+    x: canvas / 2 - anchor[0] * box,
+    y: canvas / 2 - anchor[1] * box,
+    size: box,
+    ...overrides,
+  });
 }
 
 /**
- * Coverage of the arrow at a point, in unit coordinates. Three round-capped strokes:
- * a shaft and two head strokes meeting at the tip.
+ * At small sizes the creases and the tail are drawn heavier than the mark's true
+ * proportions, because a crease narrower than a pixel disappears and a tail thinner than
+ * one turns to fuzz. Optical compensation, the same thing a type designer does.
  */
-function arrowCoverage(x, y, stroke) {
-  const tipX = 0.735;
-  const midY = 0.5;
-  const d = Math.min(
-    distanceToSegment(x, y, 0.265, midY, tipX, midY),
-    distanceToSegment(x, y, tipX, midY, 0.545, 0.31),
-    distanceToSegment(x, y, tipX, midY, 0.545, 0.69),
-  );
-  return d <= stroke ? 1 : 0;
-}
+const SMALL = { crease: 0.075, tailWidth: 0.085 };
 
-/** Signed coverage of a rounded square, in unit coordinates. */
-function roundedSquareCoverage(x, y, inset, radius) {
-  const min = inset;
-  const max = 1 - inset;
-  if (x < min || x > max || y < min || y > max) return 0;
+/* ------------------------------------------------------------------- icons ---- */
 
-  const cx = Math.min(Math.max(x, min + radius), max - radius);
-  const cy = Math.min(Math.max(y, min + radius), max - radius);
-  return Math.hypot(x - cx, y - cy) <= radius ? 1 : 0;
+function icon({ size, background, colourway, box = 0.68, overrides = {} }) {
+  const shapes = squarePlacement(size, size * box, overrides);
+  return render({ width: size, height: size, background, layers: markLayers(shapes, colourway) });
 }
 
 /**
- * Renders one icon. `samples` is the supersampling factor — the marks are pure
- * geometry, so 4x4 averaging is enough to look clean at every size the stores ask for.
+ * Android's adaptive icon is a 108dp canvas of which a 66dp circle is guaranteed visible,
+ * so everything has to sit inside the middle 61%. The whole composition — tail included —
+ * is fitted to that circle with a little to spare, centred on its bounding box.
  */
-function renderIcon({ size, background, mark, stroke, plate, plateInset, plateRadius }) {
-  const samples = 4;
-  const pixels = Buffer.alloc(size * size * 4);
-  const markRgb = hexToRgb(mark);
-  const backgroundRgb = background ? hexToRgb(background) : null;
-  const plateRgb = plate ? hexToRgb(plate) : null;
-
-  for (let py = 0; py < size; py += 1) {
-    for (let px = 0; px < size; px += 1) {
-      let plateHits = 0;
-      let markHits = 0;
-
-      for (let sy = 0; sy < samples; sy += 1) {
-        for (let sx = 0; sx < samples; sx += 1) {
-          const x = (px + (sx + 0.5) / samples) / size;
-          const y = (py + (sy + 0.5) / samples) / size;
-          if (plateRgb) plateHits += roundedSquareCoverage(x, y, plateInset, plateRadius);
-          markHits += arrowCoverage(x, y, stroke);
-        }
-      }
-
-      const total = samples * samples;
-      const plateAlpha = plateHits / total;
-      const markAlpha = markHits / total;
-
-      // Composite back to front: background, plate, mark.
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let a = 0;
-
-      if (backgroundRgb) {
-        [r, g, b] = backgroundRgb;
-        a = 1;
-      }
-      if (plateRgb && plateAlpha > 0) {
-        r = r * (1 - plateAlpha) + plateRgb[0] * plateAlpha;
-        g = g * (1 - plateAlpha) + plateRgb[1] * plateAlpha;
-        b = b * (1 - plateAlpha) + plateRgb[2] * plateAlpha;
-        a = a + (1 - a) * plateAlpha;
-      }
-      if (markAlpha > 0) {
-        r = r * (1 - markAlpha) + markRgb[0] * markAlpha;
-        g = g * (1 - markAlpha) + markRgb[1] * markAlpha;
-        b = b * (1 - markAlpha) + markRgb[2] * markAlpha;
-        a = a + (1 - a) * markAlpha;
-      }
-
-      const offset = (py * size + px) * 4;
-      pixels[offset] = Math.round(r);
-      pixels[offset + 1] = Math.round(g);
-      pixels[offset + 2] = Math.round(b);
-      pixels[offset + 3] = Math.round(a * 255);
-    }
-  }
-
-  return encodePng(size, size, pixels);
+function adaptiveIcon({ size, colourway, overrides = {} }) {
+  const box = size * 0.5;
+  const shapes = markShapes({ x: (size - box) / 2, y: (size - box) / 2, size: box, ...overrides });
+  return render({
+    width: size,
+    height: size,
+    background: null,
+    layers: markLayers(shapes, colourway),
+  });
 }
 
-/* ---------------------------------------------------------------------- png ----- */
-
-function chunk(type, data) {
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body) >>> 0);
-  return Buffer.concat([length, body, crc]);
-}
-
-let crcTable = null;
-function crc32(buffer) {
-  if (!crcTable) {
-    crcTable = new Int32Array(256);
-    for (let n = 0; n < 256; n += 1) {
-      let c = n;
-      for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-      crcTable[n] = c;
-    }
-  }
-  let crc = -1;
-  for (const byte of buffer) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-  return crc ^ -1;
-}
-
-function encodePng(width, height, rgba) {
-  const raw = Buffer.alloc(height * (width * 4 + 1));
-  for (let y = 0; y < height; y += 1) {
-    raw[y * (width * 4 + 1)] = 0; // filter: none
-    rgba.copy(raw, y * (width * 4 + 1) + 1, y * width * 4, (y + 1) * width * 4);
-  }
-
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(width, 0);
-  header.writeUInt32BE(height, 4);
-  header[8] = 8; // bit depth
-  header[9] = 6; // truecolour with alpha
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', header),
-    chunk('IDAT', deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
+/** The splash mark: the unit square is the whole image, so `imageWidth` in app.json is the mark's box. */
+function splash({ size, colourway }) {
+  const shapes = markShapes({ x: 0, y: 0, size });
+  return render({
+    width: size,
+    height: size,
+    background: null,
+    layers: markLayers(shapes, colourway),
+  });
 }
 
 /**
  * The Play Store feature graphic: 1024x500, mandatory, and refused if it is absent.
  *
- * Composed from the same primitives as the icons rather than drawn by hand, so it cannot
- * drift from the palette and CI can tell when it is stale.
- *
- * The mark sits left of centre and the rest is empty cream on purpose. Play overlays the app
- * icon and title across the middle of this image in several placements, and anything put
- * there is either hidden or fighting for the same space. Empty is a composition here, not a
- * shortage of ideas.
+ * The mark sits left of centre and the rest is empty cream on purpose. Play overlays the
+ * app icon and title across the middle of this image in several placements, and anything
+ * put there is either hidden or fighting for the same space. Empty is a composition here,
+ * not a shortage of ideas.
  */
-function renderFeatureGraphic({ width, height, background, plate, mark, stroke }) {
-  const samples = 4;
-  const pixels = Buffer.alloc(width * height * 4);
-  const backgroundRgb = hexToRgb(background);
-  const plateRgb = hexToRgb(plate);
-  const markRgb = hexToRgb(mark);
-
-  // The square the mark is drawn into, in pixels: centred vertically, a third of the way
-  // across, and sized to leave generous air above and below.
-  const box = Math.round(height * 0.62);
-  const boxLeft = Math.round(width * 0.14);
-  const boxTop = Math.round((height - box) / 2);
-
-  for (let py = 0; py < height; py += 1) {
-    for (let px = 0; px < width; px += 1) {
-      let plateHits = 0;
-      let markHits = 0;
-
-      for (let sy = 0; sy < samples; sy += 1) {
-        for (let sx = 0; sx < samples; sx += 1) {
-          // Sample position expressed inside the mark's own square, so the icon geometry
-          // is reused unchanged rather than re-derived for a rectangle.
-          const x = (px + (sx + 0.5) / samples - boxLeft) / box;
-          const y = (py + (sy + 0.5) / samples - boxTop) / box;
-          if (x < 0 || x > 1 || y < 0 || y > 1) continue;
-          plateHits += roundedSquareCoverage(x, y, 0.02, 0.17);
-          markHits += arrowCoverage(x, y, 0.052);
-        }
-      }
-
-      const total = samples * samples;
-      const plateAlpha = plateHits / total;
-      const markAlpha = markHits / total;
-
-      let [r, g, b] = backgroundRgb;
-      if (plateAlpha > 0) {
-        r = r * (1 - plateAlpha) + plateRgb[0] * plateAlpha;
-        g = g * (1 - plateAlpha) + plateRgb[1] * plateAlpha;
-        b = b * (1 - plateAlpha) + plateRgb[2] * plateAlpha;
-      }
-      if (markAlpha > 0) {
-        r = r * (1 - markAlpha) + markRgb[0] * markAlpha;
-        g = g * (1 - markAlpha) + markRgb[1] * markAlpha;
-        b = b * (1 - markAlpha) + markRgb[2] * markAlpha;
-      }
-
-      const offset = (py * width + px) * 4;
-      pixels[offset] = Math.round(r);
-      pixels[offset + 1] = Math.round(g);
-      pixels[offset + 2] = Math.round(b);
-      pixels[offset + 3] = 255;
-    }
-  }
-
-  return encodePng(width, height, pixels);
+function featureGraphic({ width, height }) {
+  const box = height * 0.84;
+  const shapes = markShapes({ x: width * 0.11, y: (height - box) / 2, size: box });
+  return render({ width, height, background: palette.cream, layers: markLayers(shapes, ON_CREAM) });
 }
 
-/* -------------------------------------------------------------------- write ----- */
+/**
+ * One layer of the mark, white on transparent, for the app to tint at run time.
+ *
+ * The app cannot load an SVG without a dependency it has no other use for, and a
+ * flattened PNG would need a copy per scheme. A template image tinted with a token is
+ * theme-correct by construction, and splitting the mark into its four parts lets the
+ * launch animation fold each one on its own hinge.
+ */
+function layer({ size, part }) {
+  const shapes = markShapes({ x: 0, y: 0, size });
+  const shape =
+    part === 'tail'
+      ? { kind: 'stroke', points: shapes.tailPolyline, width: shapes.tailWidth }
+      : { kind: 'polygon', points: shapes[part] };
+  return render({
+    width: size,
+    height: size,
+    background: null,
+    layers: [{ color: '#FFFFFF', shapes: [shape] }],
+  });
+}
+
+/* ------------------------------------------------------------------ lockup ---- */
+
+const FONT = join(
+  ROOT,
+  'node_modules/@expo-google-fonts/manrope/800ExtraBold/Manrope_800ExtraBold.ttf',
+);
+
+/**
+ * The mark beside the name, set in the same face as the app's headings.
+ *
+ * Proportions are in cap heights: the mark is 1.65 of them tall and sits with the kite
+ * centred on the capitals, so the tail dips below the baseline the way a descender would.
+ * The letters are tracked to match the display style in the app's type scale.
+ */
+function lockup({ ink, fill }) {
+  const font = loadTrueType(FONT);
+  const gid = (char) => font.glyphId(char.codePointAt(0));
+  const cap = font.bounds(gid('H')).yMax;
+  const layout = layoutText(font, 'Kitefold', { letterSpacing: -40 });
+
+  const wordTop = Math.max(...layout.glyphs.map((glyph) => font.bounds(glyph.gid).yMax));
+  const wordBottom = Math.min(...layout.glyphs.map((glyph) => font.bounds(glyph.gid).yMin));
+  const markSize = cap * 1.65;
+  const gap = cap * 0.22;
+  const pad = cap * 0.25;
+
+  const baseline = pad + Math.max(wordTop, cap / 2 + markSize / 2);
+  const markY = baseline - cap / 2 - markSize / 2 + cap * 0.06;
+  const width = pad + markSize + gap + layout.width + pad;
+  const height = Math.max(baseline - wordBottom, markY + markSize) + pad;
+
+  // Font units are large; scaling the viewBox to a 96px-high image keeps the numbers
+  // readable and the default render size sensible.
+  const scale = 96 / height;
+  const shapes = markShapes({ x: pad * scale, y: markY * scale, size: markSize * scale });
+  const text = textPathData(layout, {
+    x: (pad + markSize + gap) * scale,
+    y: baseline * scale,
+    scale,
+  });
+  const w = (width * scale).toFixed(1);
+  const h = (height * scale).toFixed(1);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-labelledby="title">
+<title id="title">Kitefold</title>
+${markSvgPaths(shapes, { ink, fill })}
+<path fill="${ink}" d="${text}"/>
+</svg>
+`;
+}
+
+/* --------------------------------------------------------------- animation ---- */
+
+/**
+ * The geometry the launch animation folds along, as fractions of the mark's box.
+ *
+ * Each flap hinges on the kite's outer edge it was folded across — which is what happens
+ * to the sheet — so the animation needs where that edge is and which way it runs. Written
+ * out rather than recomputed in TypeScript, because the second copy of this geometry is
+ * the one that would drift.
+ */
+function animationGeometry() {
+  const unit = markShapes({ x: 0, y: 0, size: 1 });
+  const [top, right, bottom, left] = unit.outline;
+
+  // The angle that rotates "down" onto the hinge's direction, in React Native's
+  // clockwise-positive degrees, so `rotate(angle) · rotateY(fold) · rotate(-angle)` turns
+  // a flap about that edge.
+  const hinge = (from, to) => {
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    return {
+      pivot: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
+      degrees: (Math.atan2(-dx, dy) * 180) / Math.PI,
+    };
+  };
+
+  const f = (n) => Number(n.toFixed(4));
+  const point = ([x, y]) => `[${f(x)}, ${f(y)}]`;
+  const leftHinge = hinge(left, bottom);
+  const rightHinge = hinge(right, bottom);
+
+  return `// Copyright (c) 2026 Owais Khan
+// Licensed under the Apache License, Version 2.0
+//
+// GENERATED FILE — DO NOT EDIT.
+// Source: scripts/brand/mark.mjs   Regenerate: npm run icons:gen
+
+/**
+ * Where the mark's parts hinge, as fractions of its square box.
+ *
+ * A flap folds about the kite's outer edge it was creased along; the tail swings from the
+ * kite's bottom point. \`degrees\` is the clockwise rotation that lays the vertical axis
+ * along the hinge, so rotating a flap about its hinge is
+ * \`rotate(degrees) · rotateY(fold) · rotate(-degrees)\` with the pivot as the origin.
+ */
+export const MARK_GEOMETRY = {
+  top: ${point(top)},
+  right: ${point(right)},
+  bottom: ${point(bottom)},
+  left: ${point(left)},
+  flapLeft: { pivot: ${point(leftHinge.pivot)}, degrees: ${f(leftHinge.degrees)} },
+  flapRight: { pivot: ${point(rightHinge.pivot)}, degrees: ${f(rightHinge.degrees)} },
+  /** The kite's own height as a fraction of the box. */
+  kiteHeight: ${f(unit.kiteHeight)},
+} as const;
+`;
+}
+
+/* ------------------------------------------------------------------- write ---- */
+
+const GENERATED_XML = `<!--
+  Copyright (c) 2026 Owais Khan
+  Licensed under the Apache License, Version 2.0
+
+  GENERATED by scripts/gen-app-icons.mjs from scripts/brand/mark.mjs - do not edit.
+  Regenerate: npm run icons:gen
+-->
+`;
+
+const text = (string) => Buffer.from(string, 'utf8');
 
 const outputs = [
-  // iOS: opaque, full bleed. The system applies its own mask.
-  ['assets/icon.png', renderIcon({
-    size: 1024,
-    background: palette.cream,
-    plate: palette.amber,
-    plateInset: 0.13,
-    plateRadius: 0.17,
-    mark: colors.light.textOnAccent,
-    stroke: 0.052,
-  })],
-  // Android adaptive foreground: transparent, mark inside the 66% safe zone.
-  ['assets/adaptive-icon.png', renderIcon({
-    size: 1024,
-    background: null,
-    plate: palette.amber,
-    plateInset: 0.20,
-    plateRadius: 0.14,
-    mark: colors.light.textOnAccent,
-    stroke: 0.040,
-  })],
-  // Splash mark: no plate, drawn in the brand's text-safe brown on the cream ground.
-  ['assets/splash-icon.png', renderIcon({
-    size: 512,
-    background: null,
-    plate: null,
-    mark: palette.sienna,
-    stroke: 0.055,
-  })],
-  ['assets/favicon.png', renderIcon({
-    size: 96,
-    background: palette.cream,
-    plate: palette.amber,
-    plateInset: 0.10,
-    plateRadius: 0.18,
-    mark: colors.light.textOnAccent,
-    stroke: 0.055,
-  })],
-  // Play refuses a listing without this, at exactly this size.
-  ['store/play/feature-graphic.png', renderFeatureGraphic({
-    width: 1024,
-    height: 500,
-    background: palette.cream,
-    plate: palette.amber,
-    mark: colors.light.textOnAccent,
-  })],
-  // Play also wants a 512x512 icon, separately from the one in the binary.
-  ['store/play/icon-512.png', renderIcon({
-    size: 512,
-    background: palette.cream,
-    plate: palette.amber,
-    plateInset: 0.13,
-    plateRadius: 0.17,
-    mark: colors.light.textOnAccent,
-    stroke: 0.052,
-  })],
+  // iOS, light: opaque, full bleed. The system applies its own mask.
+  ['assets/icon.png', icon({ size: 1024, background: palette.amber, colourway: ON_AMBER })],
+  // iOS, dark: transparent, so the system's dark backdrop shows through as it does for
+  // every other dark icon on the device.
+  ['assets/icon-dark.png', icon({ size: 1024, background: null, colourway: ON_DARK })],
+  // iOS, tinted: greyscale on transparent; the system supplies the colour.
+  ['assets/icon-tinted.png', icon({ size: 1024, background: null, colourway: TINTED })],
+  // Android adaptive foreground, on the amber the manifest paints behind it.
+  ['assets/adaptive-icon.png', adaptiveIcon({ size: 1024, colourway: ON_AMBER })],
+  // Android themed icons: a single-colour silhouette, tinted by the launcher.
+  [
+    'assets/adaptive-icon-monochrome.png',
+    adaptiveIcon({ size: 1024, colourway: MASK, overrides: SMALL }),
+  ],
+  // Splash marks, one per scheme, on the canvas colour app.json paints behind them.
+  ['assets/splash-icon.png', splash({ size: 1024, colourway: ON_CREAM })],
+  ['assets/splash-icon-dark.png', splash({ size: 1024, colourway: ON_DARK })],
+  [
+    'assets/favicon.png',
+    icon({ size: 96, background: palette.amber, colourway: ON_AMBER, box: 0.74, overrides: SMALL }),
+  ],
+  // Play refuses a listing without these two, at exactly these sizes.
+  ['store/play/icon-512.png', icon({ size: 512, background: palette.amber, colourway: ON_AMBER })],
+  ['store/play/feature-graphic.png', featureGraphic({ width: 1024, height: 500 })],
+  // The logo as a designer would hand it over: the mark alone, and the lockup, per scheme.
+  ['assets/brand/kitefold-mark-light.svg', text(markSvg({ size: 512, ...ON_CREAM }))],
+  ['assets/brand/kitefold-mark-dark.svg', text(markSvg({ size: 512, ...ON_DARK }))],
+  ['assets/brand/kitefold-lockup-light.svg', text(lockup(ON_CREAM))],
+  ['assets/brand/kitefold-lockup-dark.svg', text(lockup(ON_DARK))],
+  // The Android notification glyph, copied into the project by withConverterCoreAndroid.
+  [
+    'native/android/res/drawable/ic_stat_converter.xml',
+    text(markAndroidVector({ header: GENERATED_XML })),
+  ],
+  // What the launch animation folds along.
+  ['src/generated/markGeometry.ts', text(animationGeometry())],
 ];
+
+// The template layers the app draws with: one file per part, at the three densities
+// React Native picks between. The base size is generous because the launch animation
+// shows the mark at 180 points on a 3x screen.
+for (const part of ['face', 'flapLeft', 'flapRight', 'tail']) {
+  const name = part.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  for (const [suffix, scale] of [
+    ['', 1],
+    ['@2x', 2],
+    ['@3x', 3],
+  ]) {
+    outputs.push([`assets/brand/mark-${name}${suffix}.png`, layer({ size: 256 * scale, part })]);
+  }
+}
 
 let stale = 0;
 for (const [relPath, buffer] of outputs) {
@@ -337,8 +360,8 @@ for (const [relPath, buffer] of outputs) {
 
 if (CHECK_ONLY) {
   if (stale > 0) {
-    console.error(`\n${stale} icon(s) out of date. Run: npm run icons:gen`);
+    console.error(`\n${stale} brand asset(s) out of date. Run: npm run icons:gen`);
     process.exit(1);
   }
-  console.log('generated icons are up to date');
+  console.log('generated brand assets are up to date');
 }

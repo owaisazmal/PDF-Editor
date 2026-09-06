@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -29,6 +29,7 @@ import { HistoryScreen } from '@/features/history/HistoryScreen';
 import { SettingsScreen } from '@/features/settings/SettingsScreen';
 import { LicensesScreen } from '@/features/settings/LicensesScreen';
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
+import { LaunchOverlay } from '@/features/launch/LaunchOverlay';
 import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { initI18n } from '@/i18n';
 import { fileGateway } from '@/native';
@@ -38,6 +39,13 @@ import type { RootStackParamList } from '@/navigation/types';
 
 // Held until the fonts resolve so the first frame is never rendered in a fallback face.
 void SplashScreen.preventAutoHideAsync();
+
+// As near a cut as Android allows. The launch overlay's first frame is the splash
+// screen's last, pixel for pixel, so there is nothing for a cross-fade to smooth; what
+// Android's default 400 ms fade did instead was hold a translucent copy of the mark over
+// the first third of the fold. Not zero, though: a zero-length exit never finished on
+// Android and left the splash view on screen for good. iOS already cuts by default.
+SplashScreen.setOptions({ fade: false, duration: 60 });
 
 // Before the first render, not in an effect: React Native fixes the layout direction at
 // startup, so a right-to-left language decided later would leave half the tree laid out
@@ -126,6 +134,25 @@ function Navigation() {
   );
 }
 
+/**
+ * The navigator, with the opening played over it.
+ *
+ * The overlay mounts in the same frame as the home screen, so by the time it lifts away
+ * there is a finished screen underneath rather than a screen still arriving. It hides the
+ * native splash itself, on its first layout, which is what makes the handover invisible.
+ */
+function Root() {
+  const [opened, setOpened] = useState(false);
+  const finishOpening = useCallback(() => setOpened(true), []);
+
+  return (
+    <>
+      <Navigation />
+      {opened ? null : <LaunchOverlay onDone={finishOpening} />}
+    </>
+  );
+}
+
 export function App() {
   const [fontsLoaded, fontError] = useFonts({
     Manrope_400Regular,
@@ -139,8 +166,17 @@ export function App() {
   // acceptable degradation, an app that never shows a frame is not.
   const ready = fontsLoaded || fontError != null;
 
-  const onLayout = useCallback(() => {
-    if (ready) void SplashScreen.hideAsync();
+  // The launch overlay hides the splash once it has painted its identical first frame.
+  // This is the belt to that pair of braces: whatever happens to the overlay, a splash
+  // screen that never goes away is the one failure a user cannot get past. It waits long
+  // enough not to pre-empt the overlay even on a slow device still decoding the mark's
+  // layers, and `hideAsync` is idempotent, so in the normal case it does nothing at all.
+  useEffect(() => {
+    if (!ready) return;
+    const fallback = setTimeout(() => {
+      void SplashScreen.hideAsync().catch(() => {});
+    }, 4000);
+    return () => clearTimeout(fallback);
   }, [ready]);
 
   if (!ready) {
@@ -150,10 +186,10 @@ export function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <Navigation />
+          <Root />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

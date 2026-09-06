@@ -535,7 +535,8 @@
     "madeBy": "Fatto da Owais Khan. Nessun team, nessun investitore e nessuna statistica d’uso: non saprò mai se qualcuno ha letto questa frase.",
     "sourceLink": "Codice sorgente su GitHub",
     "privacy": "Nessun tracciamento, nessun account, niente che esca da questo dispositivo. Non è una promessa scritta in un’informativa: la versione pubblicata non ha il permesso di accedere a internet, quindi a garantirlo è il sistema operativo, non la fiducia nel codice.",
-    "licenses": "Licenze open source"
+    "licenses": "Licenze open source",
+    "version": "Versione {{version}}"
   },
   "licenses": {
     "title": "Licenze open source",

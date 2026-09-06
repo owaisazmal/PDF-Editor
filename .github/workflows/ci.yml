@@ -47,6 +47,12 @@ jobs:
       - name: Generated format tables are current
         run: npm run formats:check
 
+      - name: Generated brand assets are current
+        # The app icon, splash marks, store artwork, notification glyph and the logo files
+        # are all drawn from one piece of geometry and the token palette. A stale file means
+        # the palette or the mark changed and the artwork did not follow.
+        run: npm run icons:check
+
       - name: Native projects carry every language
         # Generated at prebuild rather than committed, so this regenerates them and then
         # checks what came out. Two of the failures it looks for produced a green build

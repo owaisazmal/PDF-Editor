@@ -535,7 +535,8 @@
     "madeBy": "Feito por Owais Khan. Sem equipe, sem investidores e sem métricas de uso, então não faço ideia se alguém leu esta frase.",
     "sourceLink": "Código no GitHub",
     "privacy": "Sem rastreadores, sem contas, nada sai deste dispositivo. Isso não é uma promessa numa política de privacidade. A versão de lançamento é publicada sem a permissão de internet, então quem garante isso é o sistema, e não a confiança no código.",
-    "licenses": "Licenças de código aberto"
+    "licenses": "Licenças de código aberto",
+    "version": "Versão {{version}}"
   },
   "licenses": {
     "title": "Licenças de código aberto",

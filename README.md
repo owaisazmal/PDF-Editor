@@ -1,4 +1,9 @@
-# Kitefold
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/kitefold-lockup-dark.svg">
+    <img src="assets/brand/kitefold-lockup-light.svg" alt="Kitefold" width="340">
+  </picture>
+</p>
 
 A free, fast, 100% on-device image and document converter. HEIC to JPG, WebP, PDF in
 both directions, batch conversion, resize and compress, with no uploads, no account
@@ -30,6 +35,57 @@ report. And the Arabic screen is not the English one with the text swapped. The 
 right to left, the format badges trade places, and the arrow points the other way, because
 an arrow that survives a mirror unchanged ends up pointing from the output back at the
 input.
+
+---
+
+## The mark
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/kitefold-mark-dark.svg">
+    <img src="assets/brand/kitefold-mark-light.svg" alt="The Kitefold mark: a paper kite folded from a square sheet, leaning forward and trailing a tail." width="150">
+  </picture>
+</p>
+
+The mark is an origami kite base, the fold that turns a square sheet into a kite. Fold two
+adjacent edges of a square onto its diagonal and what is left is a kite made of three
+triangles: the top of the sheet, still flat, and two flaps folded in below it, meeting along
+the spine. Nothing is added and nothing is cut away. The same sheet is folded into another
+shape, which is the product drawn once: a file goes in, the same file comes out in another
+form, and it never leaves the hands that folded it. The kite leans forward and trails a
+tail, because a kite with neither is a diamond.
+
+It is drawn from geometry rather than kept as artwork. `scripts/brand/mark.mjs` holds the
+proportions, `scripts/gen-app-icons.mjs` draws every asset from them and the token palette,
+and `npm run icons:check` fails CI if any file has drifted from either.
+
+| Asset | Where |
+|---|---|
+| The iOS icon in its light, dark and tinted forms | `assets/icon.png`, `icon-dark.png`, `icon-tinted.png` |
+| The Android adaptive icon, and the monochrome layer themed icons are tinted from | `assets/adaptive-icon.png`, `adaptive-icon-monochrome.png` |
+| The splash mark, one per scheme | `assets/splash-icon.png`, `splash-icon-dark.png` |
+| The Play Store icon and feature graphic | `store/play/` |
+| The logo as files: the mark alone and the lockup, per scheme | `assets/brand/*.svg` |
+| The template layers the app tints at run time | `assets/brand/mark-*.png` |
+| The Android notification glyph | `native/android/res/drawable/ic_stat_converter.xml` |
+| The hinges the launch animation folds along | `src/generated/markGeometry.ts` |
+
+Three colourways, each taken from the tokens rather than chosen. On the amber accent, which
+is the icon, the face and the tail are ink and the flaps are cream. On the cream canvas the
+flaps are amber and the rest is ink: the light logo. On the dark canvas the face and the tail
+are cream and the flaps stay amber: the dark logo. Amber is the one colour both schemes
+share, so wherever the ground is a canvas the flaps are amber, and the ink is whatever the
+scheme uses for text. In the app the same four layers are tinted with `textPrimary` and
+`accentFill`, so the mark follows the scheme without a second copy of anything.
+
+The wordmark is Manrope ExtraBold, the face the app's headings are set in, as outlines read
+from the font file at generation time. Text in an SVG falls back to whatever the reader has
+installed, which is never Manrope; outlines do not fall back.
+
+The app opens on the mark. When the JavaScript is ready an overlay takes over from the native
+splash screen with no visible seam, unfolds the kite into the sheet it was made from, folds
+it back, and lifts it away as the home screen comes up beneath. Under the system's
+reduce-motion setting nothing folds or flies; the overlay only fades.
 
 ---
 
@@ -120,6 +176,8 @@ cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a
 | `npm run generate` | Regenerate `Tokens.swift`/`Tokens.kt` and `FormatTable.swift`/`FormatTable.kt` |
 | `npm run tokens:check` | Fail if the generated token files are stale |
 | `npm run formats:check` | Fail if the generated format tables are stale |
+| `npm run icons:gen` | Redraw the app icon, splash marks, store artwork, logo files and notification glyph from the mark and the palette |
+| `npm run icons:check` | Fail if any of those is stale |
 | `npm run license:report` | Regenerate `LICENSES.md` and run the licence gate |
 | `npm run telemetry:check` | Fail if any data-collecting package is present |
 | `npm test` | Jest |
@@ -201,7 +259,10 @@ src/
   store/       zustand slices
   theme/       tokens.ts, the contrast utility, the provider
   i18n/        the catalogue: nine locale files and the instance
+  generated/   the licence inventory and the mark's hinge geometry, both generated
   utils/
+assets/
+  brand/       the logo files: SVG mark and lockup per scheme, and the layers the app tints
 native/
   ios/ConverterCore/    Swift: ImageIO, PDFKit, vImage
   ios/generated/        Tokens.swift, FormatTable.swift
@@ -209,6 +270,7 @@ native/
   android/generated/    Tokens.kt, FormatTable.kt
 plugins/       Expo config plugins: native sources, share extension, localisations
 scripts/       generators and CI gates
+  brand/       the mark's geometry, the rasteriser, and the TrueType outline reader
 __tests__/     unit and integration
 docs/          architecture, dependencies, measured contrast
 ```
