@@ -15,3 +15,4 @@ export { SegmentedControl, type SegmentedControlProps, type Segment } from './Se
 export { Toggle, type ToggleProps } from './Toggle';
 export { TextField, type TextFieldProps } from './TextField';
 export { ChipRow, type ChipRowProps, type Chip } from './ChipRow';
+export { Logo, MARK_LAYERS, type LogoProps } from './Logo';

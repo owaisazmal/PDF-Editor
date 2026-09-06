@@ -501,7 +501,8 @@
     "madeBy": "Gebaut von Owais Khan. Kein Team, keine Investoren, keine Analysedaten und damit keine Möglichkeit für mich, je zu erfahren, ob das hier jemand gelesen hat.",
     "sourceLink": "Quellcode auf GitHub",
     "privacy": "Keine Tracker, keine Konten, nichts verlässt dieses Gerät. Das ist kein Versprechen in einer Datenschutzerklärung. Die veröffentlichte Version wird ohne die Internet-Berechtigung ausgeliefert, das System erzwingt es also, statt dem Code zu vertrauen.",
-    "licenses": "Open-Source-Lizenzen"
+    "licenses": "Open-Source-Lizenzen",
+    "version": "Version {{version}}"
   },
   "licenses": {
     "title": "Open-Source-Lizenzen",

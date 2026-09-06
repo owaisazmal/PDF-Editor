@@ -501,7 +501,8 @@
     "madeBy": "Made by Owais Khan. No team, no investors, and no analytics, so there is no way for me to know whether anyone has read this.",
     "sourceLink": "Source on GitHub",
     "privacy": "No trackers, no accounts, nothing leaving this device. That is not a promise in a policy. The release build ships without the internet permission, so the system enforces it rather than trusting the code.",
-    "licenses": "Open source licences"
+    "licenses": "Open source licences",
+    "version": "Version {{version}}"
   },
   "licenses": {
     "title": "Open source licences",

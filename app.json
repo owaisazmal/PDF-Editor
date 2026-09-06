@@ -70,7 +70,12 @@
           }
         ]
       },
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      }
     },
     "android": {
       "package": "com.owaiskhan.kitefold",
@@ -83,8 +88,8 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FDFBD4",
-        "monochromeImage": "./assets/adaptive-icon.png"
+        "backgroundColor": "#D47E30",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
       "versionCode": 1,
       "allowBackup": false
@@ -101,7 +106,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#FDFBD4",
           "dark": {
-            "image": "./assets/splash-icon.png",
+            "image": "./assets/splash-icon-dark.png",
             "backgroundColor": "#17110A"
           }
         }
