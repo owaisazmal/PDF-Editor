@@ -47,8 +47,32 @@ export function Card({
     padding: theme.space.xl,
   };
 
+  /*
+    A card with nothing to tap is still a card with something to say.
+
+    This branch used to drop `testID` and both accessibility props on the floor, which
+    read as harmless — a plain container has no role to announce. It was not. A task tile
+    the device cannot perform renders exactly here, with `onPress` withheld, and its label
+    is the sentence explaining why the tile is closed. Losing it meant the one tile that
+    needed explaining was the one tile a screen reader could not describe, while the
+    tappable ones next to it read perfectly.
+
+    `accessible` is set only when a label is supplied, because it collapses the subtree
+    into a single announcement. That is right for a tile whose label already carries its
+    title and reason, and wrong for the section cards elsewhere in the app, which pass no
+    label and whose children should each be reachable.
+  */
   if (!onPress) {
-    return <View style={[surface, theme.shadow(elevation), style]}>{children}</View>;
+    return (
+      <View
+        style={[surface, theme.shadow(elevation), style]}
+        testID={testID}
+        {...(accessibilityLabel ? { accessible: true, accessibilityLabel } : {})}
+        {...(accessibilityHint ? { accessibilityHint } : {})}
+      >
+        {children}
+      </View>
+    );
   }
 
   return (

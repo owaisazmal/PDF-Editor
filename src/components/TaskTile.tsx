@@ -89,7 +89,15 @@ export function TaskTile({
       <Text variant="h3" numberOfLines={2}>
         {title}
       </Text>
-      <Text variant="bodySm" color="textSecondary" numberOfLines={2} style={{ marginTop: theme.space.xs }}>
+      {/*
+        Three lines rather than two. The subtitle is the only thing on the tile that says
+        what the task is for, and at two lines a 1080-wide phone cut "Compress Image" down
+        to "Hit a size limit without the guess…" — the clause that carries the meaning was
+        the one that got dropped. Tiles in a row already stretch to the tallest, so the
+        cost is one row growing on narrow screens, and English is not the widest language
+        this has to hold.
+      */}
+      <Text variant="bodySm" color="textSecondary" numberOfLines={3} style={{ marginTop: theme.space.xs }}>
         {subtitle}
       </Text>
     </Card>

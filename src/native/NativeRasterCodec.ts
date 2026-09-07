@@ -52,9 +52,6 @@ export interface Spec extends TurboModule {
    * source never becomes a 200-megapixel allocation.
    */
   makePreview(inputUri: string, maxPixelSize: number): Promise<string>;
-
-  /** Cancels in-flight work started by this module. */
-  cancelAll(): void;
 }
 
 // `get` rather than `getEnforcing`: importing a spec must not throw in Jest or on a

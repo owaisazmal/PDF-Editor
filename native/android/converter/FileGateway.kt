@@ -52,9 +52,26 @@ public object FileGateway {
   public fun temporaryDirectory(context: Context): File =
     File(context.cacheDir, "ConverterWork").apply { mkdirs() }
 
+  /**
+   * Throws away everything the app wrote that the user did not save elsewhere.
+   *
+   * Two directories, because the app writes to two: scratch copies from the picker, and
+   * finished output waiting to be saved. The name undersells it, but both are temporary
+   * in the only sense that matters — neither survives a relaunch. What the user saved is
+   * theirs, and what they did not is gone.
+   *
+   * Output used to be left behind for good. Nothing ever read it back, since history
+   * stores names and sizes rather than paths, so it was pure accumulation: a converter
+   * that quietly kept a copy of every file it had ever produced.
+   */
   public fun clearTemporaryFiles(context: Context) {
     temporaryDirectory(context).deleteRecursively()
     temporaryDirectory(context)
+
+    // Deleted and immediately recreated: a conversion that starts before this returns
+    // would otherwise write into a directory that no longer exists.
+    outputDirectory(context).deleteRecursively()
+    outputDirectory(context)
   }
 
   public fun freeDiskSpace(context: Context): Long =

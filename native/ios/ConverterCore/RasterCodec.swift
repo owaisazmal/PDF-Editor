@@ -489,12 +489,27 @@ public enum RasterCodec {
         return candidate
     }
 
+    /// Where converted files live until the user saves them somewhere permanent.
+    ///
+    /// Excluded from backup on every call rather than once at first creation. The flag
+    /// lives on the directory, so anything that recreates it — a restore, a clear at
+    /// launch — would otherwise silently drop the exclusion and start syncing again.
     public static func managedOutputDirectory() throws -> URL {
         let base = try FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
         )
-        let directory = base.appendingPathComponent("ConvertedFiles", isDirectory: true)
+        var directory = base.appendingPathComponent("ConvertedFiles", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        // Application Support is backed up to iCloud unless a directory opts out. These
+        // files are copies of the user's own photos that the app can rebuild in a second,
+        // and syncing them would contradict the promise on the home screen. Apple's data
+        // storage guidelines reach the same conclusion from the other direction: backing
+        // up regenerable content is a documented review rejection.
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? directory.setResourceValues(values)
+
         return directory
     }
 

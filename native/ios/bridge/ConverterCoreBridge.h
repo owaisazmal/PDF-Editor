@@ -62,8 +62,6 @@ NS_ASSUME_NONNULL_BEGIN
             resolve:(RCTPromiseResolveBlock)resolve
              reject:(RCTPromiseRejectBlock)reject;
 
-+ (void)cancelAll;
-
 #pragma mark - Job queue
 
 + (void)installJobQueueHandlersWithProgress:(void (^)(NSDictionary *))progress

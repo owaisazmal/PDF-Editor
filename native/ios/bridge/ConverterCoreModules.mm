@@ -112,11 +112,6 @@ RCT_EXPORT_MODULE()
                             reject:reject];
 }
 
-- (void)cancelAll
-{
-  [ConverterCoreBridge cancelAll];
-}
-
 - (std::shared_ptr<facebook::react::TurboModule>)
     getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
 {

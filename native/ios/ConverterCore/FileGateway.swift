@@ -161,6 +161,7 @@ public enum FileGateway {
 
     // MARK: - Filesystem
 
+    /// Scratch space for picker copies and previews.
     public static func temporaryDirectory() -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("ConverterWork", isDirectory: true)
@@ -168,9 +169,29 @@ public enum FileGateway {
         return directory
     }
 
+    /// Throws away everything the app wrote that the user did not save elsewhere.
+    ///
+    /// Two directories, because the app writes to two. `ConverterWork` holds the scratch
+    /// copies a picker makes; `ConvertedFiles` holds finished output waiting to be saved
+    /// to Photos or Files. The bridge still calls this `clearTemporaryFiles`, and the name
+    /// undersells it: both directories are temporary in the only sense that matters, which
+    /// is that neither survives a relaunch. What the user saved is theirs, and what they
+    /// did not is gone.
+    ///
+    /// Output used to be left behind for good. Nothing ever read it back — history stores
+    /// names and sizes, never paths — so it was pure accumulation, and on iOS it sat in
+    /// Application Support, which iCloud backs up. An app whose home screen promises that
+    /// nothing leaves the device cannot quietly sync a copy of every conversion.
     public static func clearTemporaryFiles() throws {
         try? FileManager.default.removeItem(at: temporaryDirectory())
         _ = temporaryDirectory()
+
+        // Deleted and immediately recreated: a conversion that starts before this returns
+        // would otherwise write into a directory that no longer exists.
+        if let output = try? RasterCodec.managedOutputDirectory() {
+            try? FileManager.default.removeItem(at: output)
+            _ = try? RasterCodec.managedOutputDirectory()
+        }
     }
 
     public static func freeDiskSpace() -> Int64 {

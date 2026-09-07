@@ -122,10 +122,6 @@ export const rasterCodec = {
     const native = require_(NativeRasterCodec, 'NativeRasterCodec');
     return native.makePreview(inputUri, maxPixelSize);
   },
-
-  cancelAll(): void {
-    NativeRasterCodec?.cancelAll();
-  },
 };
 
 /* -------------------------------------------------------------------- gateway ---- */
