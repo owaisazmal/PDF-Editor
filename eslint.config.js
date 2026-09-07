@@ -72,6 +72,13 @@ module.exports = [
         module: 'writable',
       },
     },
-    rules: { 'no-restricted-syntax': 'off', 'no-console': 'off' },
+    rules: {
+      'no-restricted-syntax': 'off',
+      'no-console': 'off',
+      // `jest.mock` factories are hoisted above the imports, so they cannot close over
+      // anything an `import` bound — `require` inside the factory is the documented way
+      // to reach a shared mock, not a style lapse.
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
 ];

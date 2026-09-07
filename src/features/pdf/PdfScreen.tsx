@@ -518,7 +518,7 @@ export function PdfScreen({ route, navigation }: Props) {
                     language is a test id that changes with the language. */}
                 <SegmentedControl<PdfOrientation>
                   label={t('pdf.orientation')}
-                  testID="ORIENTATION"
+                  testID="orientation"
                   segments={orientationSegments}
                   value={orientation}
                   onChange={change(setOrientation)}
@@ -526,7 +526,7 @@ export function PdfScreen({ route, navigation }: Props) {
                 <View style={{ marginTop: theme.space.lg }}>
                   <SegmentedControl<PdfFitMode>
                     label={t('pdf.fit')}
-                    testID="FIT"
+                    testID="fit"
                     segments={fitModeSegments}
                     value={fitMode}
                     onChange={change(setFitMode)}
@@ -602,7 +602,7 @@ export function PdfScreen({ route, navigation }: Props) {
             <Card style={{ marginTop: theme.space.lg }}>
               <SegmentedControl<'jpeg' | 'png'>
                 label={t('pdf.format')}
-                testID="FORMAT"
+                testID="format"
                 segments={renderFormatSegments}
                 value={renderFormat}
                 onChange={change(setRenderFormat)}
@@ -713,7 +713,7 @@ export function PdfScreen({ route, navigation }: Props) {
           <Card>
             <SegmentedControl<'ranges' | 'every'>
               label={t('pdf.splitBy')}
-              testID="SPLIT BY"
+              testID="split-by"
               segments={splitModeSegments}
               value={splitMode}
               onChange={change(setSplitMode)}

@@ -498,7 +498,7 @@
     "languageHint": "Kitefold spricht {{count}} Sprachen und folgt der, die auf deinem Gerät eingestellt ist. Hier gibt es keine Auswahl, weil dein Telefon schon eine hat, und anders als dieser Bildschirm kann es die App neu starten, was der Wechsel zu oder von einer Rechts-nach-links-Sprache verlangt.",
     "openSystemSettings": "Systemeinstellungen öffnen",
     "about": "Über die App",
-    "madeBy": "Gebaut von Owais Khan. Kein Team, keine Investoren, keine Analysedaten und damit keine Möglichkeit für mich, je zu erfahren, ob das hier jemand gelesen hat.",
+    "madeBy": "Gebaut von Owais Khan. Kein Team, keine Investoren, keine Analysedaten.",
     "sourceLink": "Quellcode auf GitHub",
     "privacy": "Keine Tracker, keine Konten, nichts verlässt dieses Gerät. Das ist kein Versprechen in einer Datenschutzerklärung. Die veröffentlichte Version wird ohne die Internet-Berechtigung ausgeliefert, das System erzwingt es also, statt dem Code zu vertrauen.",
     "licenses": "Open-Source-Lizenzen",

@@ -70,7 +70,8 @@ function Navigation() {
   }, []);
 
   /**
-   * Throws away last session's scratch copies.
+   * Throws away last session's files: the scratch copies going in, and the converted
+   * ones coming out.
    *
    * Choosing a file through a system picker copies it into the app's cache, because the URL
    * a picker hands over is only valid for the life of the callback. Those copies are whole
@@ -78,13 +79,19 @@ function Navigation() {
    * platforms, was exposed across the bridge, and had no caller, so a privacy-first
    * converter was quietly accumulating copies of everything anyone had ever converted.
    *
+   * The output had the same problem one directory over, and it outlived the fix to this
+   * one: converted files sat in Application Support for good, which on iOS is a directory
+   * iCloud backs up. Nothing reads them back, since history keeps names and sizes rather
+   * than paths, so a user who does not save is meant to end up with nothing. They ended
+   * up with everything, synced.
+   *
    * At launch rather than after each conversion, because at launch nothing is in flight.
-   * Clearing while a batch is running would delete the inputs out from under it.
+   * Clearing while a batch is running would delete files out from under it.
    */
   useEffect(() => {
     void fileGateway.clearTemporaryFiles().catch(() => {
-      // A cache that could not be cleared is not worth interrupting a launch for; the OS
-      // reclaims this directory under pressure anyway.
+      // Files that could not be cleared are not worth interrupting a launch for; the next
+      // launch tries again, and the OS reclaims the cache half under pressure anyway.
     });
   }, []);
 

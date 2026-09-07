@@ -24,9 +24,17 @@ Licensed under the Apache License, Version 2.0
 |---|---|---|
 | <img src="store/screenshots/ios/04-settings.png" width="240" alt="Settings: appearance, why there is no language picker, and who made it."> | <img src="store/screenshots/android/05-settings-dark.png" width="240" alt="The same screen in dark, which applies without a relaunch."> | <img src="store/screenshots/ios/08-home-arabic.png" width="240" alt="The home grid in Arabic, mirrored right to left with the arrows reversed."> |
 
-Captured from release builds on an iPhone 17 Pro Max simulator and a Pixel-class Android
-emulator. The full set, both platforms, is in
+| iPad | iPad, dark |
+|---|---|
+| <img src="store/screenshots/ipad/01-home.png" width="360" alt="The home grid on a 13-inch iPad, four tiles across instead of two."> | <img src="store/screenshots/ipad/05-settings-dark.png" width="360" alt="Settings on iPad in dark mode."> |
+
+Captured from release builds on iPhone 17 Pro Max and iPad Pro 13-inch simulators and a
+Pixel-class Android emulator. The full set, all three form factors, is in
 [`store/screenshots`](store/screenshots).
+
+The iPad grid is the same component: the column count comes from the window width rather
+than from a device check, so the tiles stay a readable size instead of stretching to a
+thousand points wide holding two short lines of text.
 
 Two of these are doing more work than they look. The result card says **Larger by 55%**
 because that is what happened: flat artwork encodes worse as JPEG than as PNG, and a
@@ -316,6 +324,17 @@ formed and in step.
     "version": "0.1.0",
     "ios":     { "buildNumber": "1" },
     "android": { "versionCode": 1 }
+
+### The privacy questionnaires
+
+Both stores ask about thirty structured questions before they accept a build, and every
+answer for this app is some form of "nothing". They are written down in
+[`docs/store/DATA-SAFETY.md`](docs/store/DATA-SAFETY.md) rather than improvised at
+submission time, each one alongside the evidence that makes it checkable and the gate that
+fails if a future change makes it false.
+
+The privacy policy itself is [`docs/PRIVACY.md`](docs/PRIVACY.md). Both consoles require it
+at a public URL, which is the one part of a submission this repository cannot supply.
 
 ### Signing
 

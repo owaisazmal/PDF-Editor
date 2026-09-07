@@ -47,9 +47,16 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
  * whole grid finishing halfway down the screen. Measured against the window rather than a
  * device class, so a Split View pane and a small phone get the same answer for the same
  * reason.
+ *
+ * The four-column step sits at 1200 rather than 1000 because columns trade against rows.
+ * A 13-inch iPad is 1032 points wide in portrait, and four columns put ten tiles into
+ * three rows that end less than halfway down a 1376-point page — the same emptiness the
+ * two-column version had, reached from the other direction. Three columns give four rows
+ * and a tile with room to breathe. In landscape the window is 1376 wide and only 1032
+ * tall, so four columns are right there, and the threshold picks that up on rotation.
  */
 export function columnsFor(width: number): number {
-  if (width >= 1000) return 4;
+  if (width >= 1200) return 4;
   if (width >= 700) return 3;
   return 2;
 }

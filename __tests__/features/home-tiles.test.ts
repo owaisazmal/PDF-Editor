@@ -207,7 +207,11 @@ describe('the home grid column count', () => {
 
   it('opens up on a tablet', () => {
     expect(columnsFor(834)).toBe(3);
-    expect(columnsFor(1024)).toBe(4);
+    // A 13-inch iPad in portrait. Three columns, not four: ten tiles in four rows fill a
+    // 1376-point page, where three rows stop less than halfway down it.
+    expect(columnsFor(1032)).toBe(3);
+    // The same iPad rotated, now 1376 wide and only 1032 tall, where four rows would not
+    // fit and four columns are the right answer.
     expect(columnsFor(1366)).toBe(4);
   });
 

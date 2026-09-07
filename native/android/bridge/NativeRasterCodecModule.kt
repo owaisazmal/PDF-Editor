@@ -103,15 +103,6 @@ public class NativeRasterCodecModule(
     }
   }
 
-  /**
-   * Phase 1 converts one file at a time, so there is nothing in flight to abort. From
-   * Phase 2 the native job queue owns cancellation and this forwards to it — stopping
-   * in-flight work is the whole reason that queue lives in native code.
-   */
-  override fun cancelAll() {
-    // Intentionally empty until the queue lands.
-  }
-
   private fun resolve(uri: String): File =
     if (uri.startsWith("content://")) {
       FileGateway.materialise(reactApplicationContext, Uri.parse(uri))

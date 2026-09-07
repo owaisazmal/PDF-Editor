@@ -17,7 +17,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- a CommonJS build script.
 const generate = require('../../plugins/localizations/generate');
 
 type Catalogue = Record<string, unknown>;

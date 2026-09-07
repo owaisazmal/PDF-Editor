@@ -176,14 +176,6 @@ public final class ConverterCoreBridge: NSObject {
         }
     }
 
-    /// Phase 1 converts one file at a time, so there is nothing in flight to abort.
-    /// From Phase 2 the native job queue owns cancellation and this forwards to it —
-    /// stopping in-flight work is the whole reason the queue lives in native code.
-    @objc(cancelAll)
-    public static func cancelAll() {
-        // Intentionally empty until the queue lands.
-    }
-
     // MARK: - NativeJobQueue
 
     /// Installs the event sinks. Called once when the TurboModule is constructed; the
