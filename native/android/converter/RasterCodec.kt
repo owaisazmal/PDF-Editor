@@ -164,31 +164,45 @@ public object RasterCodec {
     val target = resolveTargetSize(decoded.width, decoded.height, options)
 
     val flatten = FormatMatcher.spec(options.targetFormat)?.supportsAlpha != true
+
     val transformed = try {
       transform(decoded, target, options, flatten)
-    } finally {
-      // The decode result is no longer needed once redrawn; releasing it here keeps
-      // peak memory to one bitmap rather than two across a batch.
-      if (decoded !== null) decoded.recycle()
+    } catch (failure: Throwable) {
+      decoded.recycle()
+      throw failure
     }
 
-    val output = requestedOutput ?: nextAvailableOutput(outputDirectory, input, options.targetFormat)
-    ensureSpace(output, transformed)
+    // Only when it is a different bitmap. `transform` hands back its own argument when
+    // there is nothing to do -- an alpha-keeping target, at its original size, with no
+    // rotation -- and the unconditional recycle that used to live here then destroyed the
+    // pixels that were about to be encoded. Every other path allocates, so the release is
+    // still immediate and peak memory is still one bitmap rather than two.
+    if (transformed !== decoded) decoded.recycle()
 
-    val qualityUsed = encodeAtomically(transformed, output, compressFormat, options)
-    copyMetadata(input, output, options)
+    return try {
+      val output = requestedOutput ?: nextAvailableOutput(outputDirectory, input, options.targetFormat)
+      ensureSpace(output, transformed)
 
-    val result = Result(
-      outputFile = output,
-      format = options.targetFormat,
-      byteSize = output.length(),
-      pixelWidth = transformed.width,
-      pixelHeight = transformed.height,
-      qualityUsed = qualityUsed,
-      elapsedMs = (System.nanoTime() - started) / 1_000_000.0,
-    )
-    transformed.recycle()
-    return result
+      val qualityUsed = encodeAtomically(transformed, output, compressFormat, options)
+      copyMetadata(input, output, options)
+
+      Result(
+        outputFile = output,
+        format = options.targetFormat,
+        byteSize = output.length(),
+        pixelWidth = transformed.width,
+        pixelHeight = transformed.height,
+        qualityUsed = qualityUsed,
+        elapsedMs = (System.nanoTime() - started) / 1_000_000.0,
+      )
+    } finally {
+      // In a `finally` because a full-resolution bitmap is around 48 MB at twelve
+      // megapixels, and it lives in native memory the Java collector barely notices. A
+      // disk-full check, an encoder refusing a format, an EXIF write failing -- any of
+      // those used to leave one behind per file, so a batch with a handful of unreadable
+      // photos in it walked into the low-memory killer rather than reporting failures.
+      transformed.recycle()
+    }
   }
 
   // ------------------------------------------------------------------ decode ----

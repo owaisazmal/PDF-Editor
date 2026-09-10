@@ -272,10 +272,22 @@ export function PdfScreen({ route, navigation }: Props) {
    * Inspection runs from here rather than from the picker, so the screen is mounted
    * before a password prompt can be needed — the alternative is a modal appearing over
    * the home grid with no context for what it belongs to.
+   *
+   * Keyed on the selection rather than on the status. It used to start only from `idle`,
+   * which is true on a first run and false ever after: a run abandoned part-way — backed
+   * out of, or navigated away from while still working — leaves the status behind it, and
+   * the next arrival then never inspects. The screen it produced was the worst kind of
+   * broken, showing the new file count under a heading with no controls beneath it and a
+   * permanently disabled button, because every card is gated on a status the store was
+   * never going to leave.
+   *
+   * `sources` is a fresh array per selection and `begin` stores the very array it is
+   * handed, so this fires exactly once per pick and does not chase its own writes.
    */
+  const sources = pdf.sources;
   useEffect(() => {
-    if (pdf.status === 'idle' && pdf.sources.length > 0) void pdf.begin(pdf.sources);
-  }, [pdf]);
+    if (sources.length > 0) void usePdfStore.getState().begin(sources);
+  }, [sources]);
 
   const goHome = useCallback(() => {
     pdf.reset();
