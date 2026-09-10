@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * PDF in both directions, plus the page utilities.
@@ -63,6 +64,29 @@ public object PdfEngine {
 
   /** Beyond this a merge spills to temporary files rather than growing the heap. */
   private const val MERGE_HEAP_BYTES: Long = 32L * 1024 * 1024
+
+  /**
+   * What every page of a composed document may cost, added together, in bytes.
+   *
+   * `PdfDocument` keeps each finished page until `writeTo`, so the pages of a compose are
+   * all resident at the same moment and the document as a whole is what has to fit — not
+   * any one page. Dividing this across the page count is what makes a handful of photos
+   * keep every pixel they came with while twenty of them step down instead of walking the
+   * process into the low-memory killer.
+   *
+   * 256 MB keeps a handful of photos -- five twelve-megapixel ones, which is the common
+   * case -- at every pixel they came with, and steps larger documents down rather than
+   * letting them grow without limit. Measured on the emulator this turns nine photos from
+   * a 617 MB peak into roughly 320 MB, and takes twenty out of the gigabyte range that
+   * was getting the process killed outright.
+   */
+  private const val COMPOSE_BUDGET_BYTES: Long = 256L * 1024 * 1024
+
+  /** Four bytes a pixel, which is what `ARGB_8888` costs and what the decoder produces. */
+  private const val BYTES_PER_PIXEL: Long = 4
+
+  /** A page never samples below this, however many there are; mush helps nobody. */
+  private const val MIN_PAGE_PIXELS: Long = 640L * 640
 
   // ------------------------------------------------------------------- sessions --
 
@@ -413,7 +437,16 @@ public object PdfEngine {
    * Composes images into a PDF.
    *
    * Each image is drawn as a page rather than embedded whole, which is what lets margins,
-   * fit modes and N-up mean anything. Images are decoded one page at a time.
+   * fit modes and N-up mean anything. Images are decoded one page at a time, and at the
+   * size the page will actually use rather than at full resolution.
+   *
+   * That last part is the difference between a twenty-image document and a killed process.
+   * `PdfDocument` keeps every finished page until `writeTo`, so whatever is drawn into a
+   * page stays resident for the rest of the batch: twenty twelve-megapixel photos drawn at
+   * source resolution is roughly a gigabyte of native memory held at once, which the
+   * low-memory killer ends long before the file is written. Decoding to the page's own
+   * pixel budget instead costs a fraction of that and is visually identical, because the
+   * surplus pixels were only ever going to be scaled away by `drawBitmap`.
    */
   @JvmStatic
   public fun composeFromImages(
@@ -431,21 +464,49 @@ public object PdfEngine {
 
     try {
       images.chunked(options.nUp).forEach { slice ->
-        val decoded = slice.mapNotNull { decode(it) }
+        // Bounds first, so the paper is chosen before anything is decoded. Reading
+        // dimensions costs no pixels, and the page is what decides how many pixels are
+        // worth decoding.
+        //
+        // Measured from the source rather than from the decoded bitmap, which matters for
+        // "fit image": that page size is derived from the image's own dimensions, so
+        // taking it after subsampling would shrink the paper to match the pixels thrown
+        // away and quietly change the document.
+        //
+        // With several images to a page the paper comes from the first — mixing
+        // orientations inside one sheet is not a thing.
+        val shape = slice.firstNotNullOfOrNull { imageBounds(it) } ?: return@forEach
+
+        val size = PdfPageGeometry.page(
+          options.pageSize,
+          options.orientation,
+          shape.first.toDouble(),
+          shape.second.toDouble(),
+          options.dpi,
+        )
+
+        // What one slot may hold, in pixels. Two ceilings, and the lower one wins.
+        //
+        // The first is resolution the page can actually show: a point is a seventy-second
+        // of an inch, so the page in inches times DPI is every pixel it can use, and
+        // anything beyond that would be scaled away by `drawBitmap` on the way in.
+        //
+        // The second is the document's share. That one is what "fit image" needs, because
+        // there the page is *derived from* the photo — its size in points is the photo's
+        // own pixels at the chosen DPI — so the first ceiling lands back on the source
+        // resolution and caps nothing at all. Nine photos through here held 617 MB before
+        // this second ceiling existed, and twenty was the gigabyte that got the process
+        // killed.
+        val shown = (maxOf(size.width, size.height) / 72.0 * options.dpi /
+          sqrt(options.nUp.toDouble())).roundToInt()
+        val byPage = shown.toLong() * shown.toLong()
+        val byBudget = (COMPOSE_BUDGET_BYTES / pageCountFor(images.size, options.nUp)) / BYTES_PER_PIXEL
+        val maxPixels = maxOf(minOf(byPage, byBudget), MIN_PAGE_PIXELS)
+
+        val decoded = slice.mapNotNull { decode(it, maxPixels) }
         if (decoded.isEmpty()) return@forEach
 
         try {
-          val first = decoded.first()
-          val size = PdfPageGeometry.page(
-            options.pageSize,
-            options.orientation,
-            // With several images to a page, the paper is chosen from the first —
-            // mixing orientations inside one sheet is not a thing.
-            first.width.toDouble(),
-            first.height.toDouble(),
-            options.dpi,
-          )
-
           pageNumber += 1
           val info = PdfDocument.PageInfo.Builder(
             max(size.width.roundToInt(), 1),
@@ -786,18 +847,54 @@ public object PdfEngine {
    * A file that cannot be decoded returns null rather than throwing: one unreadable
    * image should cost its page, not the whole document.
    */
-  private fun decode(file: File): Bitmap? = try {
+  /** Dimensions without pixels. Null when the file is not an image this build can read. */
+  private fun imageBounds(file: File): Pair<Int, Int>? {
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    runCatching { file.inputStream().use { BitmapFactory.decodeStream(it, null, options) } }
+    if (options.outWidth <= 0 || options.outHeight <= 0) return null
+    return options.outWidth to options.outHeight
+  }
+
+  /**
+   * Decodes no larger than `maxPixels`.
+   *
+   * A ceiling, not a resize: subsampling only ever halves, so this picks the first
+   * power-of-two reduction that fits under the budget and leaves an image already below
+   * it untouched. Counted in pixels rather than along one edge because what has to fit is
+   * an area of memory, and a panorama and a square of the same longest edge are nothing
+   * like the same allocation.
+   */
+  private fun decode(file: File, maxPixels: Long): Bitmap? = try {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-      ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, _, _ ->
+      ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
         decoder.isMutableRequired = false
+        val sample = sampleSize(info.size.width, info.size.height, maxPixels)
+        if (sample > 1) decoder.setTargetSampleSize(sample)
       }
     } else {
-      BitmapFactory.decodeFile(file.absolutePath)?.let { ExifOrientation.apply(it, file) }
+      val shape = imageBounds(file)
+      val options = BitmapFactory.Options().apply {
+        inSampleSize = shape?.let { sampleSize(it.first, it.second, maxPixels) } ?: 1
+      }
+      file.inputStream().use { BitmapFactory.decodeStream(it, null, options) }
+        ?.let { ExifOrientation.apply(it, file) }
     }
   } catch (error: Throwable) {
     null
   }
+
+  /** The smallest power-of-two subsampling that brings `width * height` under the budget. */
+  private fun sampleSize(width: Int, height: Int, maxPixels: Long): Int {
+    if (width <= 0 || height <= 0 || maxPixels <= 0) return 1
+    var sample = 1
+    while ((width.toLong() / sample) * (height.toLong() / sample) > maxPixels) sample *= 2
+    return sample
+  }
+
+  /** How many pages a compose will produce, which is what the memory budget is split by. */
+  private fun pageCountFor(imageCount: Int, nUp: Int): Long =
+    maxOf(1L, ((imageCount + nUp - 1) / maxOf(nUp, 1)).toLong())
 
 
 

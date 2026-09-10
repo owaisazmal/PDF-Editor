@@ -3,6 +3,7 @@
 
 package com.owaiskhan.converter.core
 
+import android.app.ActivityManager
 import android.content.Context
 import android.net.Uri
 import com.facebook.react.bridge.Arguments
@@ -33,26 +34,40 @@ public data class JobSpec(
   /** 0 means "decide from the hardware". */
   val requestedConcurrency: Int,
   val continueInBackground: Boolean,
+  /**
+   * Free device RAM when the batch was described, in bytes. Zero means it could not be
+   * read, which is treated as "assume the worst" rather than "assume plenty".
+   */
+  val availableMemoryBytes: Long = 0,
 ) {
 
   public data class Input(val file: File, val byteSize: Long, val displayName: String)
 
   /**
-   * Sized from the CPU count *and* the device's memory.
+   * Sized from the CPU count and the memory a decoded bitmap actually competes for.
    *
-   * Cores alone is the wrong answer: each in-flight conversion can hold a
-   * full-resolution bitmap, so on a 3 GB phone running six at once is how a 300-image
-   * batch gets killed two thirds of the way through. The cap of six exists because past
-   * that the disk, not the CPU, is the limit.
+   * Cores alone is the wrong answer: each in-flight conversion holds a full-resolution
+   * bitmap, so running six at once on a small phone is how a long batch gets killed two
+   * thirds of the way through. The cap of six exists because past that the disk, not the
+   * CPU, is the limit.
+   *
+   * The memory half of that used to read `Runtime.maxMemory()`, which is the *Java* heap.
+   * Bitmap pixels have not lived there since API 26 -- they are native allocations, and
+   * the Java collector sees only the few hundred bytes of wrapper object, so it feels no
+   * pressure worth acting on while hundreds of megabytes pile up outside its view. The
+   * number that decides whether a batch survives is therefore free device RAM, and the
+   * process that loses when it runs out is killed outright by the low-memory killer
+   * rather than given an `OutOfMemoryError` it could catch and report.
+   *
+   * A third of what is free, because the rest of the system needs to keep running and a
+   * foreground app that starves everything else is killed for it.
    */
   public val resolvedConcurrency: Int
     get() {
       if (requestedConcurrency > 0) return requestedConcurrency
       val cores = Runtime.getRuntime().availableProcessors()
-      // maxMemory is the heap this app may grow to, which is the number that actually
-      // decides whether a batch survives — not the device's total RAM.
-      val heapGb = Runtime.getRuntime().maxMemory().toDouble() / (1024.0 * 1024.0 * 1024.0)
-      val byMemory = (heapGb / 0.25).toInt()
+      val budget = availableMemoryBytes / 3
+      val byMemory = (budget / BYTES_PER_CONVERSION).toInt()
       return maxOf(1, minOf(cores, maxOf(1, byMemory), 6))
     }
 
@@ -85,6 +100,17 @@ public data class JobSpec(
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
   public companion object {
+
+    /**
+     * What one in-flight conversion costs, near enough.
+     *
+     * A twelve-megapixel photo is about 48 MB decoded at four bytes a pixel, and the
+     * transformed copy sits alongside it while the encoder reads from one and writes the
+     * other. 192 MB leaves room for that pair plus the codec's own buffers, which for
+     * HEIC means a whole HEVC decoder instance.
+     */
+    private const val BYTES_PER_CONVERSION: Long = 192L * 1024 * 1024
+
     public fun from(context: Context, map: ReadableMap): JobSpec? {
       val jobId = map.takeIf { it.hasKey("jobId") }?.getString("jobId")
       if (jobId.isNullOrEmpty()) return null
@@ -113,7 +139,17 @@ public data class JobSpec(
           if (map.hasKey("maxConcurrency")) map.getDouble("maxConcurrency").toInt() else 0,
         continueInBackground =
           if (map.hasKey("continueInBackground")) map.getBoolean("continueInBackground") else true,
+        availableMemoryBytes = availableMemory(context),
       )
+    }
+
+    /** Zero when the service is unreachable, which sizes the batch down rather than up. */
+    private fun availableMemory(context: Context): Long {
+      val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        ?: return 0
+      return runCatching {
+        ActivityManager.MemoryInfo().also { manager.getMemoryInfo(it) }.availMem
+      }.getOrDefault(0)
     }
 
     private fun resolve(context: Context, uri: String): File =

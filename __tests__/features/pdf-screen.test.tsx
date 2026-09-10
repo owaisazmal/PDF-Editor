@@ -134,6 +134,38 @@ describe('PDF to JPG', () => {
   });
 });
 
+describe('arriving after a run that was abandoned', () => {
+  /**
+   * The screen used to inspect only from `idle`. Backing out of a run left the status
+   * behind it, so the next selection arrived into a screen that would never inspect:
+   * the new file count under the heading, no controls at all beneath it, and an action
+   * disabled for good. Reported as "I added about 20 images and it did nothing".
+   */
+  it('inspects a fresh selection even though the last run left a status behind', async () => {
+    usePdfStore.setState({
+      // What an abandoned merge leaves: still running, holding the previous documents.
+      status: 'running',
+      sources: pdfs(2),
+      info: null,
+      sessionHandle: '',
+      errorKey: null,
+      passwordFailed: false,
+      documents: [],
+      images: [],
+      parts: [],
+      elapsedMs: 0,
+    });
+
+    // A new pick replaces the array, which is the signal the screen keys on.
+    usePdfStore.setState({ sources: images(3) });
+
+    await render('image-to-pdf');
+
+    expect(usePdfStore.getState().status).toBe('ready');
+    expect(screen.getByTestId('page-size-a4')).toBeOnTheScreen();
+  });
+});
+
 describe('a task this screen does not serve', () => {
   it('says there is nothing to do rather than rendering an empty shell', async () => {
     seed(pdfs(1));
