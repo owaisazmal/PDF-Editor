@@ -34,6 +34,23 @@ public class NativePdfEngineModule(
 
   private val executor = Executors.newSingleThreadExecutor()
 
+  /** A page counter for one operation, sent at most ten times a second plus the last. */
+  private fun progress(): (Int, Int) -> Unit {
+    var last = 0L
+    return { done, total ->
+      val now = android.os.SystemClock.elapsedRealtime()
+      if (done >= total || now - last >= 100) {
+        last = now
+        emitOnProgress(
+          com.facebook.react.bridge.Arguments.createMap().apply {
+            putInt("done", done)
+            putInt("total", total)
+          },
+        )
+      }
+    }
+  }
+
   override fun inspect(uri: String, promise: Promise) {
     executor.execute {
       runCatching { PdfEngine.inspect(reactApplicationContext, resolve(uri)) }
@@ -59,7 +76,7 @@ public class NativePdfEngineModule(
     val parsed = PdfEngine.RenderOptions.from(options)
     executor.execute {
       runCatching {
-        PdfEngine.renderPages(reactApplicationContext, resolve(uri), sessionHandle, parsed)
+        PdfEngine.renderPages(reactApplicationContext, resolve(uri), sessionHandle, parsed, progress())
       }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
@@ -77,9 +94,11 @@ public class NativePdfEngineModule(
     executor.execute {
       runCatching {
         PdfEngine.composeFromImages(
+          context = reactApplicationContext,
           images = inputs.map { resolve(it) },
           output = output(outputUri, "document"),
           options = parsed,
+          onPage = progress(),
         )
       }
         .onSuccess(promise::resolve)
@@ -110,6 +129,7 @@ public class NativePdfEngineModule(
             FileGateway.fileFromUri(outputDirectory)
           },
           options = options,
+          onPart = progress(),
         )
       }
         .onSuccess(promise::resolve)
@@ -141,7 +161,14 @@ public class NativePdfEngineModule(
     val parsed = PdfEngine.CompressOptions.from(options)
     executor.execute {
       runCatching {
-        PdfEngine.compress(resolve(uri), output(outputUri, "compressed"), "", parsed)
+        PdfEngine.compress(
+          reactApplicationContext,
+          resolve(uri),
+          output(outputUri, "compressed"),
+          "",
+          parsed,
+          progress(),
+        )
       }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }

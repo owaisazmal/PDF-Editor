@@ -226,6 +226,11 @@ platforms, and every PDF operation is open on both. It also removes the password
 version this app supports, so an encrypted document behaves the same on a five-year-old
 phone as on a new one.
 
+Composing from images and compressing go through PDFBox too, writing each page as a JPEG
+into a document that spills to a scratch file. `PdfDocument` held every finished page as
+a bitmap until the end and stored it losslessly, so a 100-page scan came out larger than
+it went in and peaked above a gigabyte.
+
 MuPDF, Poppler and Ghostscript are what most PDF apps use for this, and all three are GPL
 or AGPL — the single reason most competitors either pay for a commercial licence or cannot
 publish their source. This is the same trade as D3, and the same answer.
@@ -462,7 +467,7 @@ rather than regressing.
   /ShareExtension     pure Swift, links ConverterCore, no JS runtime
   /ConverterCoreTests XCTest against /fixtures
 /android
-  /converter          Kotlin library: ImageDecoder, PdfRenderer, PdfDocument, ExifInterface
+  /converter          Kotlin library: ImageDecoder, PdfRenderer, PDFBox, ExifInterface
   /sharetarget        SEND / SEND_MULTIPLE Activity, Compose, no JS runtime
   /converter/src/test JUnit + Robolectric against /fixtures
 /__tests__            unit + integration

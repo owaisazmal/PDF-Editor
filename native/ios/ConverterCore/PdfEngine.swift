@@ -176,7 +176,8 @@ public enum PdfEngine {
     public static func renderPages(
         url: URL,
         sessionHandle: String,
-        options: RenderOptions
+        options: RenderOptions,
+        progress: (Int, Int) -> Void = { _, _ in }
     ) throws -> [String: Any] {
         let started = DispatchTime.now()
         let document = try document(for: url, sessionHandle: sessionHandle)
@@ -198,7 +199,8 @@ public enum PdfEngine {
 
         var results: [[String: Any]] = []
 
-        for index in indices {
+        for (position, index) in indices.enumerated() {
+            defer { progress(position + 1, indices.count) }
             guard let page = document.page(at: index) else { continue }
 
             try autoreleasepool {
@@ -235,11 +237,16 @@ public enum PdfEngine {
     /// without special handling here.
     private static func render(page: PDFPage, dpi: Double) -> CGImage {
         let box = page.bounds(for: .mediaBox)
-        let scale = dpi / 72.0
+        // Poster-sized pages get a lower density rather than an impossible bitmap.
+        let requested = dpi / 72.0
+        let pixels = Double(max(box.width, 1) * max(box.height, 1)) * requested * requested
+        let scale = pixels > maxPagePixels ? requested * (maxPagePixels / pixels).squareRoot() : requested
         let size = CGSize(width: max(box.width * scale, 1), height: max(box.height * scale, 1))
 
         let format = UIGraphicsImageRendererFormat.preferred()
         format.scale = 1
+        // sRGB, which is how a JPEG page or exported image is read everywhere else.
+        format.preferredRange = .standard
         // A PDF page has no background of its own. Without painting one, every page
         // exported to a format with an alpha channel comes out transparent, and every
         // page exported to one without comes out black.
@@ -282,13 +289,13 @@ public enum PdfEngine {
 
     /// Composes images into a PDF.
     ///
-    /// Written through `UIGraphicsPDFRenderer`, so each image is drawn as a page rather
-    /// than embedded whole — which is what lets margins, fit modes and N-up mean
-    /// anything. Images are decoded one page at a time.
+    /// Each page is streamed to disk with its image as a JPEG no larger than its frame; the
+    /// old in-memory build grew with every photo and doubled the file size.
     public static func composeFromImages(
         imageURLs: [URL],
         outputURL: URL,
-        options: ComposeOptions
+        options: ComposeOptions,
+        progress: (Int, Int) -> Void = { _, _ in }
     ) throws -> [String: Any] {
         let started = DispatchTime.now()
         guard !imageURLs.isEmpty else {
@@ -298,35 +305,28 @@ public enum PdfEngine {
         let perPage = max(options.nUp, 1)
         // Reuses the flattening parser, so a page background and a transparency fill
         // are specified the same way and fall back to white for the same reason.
-        let background = CGColor.fromHex(options.backgroundColor, colorSpace: CGColorSpaceCreateDeviceRGB())
-        var pageCount = 0
+        let background = CGColor.fromHex(options.backgroundColor, colorSpace: srgb)
+        let slices = stride(from: 0, to: imageURLs.count, by: perPage).map {
+            Array(imageURLs[$0..<min($0 + perPage, imageURLs.count)])
+        }
 
-        let data = try renderPDF { context in
-            var offset = 0
-            while offset < imageURLs.count {
-                let slice = Array(imageURLs[offset..<min(offset + perPage, imageURLs.count)])
-                offset += perPage
-
+        let pageCount = try writeImagePages(to: outputURL) { writer in
+            for (sliceIndex, slice) in slices.enumerated() {
                 try autoreleasepool {
-                    let images = slice.compactMap { decode(url: $0) }
-                    guard let first = images.first else { return }
+                    defer { progress(sliceIndex + 1, slices.count) }
+
+                    // Upright dimensions, so a sideways-stored portrait photo gets a portrait page.
+                    let shapes = slice.compactMap { url in orientedSize(of: url).map { (url, $0) } }
+                    guard let first = shapes.first?.1 else { return }
 
                     let page = PdfPageGeometry.page(
                         named: options.pageSize,
                         orientation: options.orientation,
-                        // With several images to a page, the paper is chosen from the
-                        // first — mixing orientations inside one sheet is not a thing.
-                        imageWidth: Double(first.width),
-                        imageHeight: Double(first.height),
+                        imageWidth: first.width,
+                        imageHeight: first.height,
                         dpi: options.dpi
                     )
                     let bounds = CGRect(origin: .zero, size: page.cgSize)
-                    context.beginPage(withBounds: bounds, pageInfo: [:])
-                    pageCount += 1
-
-                    context.cgContext.setFillColor(background)
-                    context.cgContext.fill(bounds)
-
                     let content = bounds.insetBy(dx: options.marginPoints, dy: options.marginPoints)
                     let slots = PdfPageGeometry.slots(
                         in: content.isNull || content.width <= 0 || content.height <= 0 ? bounds : content,
@@ -334,20 +334,39 @@ public enum PdfEngine {
                         gutter: options.gutterPoints
                     )
 
-                    for (position, image) in images.enumerated() where position < slots.count {
+                    var images: [PdfStreamWriter.Image] = []
+                    for (position, shape) in shapes.enumerated() where position < slots.count {
                         let frame = PdfPageGeometry.placement(
-                            imageWidth: Double(image.width),
-                            imageHeight: Double(image.height),
+                            imageWidth: shape.1.width,
+                            imageHeight: shape.1.height,
                             slot: slots[position],
                             mode: options.fitMode
                         )
-                        draw(image: image, in: frame, clippedTo: slots[position], context: context.cgContext)
+                        // Pixels the frame can show at the chosen density, capped at the source.
+                        let needed = max(frame.width, frame.height) / 72 * options.dpi
+                        let longest = min(needed, max(shape.1.width, shape.1.height))
+                        guard let jpeg = embeddableJpeg(
+                            url: shape.0,
+                            maxPixelSize: Int(longest.rounded(.up)),
+                            background: background
+                        ) else { continue }
+                        images.append(PdfStreamWriter.Image(
+                            jpeg: jpeg.data,
+                            pixelWidth: jpeg.width,
+                            pixelHeight: jpeg.height,
+                            grayscale: false,
+                            frame: frame,
+                            clip: slots[position]
+                        ))
                     }
+                    guard !images.isEmpty else { return }
+                    try writer.addPage(size: bounds.size, background: components(of: background), images: images)
                 }
             }
         }
-
-        try write(data: data, to: outputURL)
+        guard pageCount > 0 else {
+            throw ConversionError.corrupt("None of those images could be read.")
+        }
 
         return result(outputURL: outputURL, pageCount: pageCount, started: started)
     }
@@ -404,7 +423,8 @@ public enum PdfEngine {
     public static func split(
         url: URL,
         outputDirectory: URL,
-        options: SplitOptions
+        options: SplitOptions,
+        progress: (Int, Int) -> Void = { _, _ in }
     ) throws -> [String: Any] {
         let started = DispatchTime.now()
         let source = try document(for: url)
@@ -432,6 +452,7 @@ public enum PdfEngine {
         var outputs: [[String: Any]] = []
 
         for (position, pages) in groups.enumerated() {
+            defer { progress(position + 1, groups.count) }
             try autoreleasepool {
                 let part = PDFDocument()
                 var cursor = 0
@@ -543,72 +564,50 @@ public enum PdfEngine {
     public static func compress(
         url: URL,
         outputURL: URL,
-        options: CompressOptions
+        options: CompressOptions,
+        progress: (Int, Int) -> Void = { _, _ in }
     ) throws -> [String: Any] {
         let started = DispatchTime.now()
         let source = try document(for: url)
         guard source.pageCount > 0 else { throw ConversionError.corrupt(url.lastPathComponent) }
 
         let before = byteSize(of: url)
-        var pageCount = 0
 
-        let data = try renderPDF { context in
+        let pageCount = try writeImagePages(to: outputURL) { writer in
             for index in 0..<source.pageCount {
+                defer { progress(index + 1, source.pageCount) }
                 guard let page = source.page(at: index) else { continue }
 
                 try autoreleasepool {
-                    let box = page.bounds(for: .mediaBox)
                     // The page keeps its original dimensions in points. Only the pixels
                     // behind it get cheaper, so the document still prints at its
                     // intended size.
-                    context.beginPage(withBounds: CGRect(origin: .zero, size: box.size), pageInfo: [:])
-                    pageCount += 1
-
+                    let box = page.bounds(for: .mediaBox)
                     let rendered = render(page: page, dpi: options.dpi)
-                    let recompressed = try recompress(
-                        rendered,
-                        quality: options.quality,
-                        grayscale: options.grayscale
-                    )
-                    draw(
-                        image: recompressed,
-                        in: CGRect(origin: .zero, size: box.size),
-                        clippedTo: CGRect(origin: .zero, size: box.size),
-                        context: context.cgContext
-                    )
+                    let image = options.grayscale ? (desaturate(rendered) ?? rendered) : rendered
+                    guard let jpeg = jpegData(image, quality: Double(options.quality) / 100),
+                          let components = PdfStreamWriter.jpegComponents(jpeg),
+                          components == 1 || components == 3
+                    else {
+                        throw ConversionError.corrupt("Could not re-encode a page.")
+                    }
+                    try writer.addPage(size: box.size, background: (1, 1, 1), images: [
+                        PdfStreamWriter.Image(
+                            jpeg: jpeg,
+                            pixelWidth: image.width,
+                            pixelHeight: image.height,
+                            grayscale: components == 1,
+                            frame: CGRect(origin: .zero, size: box.size),
+                            clip: nil
+                        ),
+                    ])
                 }
             }
         }
 
-        try write(data: data, to: outputURL)
-
         var payload = result(outputURL: outputURL, pageCount: pageCount, started: started)
         payload["beforeByteSize"] = before
         return payload
-    }
-
-    /// Round-trips through a JPEG encoder so the page carries its lossy weight into the
-    /// document, rather than being embedded as a full-fidelity bitmap.
-    private static func recompress(_ image: CGImage, quality: Int, grayscale: Bool) throws -> CGImage {
-        let data = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(
-            data, UTType.jpeg.identifier as CFString, 1, nil
-        ) else {
-            throw ConversionError.unsupportedTarget("jpeg")
-        }
-
-        let source = grayscale ? (desaturate(image) ?? image) : image
-        CGImageDestinationAddImage(destination, source, [
-            kCGImageDestinationLossyCompressionQuality: Double(quality) / 100.0,
-        ] as CFDictionary)
-
-        guard CGImageDestinationFinalize(destination),
-              let reread = CGImageSourceCreateWithData(data as CFData, nil),
-              let output = CGImageSourceCreateImageAtIndex(reread, 0, nil)
-        else {
-            throw ConversionError.corrupt("Could not re-encode a page.")
-        }
-        return output
     }
 
     private static func desaturate(_ image: CGImage) -> CGImage? {
@@ -628,74 +627,126 @@ public enum PdfEngine {
 
     // MARK: - Shared helpers
 
-    /// PDF pages are written into memory and flushed once, because
-    /// `UIGraphicsPDFRenderer` has no streaming form. Peak cost is the finished document
-    /// plus one page's bitmap, not one bitmap per page.
-    private static func renderPDF(_ body: (UIGraphicsPDFRendererContext) throws -> Void) throws -> Data {
-        var thrown: Error?
-        let data = UIGraphicsPDFRenderer(bounds: .zero).pdfData { context in
-            do { try body(context) } catch { thrown = error }
+    private static let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+
+    /// Builds a document of JPEG pages beside `url`, moves it into place once complete, and
+    /// returns the page count.
+    private static func writeImagePages(to url: URL, _ build: (PdfStreamWriter) throws -> Void) throws -> Int {
+        let temporary = url.deletingLastPathComponent()
+            .appendingPathComponent(".\(UUID().uuidString).pdf")
+        do {
+            let writer = try PdfStreamWriter(url: temporary)
+            try build(writer)
+            guard writer.pageCount > 0 else {
+                try? FileManager.default.removeItem(at: temporary)
+                return 0
+            }
+            try writer.finish()
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+            try FileManager.default.moveItem(at: temporary, to: url)
+            return writer.pageCount
+        } catch let error as ConversionError {
+            try? FileManager.default.removeItem(at: temporary)
+            throw error
+        } catch {
+            try? FileManager.default.removeItem(at: temporary)
+            throw ConversionError.diskFull
         }
-        if let thrown { throw thrown }
-        return data
     }
 
-    private static func decode(url: URL) -> CGImage? {
-        guard let source = CGImageSourceCreateWithURL(
-            url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary
+    private static func components(of color: CGColor) -> (red: Double, green: Double, blue: Double) {
+        let values = (color.converted(to: srgb, intent: .defaultIntent, options: nil) ?? color).components ?? []
+        guard values.count >= 3 else { return (1, 1, 1) }
+        return (Double(values[0]), Double(values[1]), Double(values[2]))
+    }
+
+    /// The longest edge an embedded image keeps.
+    private static let maxEmbedEdge = 4096
+
+    /// The most pixels one page is ever rendered at, about 160 MB of bitmap.
+    private static let maxPagePixels: Double = 40_000_000
+
+    /// Pixel dimensions as the image is meant to be seen, EXIF rotation applied.
+    private static func orientedSize(of url: URL) -> (width: Double, height: Double)? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              width > 0, height > 0
+        else { return nil }
+        let orientation = properties[kCGImagePropertyOrientation] as? Int ?? 1
+        return orientation >= 5 ? (Double(height), Double(width)) : (Double(width), Double(height))
+    }
+
+    /// One image as upright sRGB JPEG data no larger than needed; a JPEG that already fits
+    /// is used as it is.
+    private static func embeddableJpeg(
+        url: URL,
+        maxPixelSize: Int,
+        background: CGColor
+    ) -> (data: Data, width: Int, height: Int)? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary) else {
+            return nil
+        }
+        let limit = max(1, min(maxPixelSize, maxEmbedEdge))
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
+        let width = properties[kCGImagePropertyPixelWidth] as? Int ?? 0
+        let height = properties[kCGImagePropertyPixelHeight] as? Int ?? 0
+        let orientation = properties[kCGImagePropertyOrientation] as? Int ?? 1
+        let profile = properties[kCGImagePropertyProfileName] as? String
+
+        if CGImageSourceGetType(source) as String? == UTType.jpeg.identifier,
+           orientation == 1,
+           profile == nil || profile?.hasPrefix("sRGB") == true,
+           max(width, height) <= min(limit * 5 / 4, maxEmbedEdge),
+           let original = try? Data(contentsOf: url, options: .mappedIfSafe),
+           PdfStreamWriter.jpegComponents(original) == 3 {
+            return (original, width, height)
+        }
+
+        guard let decoded = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: limit,
+            kCGImageSourceShouldCacheImmediately: false,
+        ] as CFDictionary),
+              let opaque = opaqueSRGB(decoded, background: background),
+              let data = jpegData(opaque, quality: 0.9)
+        else { return nil }
+        return (data, opaque.width, opaque.height)
+    }
+
+    /// Redrawn into opaque sRGB: JPEG has no alpha, and wide-gamut pixels read as plain RGB
+    /// look washed out.
+    private static func opaqueSRGB(_ image: CGImage, background: CGColor) -> CGImage? {
+        guard let context = CGContext(
+            data: nil,
+            width: image.width,
+            height: image.height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: srgb,
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
         ) else { return nil }
-        // Orientation is applied here rather than ignored, so a photo taken sideways is
-        // the right way up in the document.
-        return CGImageSourceCreateImageAtIndex(source, 0, [
-            kCGImageSourceCreateThumbnailFromImageAlways: false,
-        ] as CFDictionary).map { applyOrientation($0, source: source) } ?? nil
+        let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
+        context.setFillColor(background)
+        context.fill(rect)
+        context.draw(image, in: rect)
+        return context.makeImage()
     }
 
-    private static func applyOrientation(_ image: CGImage, source: CGImageSource) -> CGImage {
-        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        let raw = properties?[kCGImagePropertyOrientation] as? UInt32 ?? 1
-        guard raw > 1, let orientation = CGImagePropertyOrientation(rawValue: raw) else { return image }
-
-        let rotated = raw >= 5
-        let size = rotated
-            ? CGSize(width: image.height, height: image.width)
-            : CGSize(width: image.width, height: image.height)
-
-        let format = UIGraphicsImageRendererFormat.preferred()
-        format.scale = 1
-        format.opaque = false
-
-        let output = UIGraphicsImageRenderer(size: size, format: format).image { context in
-            UIImage(cgImage: image, scale: 1, orientation: uiOrientation(orientation))
-                .draw(in: CGRect(origin: .zero, size: size))
-        }
-        return output.cgImage ?? image
-    }
-
-    private static func uiOrientation(_ value: CGImagePropertyOrientation) -> UIImage.Orientation {
-        switch value {
-        case .up: return .up
-        case .upMirrored: return .upMirrored
-        case .down: return .down
-        case .downMirrored: return .downMirrored
-        case .leftMirrored: return .leftMirrored
-        case .right: return .right
-        case .rightMirrored: return .rightMirrored
-        case .left: return .left
-        @unknown default: return .up
-        }
-    }
-
-    /// Draws bottom-up, because a PDF context's origin is bottom-left while a CGImage is
-    /// stored top-down. Clipped to the slot so `fill` crops rather than bleeding into
-    /// its neighbour.
-    private static func draw(image: CGImage, in frame: CGRect, clippedTo slot: CGRect, context: CGContext) {
-        context.saveGState()
-        context.clip(to: slot)
-        context.translateBy(x: 0, y: frame.midY * 2)
-        context.scaleBy(x: 1, y: -1)
-        context.draw(image, in: frame)
-        context.restoreGState()
+    private static func jpegData(_ image: CGImage, quality: Double) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.jpeg.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(destination, image, [
+            kCGImageDestinationLossyCompressionQuality: quality,
+        ] as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 
     private static func write(image: CGImage, to url: URL, type: UTType, quality: Int) throws {
@@ -708,23 +759,6 @@ public enum PdfEngine {
             kCGImageDestinationLossyCompressionQuality: Double(quality) / 100.0,
         ] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else {
-            throw ConversionError.diskFull
-        }
-    }
-
-    /// Written to a sibling path and moved into place, so a process death mid-write
-    /// cannot leave a half-written document where a whole one is expected.
-    private static func write(data: Data, to url: URL) throws {
-        let temporary = url.deletingLastPathComponent()
-            .appendingPathComponent(".\(UUID().uuidString).pdf")
-        do {
-            try data.write(to: temporary, options: .atomic)
-            if FileManager.default.fileExists(atPath: url.path) {
-                try FileManager.default.removeItem(at: url)
-            }
-            try FileManager.default.moveItem(at: temporary, to: url)
-        } catch {
-            try? FileManager.default.removeItem(at: temporary)
             throw ConversionError.diskFull
         }
     }

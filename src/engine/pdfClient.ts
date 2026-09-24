@@ -279,6 +279,16 @@ export const pdfClient = {
     pdfEngine?.closeSession(sessionHandle);
   },
 
+  /** Pages done in the running operation. Returns an unsubscribe; a no-op on older builds. */
+  onProgress(listener: (done: number, total: number) => void): () => void {
+    if (pdfEngine?.onProgress == null) return () => {};
+    const subscription = pdfEngine.onProgress((raw) => {
+      const payload = (raw ?? {}) as Record<string, unknown>;
+      listener(asNumber(payload.done), asNumber(payload.total));
+    });
+    return () => subscription.remove();
+  },
+
   async renderPages(
     uri: string,
     sessionHandle: string,

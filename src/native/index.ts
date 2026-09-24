@@ -148,7 +148,7 @@ export const fileGateway = {
   freeDiskSpace: (): Promise<number> =>
     require_(NativeFileGateway, 'NativeFileGateway').freeDiskSpace(),
 
-  saveToPhotos: (uris: string[]): Promise<void> =>
+  saveToPhotos: (uris: string[]): Promise<boolean> =>
     require_(NativeFileGateway, 'NativeFileGateway').saveToPhotos(uris),
 
   saveToDownloads: (uris: string[]): Promise<string[]> =>

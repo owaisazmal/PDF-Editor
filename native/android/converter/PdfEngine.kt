@@ -12,7 +12,6 @@ import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -27,6 +26,11 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDPage
+import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
+import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -65,28 +69,17 @@ public object PdfEngine {
   /** Beyond this a merge spills to temporary files rather than growing the heap. */
   private const val MERGE_HEAP_BYTES: Long = 32L * 1024 * 1024
 
-  /**
-   * What every page of a composed document may cost, added together, in bytes.
-   *
-   * `PdfDocument` keeps each finished page until `writeTo`, so the pages of a compose are
-   * all resident at the same moment and the document as a whole is what has to fit — not
-   * any one page. Dividing this across the page count is what makes a handful of photos
-   * keep every pixel they came with while twenty of them step down instead of walking the
-   * process into the low-memory killer.
-   *
-   * 256 MB keeps a handful of photos -- five twelve-megapixel ones, which is the common
-   * case -- at every pixel they came with, and steps larger documents down rather than
-   * letting them grow without limit. Measured on the emulator this turns nine photos from
-   * a 617 MB peak into roughly 320 MB, and takes twenty out of the gigabyte range that
-   * was getting the process killed outright.
-   */
-  private const val COMPOSE_BUDGET_BYTES: Long = 256L * 1024 * 1024
+  /** The longest edge an embedded image keeps; a 12 MP photo fits under it. */
+  private const val MAX_EMBED_EDGE: Int = 4096
 
-  /** Four bytes a pixel, which is what `ARGB_8888` costs and what the decoder produces. */
-  private const val BYTES_PER_PIXEL: Long = 4
+  /** The most pixels one page is ever rendered at, about 160 MB of bitmap. */
+  private const val MAX_PAGE_PIXELS: Double = 40_000_000.0
 
-  /** A page never samples below this, however many there are; mush helps nobody. */
-  private const val MIN_PAGE_PIXELS: Long = 640L * 640
+  /** JPEG quality for images written into a composed document. */
+  private const val COMPOSE_JPEG_QUALITY: Int = 90
+
+  /** In-memory share of a document being built; the rest spills to a scratch file. */
+  private const val BUILD_HEAP_BYTES: Long = 16L * 1024 * 1024
 
   // ------------------------------------------------------------------- sessions --
 
@@ -328,6 +321,7 @@ public object PdfEngine {
     file: File,
     sessionHandle: String,
     options: RenderOptions,
+    onPage: (Int, Int) -> Unit = { _, _ -> },
   ): WritableMap {
     val started = System.nanoTime()
     val directory = options.outputDirectory ?: FileGateway.outputDirectory(context)
@@ -342,7 +336,7 @@ public object PdfEngine {
 
       val stem = options.namePrefix.ifEmpty { file.nameWithoutExtension }
 
-      for (index in indices) {
+      for ((position, index) in indices.withIndex()) {
         renderer.openPage(index).use { page ->
           val bitmap = render(page, options.dpi)
           try {
@@ -372,6 +366,7 @@ public object PdfEngine {
             bitmap.recycle()
           }
         }
+        onPage(position + 1, indices.size)
       }
     }
 
@@ -389,7 +384,10 @@ public object PdfEngine {
    * every exported page comes out transparent or black.
    */
   private fun render(page: PdfRenderer.Page, dpi: Double): Bitmap {
-    val scale = dpi / 72.0
+    // Poster-sized pages get a lower density rather than an impossible bitmap.
+    val requested = dpi / 72.0
+    val pixels = page.width.toDouble() * page.height.toDouble() * requested * requested
+    val scale = if (pixels > MAX_PAGE_PIXELS) requested * sqrt(MAX_PAGE_PIXELS / pixels) else requested
     val width = max((page.width * scale).roundToInt(), 1)
     val height = max((page.height * scale).roundToInt(), 1)
 
@@ -434,127 +432,95 @@ public object PdfEngine {
   }
 
   /**
-   * Composes images into a PDF.
-   *
-   * Each image is drawn as a page rather than embedded whole, which is what lets margins,
-   * fit modes and N-up mean anything. Images are decoded one page at a time, and at the
-   * size the page will actually use rather than at full resolution.
-   *
-   * That last part is the difference between a twenty-image document and a killed process.
-   * `PdfDocument` keeps every finished page until `writeTo`, so whatever is drawn into a
-   * page stays resident for the rest of the batch: twenty twelve-megapixel photos drawn at
-   * source resolution is roughly a gigabyte of native memory held at once, which the
-   * low-memory killer ends long before the file is written. Decoding to the page's own
-   * pixel budget instead costs a fraction of that and is visually identical, because the
-   * surplus pixels were only ever going to be scaled away by `drawBitmap`.
+   * Composes images into a PDF, one JPEG page at a time through PDFBox. `PdfDocument`
+   * kept every page as a bitmap and stored it losslessly, so memory grew with the count.
    */
   @JvmStatic
   public fun composeFromImages(
+    context: Context,
     images: List<File>,
     output: File,
     options: ComposeOptions,
+    onPage: (Int, Int) -> Unit = { _, _ -> },
   ): WritableMap {
+    prepare(context)
     val started = System.nanoTime()
     if (images.isEmpty()) throw ConversionException.corrupt("A PDF needs at least one image.")
 
-    val document = PdfDocument()
     val background = parseColor(options.backgroundColor)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
+    val slices = images.chunked(options.nUp)
     var pageNumber = 0
 
-    try {
-      images.chunked(options.nUp).forEach { slice ->
-        // Bounds first, so the paper is chosen before anything is decoded. Reading
-        // dimensions costs no pixels, and the page is what decides how many pixels are
-        // worth decoding.
-        //
-        // Measured from the source rather than from the decoded bitmap, which matters for
-        // "fit image": that page size is derived from the image's own dimensions, so
-        // taking it after subsampling would shrink the paper to match the pixels thrown
-        // away and quietly change the document.
-        //
-        // With several images to a page the paper comes from the first — mixing
-        // orientations inside one sheet is not a thing.
-        val shape = slice.firstNotNullOfOrNull { imageBounds(it) } ?: return@forEach
+    buildDocument(context, output) { document ->
+      slices.forEachIndexed { sliceIndex, slice ->
+        // Upright dimensions, so a sideways-stored portrait photo gets a portrait page.
+        val shapes = slice.mapNotNull { file -> orientedBounds(file)?.let { file to it } }
+        val first = shapes.firstOrNull()?.second
+        if (first == null) {
+          onPage(sliceIndex + 1, slices.size)
+          return@forEachIndexed
+        }
 
         val size = PdfPageGeometry.page(
           options.pageSize,
           options.orientation,
-          shape.first.toDouble(),
-          shape.second.toDouble(),
+          first.first.toDouble(),
+          first.second.toDouble(),
           options.dpi,
         )
+        val width = max(size.width.roundToInt(), 1).toFloat()
+        val height = max(size.height.roundToInt(), 1).toFloat()
 
-        // What one slot may hold, in pixels. Two ceilings, and the lower one wins.
-        //
-        // The first is resolution the page can actually show: a point is a seventy-second
-        // of an inch, so the page in inches times DPI is every pixel it can use, and
-        // anything beyond that would be scaled away by `drawBitmap` on the way in.
-        //
-        // The second is the document's share. That one is what "fit image" needs, because
-        // there the page is *derived from* the photo — its size in points is the photo's
-        // own pixels at the chosen DPI — so the first ceiling lands back on the source
-        // resolution and caps nothing at all. Nine photos through here held 617 MB before
-        // this second ceiling existed, and twenty was the gigabyte that got the process
-        // killed.
-        val shown = (maxOf(size.width, size.height) / 72.0 * options.dpi /
-          sqrt(options.nUp.toDouble())).roundToInt()
-        val byPage = shown.toLong() * shown.toLong()
-        val byBudget = (COMPOSE_BUDGET_BYTES / pageCountFor(images.size, options.nUp)) / BYTES_PER_PIXEL
-        val maxPixels = maxOf(minOf(byPage, byBudget), MIN_PAGE_PIXELS)
+        val bounds = RectF(0f, 0f, width, height)
+        val margin = options.marginPoints.toFloat()
+        val content = RectF(margin, margin, width - margin, height - margin)
+        val box = if (content.width() > 0 && content.height() > 0) content else bounds
+        val slots = PdfPageGeometry.slots(box, options.nUp, options.gutterPoints)
 
-        val decoded = slice.mapNotNull { decode(it, maxPixels) }
-        if (decoded.isEmpty()) return@forEach
-
-        try {
-          pageNumber += 1
-          val info = PdfDocument.PageInfo.Builder(
-            max(size.width.roundToInt(), 1),
-            max(size.height.roundToInt(), 1),
-            pageNumber,
-          ).create()
-
-          val page = document.startPage(info)
-          val canvas = page.canvas
-          canvas.drawColor(background)
-
-          val bounds = RectF(0f, 0f, info.pageWidth.toFloat(), info.pageHeight.toFloat())
-          val margin = options.marginPoints.toFloat()
-          val content = RectF(
-            bounds.left + margin,
-            bounds.top + margin,
-            bounds.right - margin,
-            bounds.bottom - margin,
+        val drawn = mutableListOf<Pair<RectF, Pair<PDImageXObject, RectF>>>()
+        shapes.zip(slots).forEach { (entry, slot) ->
+          val (file, shape) = entry
+          val frame = PdfPageGeometry.placement(
+            shape.first.toDouble(),
+            shape.second.toDouble(),
+            slot,
+            options.fitMode,
           )
-          val box = if (content.width() > 0 && content.height() > 0) content else bounds
-
-          PdfPageGeometry.slots(box, options.nUp, options.gutterPoints)
-            .zip(decoded)
-            .forEach { (slot, bitmap) ->
-              val frame = PdfPageGeometry.placement(
-                bitmap.width.toDouble(),
-                bitmap.height.toDouble(),
-                slot,
-                options.fitMode,
-              )
-              // Clipped so `fill` crops into its own slot rather than bleeding over
-              // its neighbour.
-              canvas.save()
-              canvas.clipRect(slot)
-              canvas.drawBitmap(bitmap, null, frame, paint)
-              canvas.restore()
-            }
-
-          document.finishPage(page)
-        } finally {
-          decoded.forEach { it.recycle() }
+          // Pixels the frame can show at the chosen density, never more than the source.
+          val targetWidth = minOf(shape.first, (frame.width() / 72.0 * options.dpi).roundToInt())
+          val targetHeight = minOf(shape.second, (frame.height() / 72.0 * options.dpi).roundToInt())
+          val image = jpegImage(document, file, targetWidth, targetHeight, background) ?: return@forEach
+          drawn.add(slot to (image to frame))
         }
+        if (drawn.isEmpty()) {
+          onPage(sliceIndex + 1, slices.size)
+          return@forEachIndexed
+        }
+
+        val page = PDPage(PDRectangle(width, height))
+        document.addPage(page)
+        pageNumber += 1
+
+        PDPageContentStream(document, page).use { stream ->
+          if (background != Color.WHITE) {
+            stream.setNonStrokingColor(Color.red(background), Color.green(background), Color.blue(background))
+            stream.addRect(0f, 0f, width, height)
+            stream.fill()
+          }
+          for ((slot, placed) in drawn) {
+            val (image, frame) = placed
+            // PDF space runs bottom-up; the geometry is laid out top-down like a canvas.
+            stream.saveGraphicsState()
+            stream.addRect(slot.left, height - slot.bottom, slot.width(), slot.height())
+            stream.clip()
+            stream.drawImage(image, frame.left, height - frame.bottom, frame.width(), frame.height())
+            stream.restoreGraphicsState()
+          }
+        }
+        onPage(sliceIndex + 1, slices.size)
       }
 
       if (pageNumber == 0) throw ConversionException.corrupt("None of those images could be read.")
-      writeAtomically(document, output)
-    } finally {
-      document.close()
     }
 
     return result(output, pageNumber, started)
@@ -583,55 +549,46 @@ public object PdfEngine {
    */
   @JvmStatic
   public fun compress(
+    context: Context,
     file: File,
     output: File,
     sessionHandle: String,
     options: CompressOptions,
+    onPage: (Int, Int) -> Unit = { _, _ -> },
   ): WritableMap {
+    prepare(context)
     val started = System.nanoTime()
     val before = file.length()
-    val document = PdfDocument()
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
     var pageNumber = 0
 
-    try {
-      open(resolve(file, sessionHandle)).use { renderer ->
-        if (renderer.pageCount == 0) throw ConversionException.corrupt(file.name)
+    open(resolve(file, sessionHandle)).use { renderer ->
+      if (renderer.pageCount == 0) throw ConversionException.corrupt(file.name)
 
+      // One JPEG page at a time; `PdfDocument` held every page and grew the file.
+      buildDocument(context, output) { document ->
         for (index in 0 until renderer.pageCount) {
           renderer.openPage(index).use { page ->
             // The page keeps its original dimensions in points. Only the pixels behind
             // it get cheaper, so the document still prints at its intended size.
-            val info = PdfDocument.PageInfo.Builder(page.width, page.height, index + 1).create()
+            val width = page.width.toFloat()
+            val height = page.height.toFloat()
             val rendered = render(page, options.dpi)
-
-            val recompressed = try {
-              recompress(rendered, options.quality, options.grayscale)
+            val bytes = try {
+              jpegBytes(rendered, options.quality, options.grayscale)
             } finally {
               rendered.recycle()
             }
 
-            try {
-              pageNumber += 1
-              val target = document.startPage(info)
-              target.canvas.drawColor(Color.WHITE)
-              target.canvas.drawBitmap(
-                recompressed,
-                null,
-                RectF(0f, 0f, info.pageWidth.toFloat(), info.pageHeight.toFloat()),
-                paint,
-              )
-              document.finishPage(target)
-            } finally {
-              recompressed.recycle()
+            val target = PDPage(PDRectangle(width, height))
+            document.addPage(target)
+            PDPageContentStream(document, target).use { stream ->
+              stream.drawImage(JPEGFactory.createFromByteArray(document, bytes), 0f, 0f, width, height)
             }
+            pageNumber += 1
           }
+          onPage(index + 1, renderer.pageCount)
         }
       }
-
-      writeAtomically(document, output)
-    } finally {
-      document.close()
     }
 
     return result(output, pageNumber, started).apply {
@@ -639,20 +596,86 @@ public object PdfEngine {
     }
   }
 
-  /**
-   * Round-trips through the JPEG encoder so the page carries its lossy weight into the
-   * document, rather than being embedded as a full-fidelity bitmap.
-   */
-  private fun recompress(bitmap: Bitmap, quality: Int, grayscale: Boolean): Bitmap {
-    val source = if (grayscale) desaturate(bitmap) else bitmap
-    val bytes = java.io.ByteArrayOutputStream()
-    val ok = source.compress(Bitmap.CompressFormat.JPEG, quality, bytes)
-    if (source !== bitmap) source.recycle()
-    if (!ok) throw ConversionException.corrupt("Could not re-encode a page.")
+  /** Builds a document backed by a scratch file and moves it into place once complete. */
+  private fun buildDocument(context: Context, output: File, build: (PDDocument) -> Unit) {
+    val scratch = MemoryUsageSetting.setupMixed(BUILD_HEAP_BYTES)
+      .setTempDir(FileGateway.temporaryDirectory(context))
+    val temporary = File(output.parentFile, ".${UUID.randomUUID()}.pdf")
+    try {
+      PDDocument(scratch).use { document ->
+        build(document)
+        document.save(temporary)
+      }
+      moveIntoPlace(temporary, output)
+    } catch (error: IOException) {
+      temporary.delete()
+      throw if (FileGateway.freeDiskSpace(context) < 32L * 1024 * 1024) {
+        ConversionException.diskFull()
+      } else {
+        ConversionException("unknown", error.message ?: "Could not write the document.")
+      }
+    } catch (error: Throwable) {
+      temporary.delete()
+      throw error
+    }
+  }
 
-    val data = bytes.toByteArray()
-    return BitmapFactory.decodeByteArray(data, 0, data.size)
-      ?: throw ConversionException.corrupt("Could not re-encode a page.")
+  private fun jpegBytes(bitmap: Bitmap, quality: Int, grayscale: Boolean): ByteArray {
+    val source = if (grayscale) desaturate(bitmap) else bitmap
+    try {
+      val bytes = java.io.ByteArrayOutputStream()
+      if (!source.compress(Bitmap.CompressFormat.JPEG, quality, bytes)) {
+        throw ConversionException.corrupt("Could not encode a page.")
+      }
+      return bytes.toByteArray()
+    } finally {
+      if (source !== bitmap) source.recycle()
+    }
+  }
+
+  /** One image as an upright JPEG no larger than its frame. Null if it cannot be decoded. */
+  private fun jpegImage(
+    document: PDDocument,
+    file: File,
+    width: Int,
+    height: Int,
+    background: Int,
+  ): PDImageXObject? {
+    val scale = minOf(1.0, MAX_EMBED_EDGE.toDouble() / maxOf(width, height, 1))
+    val targetWidth = max((width * scale).roundToInt(), 1)
+    val targetHeight = max((height * scale).roundToInt(), 1)
+
+    val decoded = decodeAtLeast(file, targetWidth, targetHeight) ?: return null
+    return try {
+      val sized = if (decoded.width > targetWidth * 5 / 4 || decoded.height > targetHeight * 5 / 4) {
+        Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true)
+      } else {
+        decoded
+      }
+      val opaque = flatten(sized, background)
+      try {
+        JPEGFactory.createFromByteArray(document, jpegBytes(opaque, COMPOSE_JPEG_QUALITY, false))
+      } finally {
+        if (opaque !== sized) opaque.recycle()
+        if (sized !== decoded) sized.recycle()
+      }
+    } catch (error: OutOfMemoryError) {
+      null
+    } finally {
+      decoded.recycle()
+    }
+  }
+
+  /** JPEG has no alpha; transparent pixels would otherwise come out black. */
+  private fun flatten(bitmap: Bitmap, background: Int): Bitmap {
+    if (!bitmap.hasAlpha()) return bitmap
+    val opaque = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+    Canvas(opaque).apply {
+      drawColor(background)
+      drawBitmap(bitmap, 0f, 0f, null)
+    }
+    opaque.setHasAlpha(false)
+    return opaque
   }
 
   private fun desaturate(bitmap: Bitmap): Bitmap {
@@ -719,6 +742,7 @@ public object PdfEngine {
     file: File,
     outputDirectory: File,
     options: ReadableMap?,
+    onPart: (Int, Int) -> Unit = { _, _ -> },
   ): WritableMap {
     val started = System.nanoTime()
     val ranges = options.string("ranges")
@@ -768,6 +792,7 @@ public object PdfEngine {
           )
         } finally {
           part.close()
+          onPart(position + 1, groups.size)
         }
       }
     }
@@ -839,14 +864,6 @@ public object PdfEngine {
 
   // -------------------------------------------------------------------- helpers --
 
-  /**
-   * Decodes an image with its EXIF orientation already applied, so a photo taken sideways
-   * is upright in the document. `ImageDecoder` does that itself from API 28; below it,
-   * the rotation has to be applied by matrix.
-   *
-   * A file that cannot be decoded returns null rather than throwing: one unreadable
-   * image should cost its page, not the whole document.
-   */
   /** Dimensions without pixels. Null when the file is not an image this build can read. */
   private fun imageBounds(file: File): Pair<Int, Int>? {
     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -855,27 +872,36 @@ public object PdfEngine {
     return options.outWidth to options.outHeight
   }
 
-  /**
-   * Decodes no larger than `maxPixels`.
-   *
-   * A ceiling, not a resize: subsampling only ever halves, so this picks the first
-   * power-of-two reduction that fits under the budget and leaves an image already below
-   * it untouched. Counted in pixels rather than along one edge because what has to fit is
-   * an area of memory, and a panorama and a square of the same longest edge are nothing
-   * like the same allocation.
-   */
-  private fun decode(file: File, maxPixels: Long): Bitmap? = try {
+  /** Dimensions as the image is meant to be seen, EXIF rotation applied. */
+  private fun orientedBounds(file: File): Pair<Int, Int>? {
+    val stored = imageBounds(file) ?: return null
+    val swaps = runCatching { ExifOrientation.swapsAxes(ExifOrientation.read(file)) }.getOrDefault(false)
+    return if (swaps) stored.second to stored.first else stored
+  }
+
+  /** Decodes upright, halving while it stays at least `width` by `height`. Null on failure. */
+  private fun decodeAtLeast(file: File, width: Int, height: Int): Bitmap? = try {
+    val swaps = runCatching { ExifOrientation.swapsAxes(ExifOrientation.read(file)) }.getOrDefault(false)
+    val wanted = if (swaps) height to width else width to height
+    fun sample(storedWidth: Int, storedHeight: Int): Int {
+      var sample = 1
+      while (storedWidth / (sample * 2) >= wanted.first && storedHeight / (sample * 2) >= wanted.second) {
+        sample *= 2
+      }
+      return sample
+    }
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
         decoder.isMutableRequired = false
-        val sample = sampleSize(info.size.width, info.size.height, maxPixels)
-        if (sample > 1) decoder.setTargetSampleSize(sample)
+        val factor = sample(info.size.width, info.size.height)
+        if (factor > 1) decoder.setTargetSampleSize(factor)
       }
     } else {
       val shape = imageBounds(file)
       val options = BitmapFactory.Options().apply {
-        inSampleSize = shape?.let { sampleSize(it.first, it.second, maxPixels) } ?: 1
+        inSampleSize = shape?.let { sample(it.first, it.second) } ?: 1
       }
       file.inputStream().use { BitmapFactory.decodeStream(it, null, options) }
         ?.let { ExifOrientation.apply(it, file) }
@@ -883,20 +909,6 @@ public object PdfEngine {
   } catch (error: Throwable) {
     null
   }
-
-  /** The smallest power-of-two subsampling that brings `width * height` under the budget. */
-  private fun sampleSize(width: Int, height: Int, maxPixels: Long): Int {
-    if (width <= 0 || height <= 0 || maxPixels <= 0) return 1
-    var sample = 1
-    while ((width.toLong() / sample) * (height.toLong() / sample) > maxPixels) sample *= 2
-    return sample
-  }
-
-  /** How many pages a compose will produce, which is what the memory budget is split by. */
-  private fun pageCountFor(imageCount: Int, nUp: Int): Long =
-    maxOf(1L, ((imageCount + nUp - 1) / maxOf(nUp, 1)).toLong())
-
-
 
   private fun compressFormat(format: String): Bitmap.CompressFormat = when (format) {
     "png" -> Bitmap.CompressFormat.PNG
@@ -916,21 +928,6 @@ public object PdfEngine {
     // White, for the same reason transparency flattening defaults to it: a wrong-but-
     // white page is recoverable, a black one is the complaint this path exists to avoid.
     Color.WHITE
-  }
-
-  /**
-   * Written beside the target and moved into place, so a process death mid-write cannot
-   * leave a half-written document where a whole one is expected.
-   */
-  private fun writeAtomically(document: PdfDocument, output: File) {
-    val temporary = File(output.parentFile, ".${UUID.randomUUID()}.pdf")
-    try {
-      FileOutputStream(temporary).use { document.writeTo(it) }
-      moveIntoPlace(temporary, output)
-    } catch (error: IOException) {
-      temporary.delete()
-      throw ConversionException.diskFull()
-    }
   }
 
   private fun moveIntoPlace(temporary: File, output: File) {

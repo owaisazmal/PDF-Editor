@@ -42,11 +42,15 @@ export interface Spec extends TurboModule {
 
   /**
    * Writes converted images to the photo library. iOS needs add-only access, which is
-   * the least privileged option available and never grants read access.
+   * the least privileged option available and never grants read access. Android 8 and 9
+   * ask the user where to save instead, and resolve `false` when they back out.
    */
-  saveToPhotos(uris: string[]): Promise<void>;
+  saveToPhotos(uris: string[]): Promise<boolean>;
 
-  /** Saves to Files on iOS or Downloads via MediaStore on Android. */
+  /**
+   * Saves to Files on iOS or Downloads via MediaStore on Android 10+. Android 8 and 9 ask
+   * the user where to save instead. Resolves empty when the user backs out of either.
+   */
   saveToDownloads(uris: string[]): Promise<string[]>;
 
   /** Bundles outputs into a ZIP. Uses `java.util.zip` and `Compression` — no dependency. */

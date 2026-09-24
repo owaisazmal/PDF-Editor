@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import java.io.File
 import java.util.zip.ZipEntry
@@ -18,7 +19,8 @@ import java.util.zip.ZipOutputStream
  * Files, saving and archiving on Android.
  *
  * Everything here goes through scoped storage: the Photo Picker and the Storage Access
- * Framework for reading, MediaStore for writing. `MANAGE_EXTERNAL_STORAGE` is never
+ * Framework for reading, MediaStore for writing (the Storage Access Framework again for
+ * documents below API 29, which has no Downloads collection). `MANAGE_EXTERNAL_STORAGE` is never
  * requested — Google Play rejects apps that ask for it without a qualifying use, and
  * this app has no need for it.
  *
@@ -48,31 +50,38 @@ public object FileGateway {
   public fun outputDirectory(context: Context): File =
     File(context.filesDir, "ConvertedFiles").apply { mkdirs() }
 
-  /** Scratch space for picker copies and previews. Safe to clear at any time. */
+  /**
+   * Scratch space for picker copies, shared files and decrypted PDFs. Not in `cacheDir`,
+   * which Android empties on low storage, between a pick and its conversion.
+   */
   public fun temporaryDirectory(context: Context): File =
-    File(context.cacheDir, "ConverterWork").apply { mkdirs() }
+    File(context.noBackupFilesDir, "ConverterWork").apply { mkdirs() }
+
+  /** A folder per pick, so picking the same photo again keeps its name. */
+  public fun pickDirectory(context: Context): File =
+    File(temporaryDirectory(context), java.util.UUID.randomUUID().toString()).apply { mkdirs() }
+
+  /** Paths handed out by [resolveCollision] that may not exist on disk yet. */
+  private val reserved = HashSet<String>()
 
   /**
-   * Throws away everything the app wrote that the user did not save elsewhere.
-   *
-   * Two directories, because the app writes to two: scratch copies from the picker, and
-   * finished output waiting to be saved. The name undersells it, but both are temporary
-   * in the only sense that matters — neither survives a relaunch. What the user saved is
-   * theirs, and what they did not is gone.
-   *
-   * Output used to be left behind for good. Nothing ever read it back, since history
-   * stores names and sizes rather than paths, so it was pure accumulation: a converter
-   * that quietly kept a copy of every file it had ever produced.
+   * Throws away what earlier runs wrote and the user did not save. Only files older than
+   * this process, so a share that cold-starts the app keeps the copies it is making.
    */
   public fun clearTemporaryFiles(context: Context) {
-    temporaryDirectory(context).deleteRecursively()
-    temporaryDirectory(context)
+    File(context.cacheDir, "ConverterWork").deleteRecursively()
 
-    // Deleted and immediately recreated: a conversion that starts before this returns
-    // would otherwise write into a directory that no longer exists.
-    outputDirectory(context).deleteRecursively()
-    outputDirectory(context)
+    val cutoff = processStartMillis()
+    for (directory in listOf(temporaryDirectory(context), outputDirectory(context))) {
+      directory.listFiles()
+        ?.filter { it.lastModified() < cutoff }
+        ?.forEach { it.deleteRecursively() }
+    }
   }
+
+  private fun processStartMillis(): Long =
+    System.currentTimeMillis() -
+      (android.os.SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime())
 
   public fun freeDiskSpace(context: Context): Long =
     StatFs(context.filesDir.absolutePath).availableBytes
@@ -82,13 +91,27 @@ public object FileGateway {
    * files. Content URIs are revocable and not seekable in general; a local copy is
    * both simpler and what atomic output requires.
    */
-  public fun materialise(context: Context, uri: Uri): File {
+  public fun materialise(
+    context: Context,
+    uri: Uri,
+    directory: File = temporaryDirectory(context),
+  ): File {
     val name = displayName(context, uri) ?: "file"
-    val destination = File(temporaryDirectory(context), sanitise(name))
+    // Two picked files can share a name; a fixed path let the second replace the first.
+    val destination = resolveCollision(directory, sanitise(name))
 
-    context.contentResolver.openInputStream(uri)?.use { input ->
-      destination.outputStream().use { output -> input.copyTo(output) }
-    } ?: throw ConversionException.unreadable(name)
+    try {
+      context.contentResolver.openInputStream(uri)?.use { input ->
+        destination.outputStream().use { output -> input.copyTo(output) }
+      } ?: throw ConversionException.unreadable(name)
+    } catch (error: java.io.IOException) {
+      destination.delete()
+      throw if (freeDiskSpace(context) < 16L * 1024 * 1024) {
+        ConversionException.diskFull()
+      } else {
+        ConversionException.unreadable(name)
+      }
+    }
 
     return destination
   }
@@ -105,20 +128,23 @@ public object FileGateway {
   /**
    * Writes converted images into the shared Pictures collection through MediaStore.
    *
-   * No runtime permission is needed on API 29 and above: an app may always insert its
-   * own media. `IS_PENDING` keeps the entry invisible to other apps until the bytes are
-   * fully written, which is the MediaStore equivalent of the atomic rename used for
-   * app-private output.
+   * API 29 and above only: there an app may always insert its own media with no runtime
+   * permission. Below that the insert needs `WRITE_EXTERNAL_STORAGE`, which the manifest
+   * blocks, so the bridge saves through [saveToDocument] or [saveToTree] instead.
+   * `IS_PENDING` keeps the entry invisible to other apps until the bytes are fully
+   * written, which is the MediaStore equivalent of the atomic rename used for app-private
+   * output.
    */
-  public fun saveToPictures(context: Context, files: List<File>): List<String> =
-    files.map { file ->
+  public fun saveToPictures(context: Context, files: List<File>): List<String> {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+      throw ConversionException.unsupportedTarget("Pictures on this Android version")
+    }
+    return files.map { file ->
       val values = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
         put(MediaStore.MediaColumns.MIME_TYPE, mimeTypeFor(file))
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Kitefold")
-          put(MediaStore.MediaColumns.IS_PENDING, 1)
-        }
+        put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Kitefold")
+        put(MediaStore.MediaColumns.IS_PENDING, 1)
       }
 
       val resolver = context.contentResolver
@@ -129,16 +155,18 @@ public object FileGateway {
         file.inputStream().use { input -> input.copyTo(output) }
       } ?: throw ConversionException.diskFull()
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
-      }
+      resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
       uri.toString()
     }
+  }
 
-  /** The same pattern against the Downloads collection. */
+  /**
+   * The same pattern against the Downloads collection. API 29 and above only: below that
+   * there is no MediaStore.Downloads, and the bridge saves through [saveToDocument] or
+   * [saveToTree] instead.
+   */
   public fun saveToDownloads(context: Context, files: List<File>): List<String> {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-      // Below API 29 there is no MediaStore.Downloads; the share sheet is the path.
       throw ConversionException.unsupportedTarget("Downloads on this Android version")
     }
     return files.map { file ->
@@ -160,6 +188,47 @@ public object FileGateway {
       resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
       uri.toString()
     }
+  }
+
+  /**
+   * Writes one file into a document the user created with `ACTION_CREATE_DOCUMENT`.
+   *
+   * This and [saveToTree] are the API 26-28 save path. Writing to the public Downloads
+   * folder there needs `WRITE_EXTERNAL_STORAGE`, which the manifest blocks; the Storage
+   * Access Framework needs nothing, because the user picks the destination and the grant
+   * comes with the pick.
+   */
+  public fun saveToDocument(context: Context, file: File, destination: Uri): String {
+    try {
+      copyInto(context, file, destination)
+    } catch (error: Throwable) {
+      // The picker already created the entry; an empty file left in Downloads is worse
+      // than none.
+      runCatching { DocumentsContract.deleteDocument(context.contentResolver, destination) }
+      throw error
+    }
+    return destination.toString()
+  }
+
+  /**
+   * Writes every file into a folder the user picked with `ACTION_OPEN_DOCUMENT_TREE`, so
+   * a split into hundreds of parts is one pick rather than hundreds. The provider appends
+   * " (1)" to a name that is taken, the same rule as [resolveCollision].
+   */
+  public fun saveToTree(context: Context, files: List<File>, tree: Uri): List<String> {
+    val resolver = context.contentResolver
+    val folder = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+    return files.map { file ->
+      val document = DocumentsContract.createDocument(resolver, folder, mimeTypeFor(file), file.name)
+        ?: throw ConversionException.permissionDenied()
+      saveToDocument(context, file, document)
+    }
+  }
+
+  private fun copyInto(context: Context, file: File, destination: Uri) {
+    context.contentResolver.openOutputStream(destination, "w")?.use { output ->
+      file.inputStream().use { input -> input.copyTo(output) }
+    } ?: throw ConversionException.diskFull()
   }
 
   /** Streams a zip with the JDK's own writer. Nothing is held in memory. */
@@ -215,14 +284,16 @@ public object FileGateway {
   private val RESERVED = charArrayOf('/', '\\', ':', '*', '?', '"', '<', '>', '|')
 
   /** Appends " (1)", " (2)" until the name is free. Never overwrites. */
-  public fun resolveCollision(directory: File, filename: String): File {
+  public fun resolveCollision(directory: File, filename: String): File = synchronized(reserved) {
     directory.mkdirs()
     val base = filename.substringBeforeLast('.', filename)
     val ext = filename.substringAfterLast('.', "")
 
+    // Reserved as well as checked: concurrent outputs with one name overwrote each other.
+    if (reserved.size > 512) reserved.removeAll { File(it).exists() }
     var candidate = File(directory, filename)
     var suffix = 1
-    while (candidate.exists()) {
+    while (candidate.exists() || !reserved.add(candidate.absolutePath)) {
       val next = if (ext.isEmpty()) "$base ($suffix)" else "$base ($suffix).$ext"
       candidate = File(directory, next)
       suffix++
@@ -230,7 +301,7 @@ public object FileGateway {
     return candidate
   }
 
-  private fun mimeTypeFor(file: File): String {
+  public fun mimeTypeFor(file: File): String {
     val ext = file.extension.lowercase()
     val id = FormatMatcher.formatIdForFilename(file.name)
     return id?.let { FormatMatcher.spec(it)?.mimeTypes?.firstOrNull() }

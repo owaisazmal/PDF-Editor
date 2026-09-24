@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -33,6 +33,7 @@ export function BatchScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const batch = useBatchStore();
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   // A key, not a sentence: the gateway rejects with English written for the console, and
   // that text has no translation to fall back to.
   const [saveError, setSaveError] = useState<ErrorKey | null>(null);
@@ -102,7 +103,7 @@ export function BatchScreen({ route, navigation }: Props) {
       const result = resultByIndex.get(index);
       if (result) {
         return {
-          key: `${index}-done`,
+          key: String(index),
           name: result.outputDisplayName,
           detail: formatBytes(result.byteSize),
           state: 'done' as const,
@@ -111,14 +112,14 @@ export function BatchScreen({ route, navigation }: Props) {
       const failure = failureByIndex.get(index);
       if (failure) {
         return {
-          key: `${index}-failed`,
+          key: String(index),
           name: failure.displayName || source.displayName,
           detail: t(errorKey(failure.code)),
           state: 'failed' as const,
         };
       }
       return {
-        key: `${index}-pending`,
+        key: String(index),
         name: source.displayName,
         detail: formatBytes(source.byteSize),
         state: 'pending' as const,
@@ -129,20 +130,28 @@ export function BatchScreen({ route, navigation }: Props) {
   const totals = useMemo(() => {
     const before = batch.sources.reduce((sum, source) => sum + source.byteSize, 0);
     const after = batch.results.reduce((sum, result) => sum + result.byteSize, 0);
-    const elapsed = batch.results.reduce((sum, result) => sum + result.elapsedMs, 0);
+    const elapsed =
+      batch.finishedAt > batch.startedAt && batch.startedAt > 0
+        ? batch.finishedAt - batch.startedAt
+        : batch.results.reduce((sum, result) => sum + result.elapsedMs, 0);
     return { before, after, elapsed };
-  }, [batch.sources, batch.results]);
+  }, [batch.sources, batch.results, batch.startedAt, batch.finishedAt]);
 
   const onSave = useCallback(async () => {
+    if (saving) return;
     setSaveError(null);
+    setSaving(true);
     try {
-      await fileGateway.saveToPhotos(batch.results.map((result) => result.outputUri));
+      // False when the Android 8-9 destination picker is backed out of, which is not a save.
+      if (!(await fileGateway.saveToPhotos(batch.results.map((result) => result.outputUri)))) return;
       setSaved(true);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       setSaveError(errorKeyFor(error));
+    } finally {
+      setSaving(false);
     }
-  }, [batch.results]);
+  }, [batch.results, saving]);
 
   const onDone = useCallback(() => {
     batch.reset();
@@ -285,15 +294,20 @@ export function BatchScreen({ route, navigation }: Props) {
         </Card>
       ) : null}
 
-      <ScrollView
+      {/* Virtualised: hundreds of mounted rows re-rendering on every event stalled large batches. */}
+      <FlatList
+        data={rows}
+        keyExtractor={(row) => row.key}
+        renderItem={({ item }) => (
+          <FileRow name={item.name} detail={item.detail} state={item.state} />
+        )}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
         style={{ flex: 1, marginTop: theme.space.lg }}
         contentContainerStyle={{ paddingBottom: theme.space.xl }}
         showsVerticalScrollIndicator={false}
-      >
-        {rows.map((row) => (
-          <FileRow key={row.key} name={row.name} detail={row.detail} state={row.state} />
-        ))}
-      </ScrollView>
+      />
 
       <View style={{ gap: theme.space.md, paddingTop: theme.space.md }}>
         {running ? (
@@ -316,6 +330,7 @@ export function BatchScreen({ route, navigation }: Props) {
                 }
                 onPress={() => void onSave()}
                 disabled={saved}
+                busy={saving}
               />
             ) : null}
             {batch.failures.length > 0 ? (

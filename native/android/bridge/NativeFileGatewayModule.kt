@@ -7,6 +7,8 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import com.owaiskhan.converter.NativeFileGatewaySpec
 import com.facebook.react.bridge.ActivityEventListener
@@ -33,7 +35,9 @@ import java.util.concurrent.atomic.AtomicReference
  * The photo picker is `ACTION_PICK_IMAGES` on API 33+ and the Storage Access Framework
  * below that. Both run out of process, so **no runtime permission is requested at any
  * point** — not `READ_MEDIA_IMAGES`, not `READ_EXTERNAL_STORAGE`. Saving goes through
- * MediaStore, which also needs none. That is why the manifest blocks those permissions
+ * MediaStore, which also needs none from API 29. Below that MediaStore writes need the
+ * storage permission, so saves go through the Storage Access Framework's create and
+ * folder pickers instead. That is why the manifest blocks those permissions
  * outright rather than merely not asking for them.
  */
 @ReactModule(name = NativeFileGatewayModule.NAME)
@@ -45,12 +49,32 @@ public class NativeFileGatewayModule(
     public const val NAME: String = "NativeFileGateway"
     private const val REQUEST_PICK_PHOTOS = 0xC0DE
     private const val REQUEST_PICK_DOCUMENTS = 0xC0DF
+    private const val REQUEST_SAVE_DOCUMENT = 0xC0E0
+    private const val REQUEST_SAVE_FOLDER = 0xC0E1
+
+    /** Where the save pickers open: the primary volume's Download or Pictures folder. */
+    private val DOWNLOADS_DOCUMENT: Uri = primaryFolder(Environment.DIRECTORY_DOWNLOADS)
+    private val PICTURES_DOCUMENT: Uri = primaryFolder(Environment.DIRECTORY_PICTURES)
+
+    private fun primaryFolder(name: String): Uri =
+      DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:$name")
   }
 
   private val executor = Executors.newFixedThreadPool(4)
 
   /** At most one picker can be open, so a single slot is the whole state machine. */
   private val pending = AtomicReference<Promise?>(null)
+
+  /**
+   * A save waiting on the user to choose where it goes (API 26-28 only). `answer` turns
+   * the saved URIs into what the calling method promises; empty means they backed out.
+   */
+  private class PendingSave(
+    val promise: Promise,
+    val uris: List<String>,
+    val answer: (List<String>) -> Any,
+  )
+  private val pendingSave = AtomicReference<PendingSave?>(null)
 
   private val activityListener: ActivityEventListener = object : BaseActivityEventListener() {
     override fun onActivityResult(
@@ -59,6 +83,10 @@ public class NativeFileGatewayModule(
       resultCode: Int,
       data: Intent?,
     ) {
+      if (requestCode == REQUEST_SAVE_DOCUMENT || requestCode == REQUEST_SAVE_FOLDER) {
+        finishSave(requestCode, resultCode, data)
+        return
+      }
       if (requestCode != REQUEST_PICK_PHOTOS && requestCode != REQUEST_PICK_DOCUMENTS) return
       val promise = pending.getAndSet(null) ?: return
 
@@ -71,8 +99,9 @@ public class NativeFileGatewayModule(
       executor.execute {
         runCatching {
           val results = Arguments.createArray()
+          val directory = FileGateway.pickDirectory(reactContext)
           for (uri in extractUris(data)) {
-            val local = FileGateway.materialise(reactContext, uri)
+            val local = FileGateway.materialise(reactContext, uri, directory)
             results.pushMap(FormatDetector.detect(local).toWritableMap())
           }
           results
@@ -235,24 +264,104 @@ public class NativeFileGatewayModule(
     promise.resolve(FileGateway.freeDiskSpace(reactContext).toDouble())
   }
 
+  /** Resolves `false` only when the user backs out of the Android 8-9 destination picker. */
   override fun saveToPhotos(uris: ReadableArray, promise: Promise) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+      chooseSaveDestination(uris.toStrings(), PICTURES_DOCUMENT, promise) { it.isNotEmpty() }
+      return
+    }
     executor.execute {
-      runCatching {
-        FileGateway.saveToPictures(reactContext, uris.toFiles())
-        null
-      }
-        .onSuccess { promise.resolve(null) }
+      runCatching { FileGateway.saveToPictures(reactContext, uris.toFiles()) }
+        .onSuccess { promise.resolve(true) }
         .onFailure { promise.rejectConversion(it) }
     }
   }
 
   override fun saveToDownloads(uris: ReadableArray, promise: Promise) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+      chooseSaveDestination(uris.toStrings(), DOWNLOADS_DOCUMENT, promise) { Arguments.fromList(it) }
+      return
+    }
     executor.execute {
       runCatching {
         Arguments.fromList(FileGateway.saveToDownloads(reactContext, uris.toFiles()))
       }
         .onSuccess(promise::resolve)
         .onFailure { promise.rejectConversion(it) }
+    }
+  }
+
+  /**
+   * Android 8 and 9 have no MediaStore.Downloads, and writing to the shared Pictures or
+   * Download folders needs a storage permission the manifest blocks. So the user chooses:
+   * one file gets the system "save as" screen, several get a folder picker. Both open on
+   * `initialFolder`.
+   */
+  private fun chooseSaveDestination(
+    uris: List<String>,
+    initialFolder: Uri,
+    promise: Promise,
+    answer: (List<String>) -> Any,
+  ) {
+    val activity = currentActivity
+    if (activity == null) {
+      promise.reject("unknown", "No activity is available to present the picker.")
+      return
+    }
+    if (uris.isEmpty()) {
+      promise.rejectConversion(ConversionException.unreadable("the selected files"))
+      return
+    }
+    if (!pendingSave.compareAndSet(null, PendingSave(promise, uris, answer))) {
+      promise.reject("unknown", "A save is already waiting for a destination.")
+      return
+    }
+
+    val single = uris.singleOrNull()?.takeUnless { it.startsWith("content://") }
+      ?.let(FileGateway::fileFromUri)
+    val (intent, requestCode) = if (single != null) {
+      Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = FileGateway.mimeTypeFor(single)
+        putExtra(Intent.EXTRA_TITLE, single.name)
+      } to REQUEST_SAVE_DOCUMENT
+    } else {
+      Intent(Intent.ACTION_OPEN_DOCUMENT_TREE) to REQUEST_SAVE_FOLDER
+    }
+    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialFolder)
+    // Android 8 and 9 hide internal storage in these pickers until this is set, which
+    // leaves a folder pick with nowhere useful to go.
+    intent.putExtra("android.content.extra.SHOW_ADVANCED", true)
+
+    runCatching { activity.startActivityForResult(intent, requestCode) }
+      .onFailure {
+        pendingSave.set(null)
+        promise.rejectConversion(it)
+      }
+  }
+
+  private fun finishSave(requestCode: Int, resultCode: Int, data: Intent?) {
+    val save = pendingSave.getAndSet(null) ?: return
+    val destination = data?.data
+    if (resultCode != Activity.RESULT_OK || destination == null) {
+      // Backing out is not a save, and not an error either, as with the iOS export sheet.
+      save.promise.resolve(save.answer(emptyList()))
+      return
+    }
+
+    executor.execute {
+      runCatching {
+        val files = save.uris.toFiles()
+        save.answer(
+          if (requestCode == REQUEST_SAVE_DOCUMENT) {
+            listOf(FileGateway.saveToDocument(reactContext, files.first(), destination))
+          } else {
+            FileGateway.saveToTree(reactContext, files, destination)
+          },
+        )
+      }
+        .onSuccess(save.promise::resolve)
+        .onFailure { save.promise.rejectConversion(it) }
     }
   }
 
@@ -303,9 +412,13 @@ public class NativeFileGatewayModule(
     }
   }
 
-  private fun ReadableArray.toFiles(): List<File> =
-    (0 until size()).mapNotNull { index ->
-      val value = getString(index) ?: return@mapNotNull null
+  private fun ReadableArray.toStrings(): List<String> =
+    (0 until size()).mapNotNull { getString(it) }
+
+  private fun ReadableArray.toFiles(): List<File> = toStrings().toFiles()
+
+  private fun List<String>.toFiles(): List<File> =
+    map { value ->
       if (value.startsWith("content://")) {
         FileGateway.materialise(reactContext, Uri.parse(value))
       } else {

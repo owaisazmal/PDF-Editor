@@ -326,7 +326,8 @@ RCT_EXPORT_MODULE()
 
 #pragma mark - NativePdfEngine
 
-@interface NativePdfEngine : NSObject <NativePdfEngineSpec>
+// Inherits the generated base class for `emitOnProgress:`.
+@interface NativePdfEngine : NativePdfEngineSpecBase <NativePdfEngineSpec>
 @end
 
 @implementation NativePdfEngine
@@ -335,6 +336,17 @@ RCT_EXPORT_MODULE()
 
 // PDFKit work happens on the bridge's own queue; nothing here presents UI.
 + (BOOL)requiresMainQueueSetup { return NO; }
+
+- (instancetype)init
+{
+  if (self = [super init]) {
+    __weak NativePdfEngine *weakSelf = self;
+    [ConverterCoreBridge installPdfProgressHandler:^(NSDictionary *value) {
+      [weakSelf emitOnProgress:value];
+    }];
+  }
+  return self;
+}
 
 - (void)inspect:(NSString *)uri
         resolve:(RCTPromiseResolveBlock)resolve

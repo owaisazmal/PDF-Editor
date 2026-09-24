@@ -41,13 +41,23 @@ public enum FileGateway {
         }
 
         return try await withThrowingTaskGroup(of: (Int, DetectedFile).self) { group in
-            for (index, result) in results.enumerated() {
-                group.addTask {
-                    (index, try await materialise(result))
-                }
+            // A folder per pick, so picking the same photo again keeps its name.
+            let directory = temporaryDirectory().appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+            // A few copies at a time, not hundreds of files open at once.
+            var pending = results.enumerated().makeIterator()
+            for _ in 0..<6 {
+                guard let (index, result) = pending.next() else { break }
+                group.addTask { (index, try await materialise(result, into: directory)) }
             }
             var collected: [(Int, DetectedFile)] = []
-            for try await entry in group { collected.append(entry) }
+            while let entry = try await group.next() {
+                collected.append(entry)
+                if let (index, result) = pending.next() {
+                    group.addTask { (index, try await materialise(result, into: directory)) }
+                }
+            }
             // The picker reports selection order; preserve it.
             return collected.sorted { $0.0 < $1.0 }.map(\.1)
         }
@@ -55,7 +65,7 @@ public enum FileGateway {
 
     /// Copies the picked item into the app's temporary directory in its original
     /// representation, then detects it from the bytes on disk.
-    private static func materialise(_ result: PHPickerResult) async throws -> DetectedFile {
+    private static func materialise(_ result: PHPickerResult, into directory: URL) async throws -> DetectedFile {
         let provider = result.itemProvider
 
         // Ask for the most specific type the item actually has, so nothing is converted
@@ -83,9 +93,11 @@ public enum FileGateway {
                 do {
                     let name = suggestedName.map { sanitise($0) } ?? UUID().uuidString
                     let ext = source.pathExtension.isEmpty ? "img" : source.pathExtension
-                    let destination = temporaryDirectory()
-                        .appendingPathComponent("\(name).\(ext)")
-                    try? FileManager.default.removeItem(at: destination)
+                    // Two photos can share a name; a fixed path let the second replace the first.
+                    let destination = resolveCollision(
+                        directory: directory,
+                        filename: "\(name).\(ext)"
+                    )
                     try FileManager.default.copyItem(at: source, to: destination)
                     continuation.resume(returning: destination)
                 } catch {
@@ -226,14 +238,26 @@ public enum FileGateway {
         return cleaned
     }
 
-    /// Appends " (1)", " (2)" until the name is free. Never overwrites.
+    private static let reservationLock = NSLock()
+    nonisolated(unsafe) private static var reserved = Set<String>()
+
+    /// Appends " (1)", " (2)" until the name is free. Never overwrites. Names handed out
+    /// are reserved too, since concurrent outputs with one name overwrote each other.
     public static func resolveCollision(directory: URL, filename: String) -> URL {
+        reservationLock.lock()
+        defer { reservationLock.unlock() }
+
+        if reserved.count > 512 {
+            reserved = reserved.filter { !FileManager.default.fileExists(atPath: $0) }
+        }
+
         let base = (filename as NSString).deletingPathExtension
         let ext = (filename as NSString).pathExtension
 
         var candidate = directory.appendingPathComponent(filename)
         var suffix = 1
-        while FileManager.default.fileExists(atPath: candidate.path) {
+        while FileManager.default.fileExists(atPath: candidate.path)
+            || !reserved.insert(candidate.path).inserted {
             let next = ext.isEmpty ? "\(base) (\(suffix))" : "\(base) (\(suffix)).\(ext)"
             candidate = directory.appendingPathComponent(next)
             suffix += 1

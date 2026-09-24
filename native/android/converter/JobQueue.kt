@@ -131,7 +131,11 @@ public object JobQueue {
     private val spec: JobSpec,
     private val withEvents: ((Events) -> Unit) -> Unit,
   ) {
-    private val executor: ThreadPoolExecutor =
+    // Replaced on a retry after a cancel, which shuts the previous pool down for good.
+    @Volatile
+    private var executor: ThreadPoolExecutor = newPool()
+
+    private fun newPool(): ThreadPoolExecutor =
       Executors.newFixedThreadPool(spec.resolvedConcurrency) as ThreadPoolExecutor
 
     private val cancelling = AtomicBoolean(false)
@@ -295,8 +299,11 @@ public object JobQueue {
       // Draining off the caller's thread keeps a cancel tap responsive even when several
       // large files are mid-encode.
       Thread {
-        executor.shutdownNow()
-        executor.awaitTermination(30, TimeUnit.SECONDS)
+        val pool = executor
+        // Files that never started still owe the watcher a count, or it waits forever.
+        val dropped = pool.shutdownNow().size
+        synchronized(lock) { remaining }?.let { latch -> repeat(dropped) { latch.countDown() } }
+        pool.awaitTermination(30, TimeUnit.SECONDS)
         synchronized(lock) { status = "cancelled" }
         // After the drain, so the notification outlives the work it describes rather
         // than disappearing while files are still being written.
@@ -314,6 +321,7 @@ public object JobQueue {
         completedBytes.addAndGet(-retryable.sumOf { it.second.byteSize })
         failures.clear()
         status = "running"
+        if (cancelling.getAndSet(false) || executor.isShutdown) executor = newPool()
       }
       if (retryable.isEmpty()) {
         finish()
