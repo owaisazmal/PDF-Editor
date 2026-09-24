@@ -12,6 +12,7 @@ import {
   Card,
   ChipRow,
   FileRow,
+  ProgressBar,
   Screen,
   SectionLabel,
   SegmentedControl,
@@ -65,6 +66,7 @@ export function PdfScreen({ route, navigation }: Props) {
   const theme = useTheme();
   const pdf = usePdfStore();
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   /** A catalogue key, never a message: the engine's own sentences are English only. */
   const [saveError, setSaveError] = useState<ErrorKey | null>(null);
   const [password, setPassword] = useState('');
@@ -295,6 +297,7 @@ export function PdfScreen({ route, navigation }: Props) {
   }, [navigation, pdf]);
 
   const save = useCallback(async () => {
+    if (saving) return;
     const uris = [
       ...pdf.documents.map((d) => d.outputUri),
       ...pdf.parts.map((p) => p.outputUri),
@@ -303,20 +306,26 @@ export function PdfScreen({ route, navigation }: Props) {
     if (uris.length === 0) return;
 
     setSaveError(null);
+    setSaving(true);
     try {
       // Images belong in the photo library; documents do not, and putting a PDF there
       // is how it becomes impossible to find again.
       if (pdf.images.length > 0) {
-        await fileGateway.saveToPhotos(pdf.images.map((image) => image.outputUri));
+        const exported = await fileGateway.saveToPhotos(pdf.images.map((image) => image.outputUri));
+        if (!exported) return;
       } else {
-        await fileGateway.saveToDownloads(uris);
+        // Empty when the export sheet or picker is backed out of, which is not a save.
+        const exported = await fileGateway.saveToDownloads(uris);
+        if (exported.length === 0) return;
       }
       setSaved(true);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       setSaveError(errorKeyFor(error));
+    } finally {
+      setSaving(false);
     }
-  }, [pdf.documents, pdf.images, pdf.parts]);
+  }, [pdf.documents, pdf.images, pdf.parts, saving]);
 
   const run = useCallback(() => {
     if (!task) return;
@@ -390,6 +399,14 @@ export function PdfScreen({ route, navigation }: Props) {
 
   const selectedPages = expandPageRanges(pageRanges, pageCount);
   const rangeIsEmpty = pageRanges.trim().length > 0 && selectedPages.length === 0;
+  // An empty ranges field used to split every page into its own file; wait for a range.
+  const splitRangesMissing =
+    task.pdfOperation === 'split' && splitMode === 'ranges' && splitRanges.trim().length === 0;
+  const splitRangesUnmatched =
+    task.pdfOperation === 'split' &&
+    splitMode === 'ranges' &&
+    !splitRangesMissing &&
+    expandPageRanges(splitRanges, pageCount).length === 0;
   const canRun = pdf.status === 'ready' || pdf.status === 'done' || pdf.status === 'failed';
 
   return (
@@ -431,6 +448,25 @@ export function PdfScreen({ route, navigation }: Props) {
               busy={busy}
               style={{ marginTop: theme.space.lg }}
             />
+          </Card>
+        ) : null}
+
+        {pdf.status === 'running' && pdf.progress && pdf.progress.total > 1 ? (
+          // Long composes and compresses show a page count rather than only a spinner.
+          <Card style={{ marginBottom: theme.space.lg }}>
+            <ProgressBar
+              fraction={pdf.progress.done / pdf.progress.total}
+              accessibilityLabel={t('batch.converting', {
+                done: formatNumber(pdf.progress.done),
+                total: formatNumber(pdf.progress.total),
+              })}
+            />
+            <Text variant="mono" color="textSecondary" style={{ marginTop: theme.space.md }}>
+              {t('batch.progressCount', {
+                done: formatNumber(pdf.progress.done),
+                total: formatNumber(pdf.progress.total),
+              })}
+            </Text>
           </Card>
         ) : null}
 
@@ -738,7 +774,8 @@ export function PdfScreen({ route, navigation }: Props) {
                   onChange={change(setSplitRanges)}
                   placeholder={t('pdf.rangesPlaceholder')}
                   keyboardType="numbers-and-punctuation"
-                  hint={t('pdf.rangesHint')}
+                  hint={splitRangesUnmatched ? t('pdf.rangeMatchesNothing') : t('pdf.rangesHint')}
+                  hintIsProblem={splitRangesUnmatched}
                   testID="split-ranges"
                 />
               </View>
@@ -838,12 +875,13 @@ export function PdfScreen({ route, navigation }: Props) {
             label={saved ? t('pdf.savedButton') : saveLabel(pdf.images.length, pdf.parts.length, pdf.documents.length)}
             onPress={() => void save()}
             disabled={saved}
+            busy={saving}
           />
         ) : (
           <Button
             label={actionLabel(task.pdfOperation)}
             onPress={run}
-            disabled={!canRun || busy || rangeIsEmpty}
+            disabled={!canRun || busy || rangeIsEmpty || splitRangesMissing || splitRangesUnmatched}
             busy={busy}
           />
         )}

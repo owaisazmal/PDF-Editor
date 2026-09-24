@@ -73,6 +73,9 @@ export type BatchState = {
   submitErrorKey: ErrorKey | null;
   /** Null until the first batch has asked. Only ever affects what the UI says. */
   backgroundProgress: BackgroundProgressStatus | null;
+  /** Wall-clock bounds of the run; summing per-file times overstated a concurrent batch. */
+  startedAt: number;
+  finishedAt: number;
   /**
    * The rename pattern for the next batch. Held here rather than passed to `start`,
    * because the screen that sets it is not the screen that submits.
@@ -91,11 +94,25 @@ export type BatchState = {
 let unsubscribeEvents: (() => void) | null = null;
 let appStateSubscription: NativeEventSubscription | null = null;
 
+/** Per-file outcomes, flushed a few times a second rather than one render per file. */
+let pendingResults: ConversionResult[] = [];
+let pendingFailures: FileFailure[] = [];
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+const FLUSH_INTERVAL_MS = 250;
+
+function dropPending() {
+  if (flushTimer) clearTimeout(flushTimer);
+  flushTimer = null;
+  pendingResults = [];
+  pendingFailures = [];
+}
+
 function teardown() {
   unsubscribeEvents?.();
   unsubscribeEvents = null;
   appStateSubscription?.remove();
   appStateSubscription = null;
+  dropPending();
 }
 
 export const useBatchStore = create<BatchState>((set, get) => ({
@@ -107,6 +124,8 @@ export const useBatchStore = create<BatchState>((set, get) => ({
   failures: [],
   submitErrorKey: null,
   backgroundProgress: null,
+  startedAt: 0,
+  finishedAt: 0,
   namePattern: '',
 
   setNamePattern: (namePattern) => set({ namePattern }),
@@ -125,35 +144,11 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       results: [],
       failures: [],
       submitErrorKey: null,
+      startedAt: Date.now(),
+      finishedAt: 0,
     });
 
-    unsubscribeEvents = jobClient.subscribe({
-      onProgress: (progress) => {
-        // Ignore anything from a job the user has already moved on from.
-        if (get().jobId !== progress.jobId) return;
-        set({ progress, status: 'running' });
-      },
-      onFileComplete: (eventJobId, result) => {
-        if (get().jobId !== eventJobId) return;
-        set((state) => ({ results: [...state.results, result] }));
-      },
-      onFileFailed: (eventJobId, failure) => {
-        if (get().jobId !== eventJobId) return;
-        set((state) => ({ failures: [...state.failures, failure] }));
-      },
-      onJobComplete: (state) => {
-        if (get().jobId !== state.jobId) return;
-        // The completion payload is authoritative; per-file events may have been
-        // coalesced away, so the accumulated lists are replaced rather than trusted.
-        set({
-          status: state.status,
-          progress: state.progress,
-          results: state.results,
-          failures: state.failures,
-        });
-        teardown();
-      },
-    });
+    watch();
 
     // Deliberately not awaited. The conversion starts now; a permission granted while
     // it is already running is picked up by the next progress update, and one refused
@@ -169,12 +164,6 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       .then((backgroundProgress) => {
         if (get().jobId === jobId) set({ backgroundProgress });
       });
-
-    // Native keeps working while JavaScript is frozen, so the mirror is stale by the
-    // time the app comes back. This is the only reliable moment to correct it.
-    appStateSubscription = AppState.addEventListener('change', (next) => {
-      if (next === 'active') void get().resync();
-    });
 
     try {
       await jobClient.submit({
@@ -207,7 +196,14 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     const { jobId } = get();
     if (!jobId) return;
 
-    set((state) => ({ status: 'running', failures: [], progress: { ...state.progress, failedCount: 0 } }));
+    set((state) => ({
+      status: 'running',
+      failures: [],
+      progress: { ...state.progress, failedCount: 0 },
+      startedAt: Date.now(),
+      finishedAt: 0,
+    }));
+    watch();
     await jobClient.retryFailed(jobId);
   },
 
@@ -217,12 +213,15 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
     const state = await jobClient.getState(jobId);
     if (get().jobId !== jobId) return;
+    // The snapshot already holds anything still waiting to be flushed.
+    dropPending();
 
     set({
       status: state.status,
       progress: state.progress,
       results: state.results,
       failures: state.failures,
+      ...(isBatchFinished(state.status) && !get().finishedAt ? { finishedAt: Date.now() } : {}),
     });
   },
 
@@ -239,12 +238,73 @@ export const useBatchStore = create<BatchState>((set, get) => ({
       failures: [],
       submitErrorKey: null,
       backgroundProgress: null,
+      startedAt: 0,
+      finishedAt: 0,
       // The pattern deliberately survives a reset: it belongs to the settings the user
       // chose, not to the batch that just finished, and clearing it would silently
       // undo a rename between one batch and the next.
     });
   },
 }));
+
+/** Listens to the current job. A retry calls it again, since completion stops listening. */
+function watch() {
+  teardown();
+  const { getState: get, setState: set } = useBatchStore;
+
+  const scheduleFlush = () => {
+    if (flushTimer) return;
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      const results = pendingResults;
+      const failures = pendingFailures;
+      pendingResults = [];
+      pendingFailures = [];
+      set((state) => ({
+        ...(results.length > 0 ? { results: [...state.results, ...results] } : {}),
+        ...(failures.length > 0 ? { failures: [...state.failures, ...failures] } : {}),
+      }));
+    }, FLUSH_INTERVAL_MS);
+  };
+
+  unsubscribeEvents = jobClient.subscribe({
+    onProgress: (progress) => {
+      // Ignore anything from a job the user has already moved on from.
+      if (get().jobId !== progress.jobId) return;
+      set({ progress, status: 'running' });
+    },
+    onFileComplete: (eventJobId, result) => {
+      if (get().jobId !== eventJobId) return;
+      pendingResults.push(result);
+      scheduleFlush();
+    },
+    onFileFailed: (eventJobId, failure) => {
+      if (get().jobId !== eventJobId) return;
+      pendingFailures.push(failure);
+      scheduleFlush();
+    },
+    onJobComplete: (state) => {
+      if (get().jobId !== state.jobId) return;
+      dropPending();
+      // The completion payload is authoritative; per-file events may have been
+      // coalesced away, so the accumulated lists are replaced rather than trusted.
+      set({
+        status: state.status,
+        progress: state.progress,
+        results: state.results,
+        failures: state.failures,
+        finishedAt: get().finishedAt || Date.now(),
+      });
+      teardown();
+    },
+  });
+
+  // Native keeps working while JavaScript is frozen, so the mirror is stale by the
+  // time the app comes back. This is the only reliable moment to correct it.
+  appStateSubscription = AppState.addEventListener('change', (next) => {
+    if (next === 'active') void get().resync();
+  });
+}
 
 /** True while the queue is doing work the user can cancel. */
 export const isBatchRunning = (status: BatchState['status']): boolean =>

@@ -34,7 +34,7 @@ export function createNativeMock() {
     fileGateway: {
       pickPhotos: jest.fn().mockResolvedValue([]),
       pickDocuments: jest.fn().mockResolvedValue([]),
-      saveToPhotos: jest.fn().mockResolvedValue(undefined),
+      saveToPhotos: jest.fn().mockResolvedValue(true),
       saveToDownloads: jest.fn().mockResolvedValue([]),
       shareFiles: jest.fn().mockResolvedValue(undefined),
       clearTemporaryFiles: jest.fn().mockResolvedValue(undefined),

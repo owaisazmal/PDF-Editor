@@ -249,6 +249,32 @@ public final class ConverterCoreBridge: NSObject {
 
     // MARK: - NativePdfEngine
 
+    private static let pdfProgressLock = NSLock()
+    nonisolated(unsafe) private static var pdfProgressHandler: (([String: Any]) -> Void)?
+
+    /// Set once by the TurboModule, which forwards to `onProgress`.
+    @objc(installPdfProgressHandler:)
+    public static func installPdfProgressHandler(_ handler: @escaping ([String: Any]) -> Void) {
+        pdfProgressLock.lock()
+        pdfProgressHandler = handler
+        pdfProgressLock.unlock()
+    }
+
+    /// A page counter for one PDF operation, sent at most ten times a second plus the last.
+    private static func pdfProgress() -> (Int, Int) -> Void {
+        pdfProgressLock.lock()
+        let handler = pdfProgressHandler
+        pdfProgressLock.unlock()
+        guard let handler else { return { _, _ in } }
+        var last = DispatchTime.now().uptimeNanoseconds
+        return { done, total in
+            let now = DispatchTime.now().uptimeNanoseconds
+            guard done >= total || now - last >= 100_000_000 else { return }
+            last = now
+            handler(["done": done, "total": total])
+        }
+    }
+
     @objc(inspectPdf:resolve:reject:)
     public static func inspectPdf(
         _ uri: String,
@@ -284,7 +310,8 @@ public final class ConverterCoreBridge: NSObject {
             try PdfEngine.renderPages(
                 url: fileURL(from: uri),
                 sessionHandle: sessionHandle,
-                options: PdfEngine.RenderOptions(dictionary: options)
+                options: PdfEngine.RenderOptions(dictionary: options),
+                progress: pdfProgress()
             )
         }
     }
@@ -301,7 +328,8 @@ public final class ConverterCoreBridge: NSObject {
             try PdfEngine.composeFromImages(
                 imageURLs: imageUris.map { fileURL(from: $0) },
                 outputURL: try pdfOutputURL(outputUri, fallbackName: "document"),
-                options: PdfEngine.ComposeOptions(dictionary: options)
+                options: PdfEngine.ComposeOptions(dictionary: options),
+                progress: pdfProgress()
             )
         }
     }
@@ -336,7 +364,8 @@ public final class ConverterCoreBridge: NSObject {
             return try PdfEngine.split(
                 url: fileURL(from: uri),
                 outputDirectory: directory,
-                options: PdfEngine.SplitOptions(dictionary: options)
+                options: PdfEngine.SplitOptions(dictionary: options),
+                progress: pdfProgress()
             )
         }
     }
@@ -370,7 +399,8 @@ public final class ConverterCoreBridge: NSObject {
             try PdfEngine.compress(
                 url: fileURL(from: uri),
                 outputURL: try pdfOutputURL(outputUri, fallbackName: "compressed"),
-                options: PdfEngine.CompressOptions(dictionary: options)
+                options: PdfEngine.CompressOptions(dictionary: options),
+                progress: pdfProgress()
             )
         }
     }
@@ -424,7 +454,7 @@ public final class ConverterCoreBridge: NSObject {
         Task {
             do {
                 try await FileGateway.saveToPhotos(urls: uris.map(fileURL(from:)))
-                resolve(nil)
+                resolve(true)
             } catch let error as ConversionError {
                 reject(error.code, error.errorDescription ?? error.code, error)
             } catch {

@@ -3,7 +3,7 @@
 
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
-import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
+import type { EventEmitter, UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
 
 /**
  * PDF in both directions, plus the page utilities.
@@ -50,6 +50,9 @@ export interface Spec extends TurboModule {
 
   /** Discards an unlock session and zeroes the retained key material. */
   closeSession(sessionHandle: string): void;
+
+  /** `{ done, total }` while a render, compose, split or compress runs, about ten a second. */
+  readonly onProgress: EventEmitter<UnsafeObject>;
 }
 
 // `get` rather than `getEnforcing`: importing a spec must not throw in Jest or on a

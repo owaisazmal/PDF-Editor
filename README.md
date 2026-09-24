@@ -274,7 +274,7 @@ assets/
 native/
   ios/ConverterCore/    Swift: ImageIO, PDFKit, vImage
   ios/generated/        Tokens.swift, FormatTable.swift
-  android/converter/    Kotlin: ImageDecoder, PdfRenderer, PdfDocument
+  android/converter/    Kotlin: ImageDecoder, PdfRenderer, PDFBox
   android/generated/    Tokens.kt, FormatTable.kt
 plugins/       Expo config plugins: native sources, share extension, localisations
 scripts/       generators and CI gates

@@ -10,9 +10,10 @@
  * wrong order is a silent failure: it produces a valid PDF that is simply wrong.
  */
 
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { PdfScreen } from '@/features/pdf/PdfScreen';
+import { fileGateway, pdfEngine } from '@/native';
 import { usePdfStore } from '@/store/pdf';
 import { detectedFile } from '../support/fixtures';
 import { renderScreen, screenProps, t } from '../support/renderScreen';
@@ -114,6 +115,66 @@ describe('split', () => {
 
     expect(screen.getByTestId('split-by')).toBeOnTheScreen();
     expect(screen.queryByTestId('move-up-0')).toBeNull();
+  });
+
+  /**
+   * An empty ranges field used to fall through to "every page", so tapping Split on the
+   * ranges tab without typing anything produced one file per page.
+   */
+  it('waits for a range rather than splitting every page', async () => {
+    await render('split-pdf');
+
+    expect(screen.getByRole('button', { name: t('pdf.actions.split') })).toBeDisabled();
+
+    await fireEvent.changeText(screen.getByTestId('split-ranges'), '1-2');
+    expect(screen.getByRole('button', { name: t('pdf.actions.split') })).toBeEnabled();
+  });
+
+  it('says so when the ranges match no page', async () => {
+    await render('split-pdf');
+
+    await fireEvent.changeText(screen.getByTestId('split-ranges'), '9-12');
+
+    expect(screen.getByText(t('pdf.rangeMatchesNothing'))).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: t('pdf.actions.split') })).toBeDisabled();
+  });
+});
+
+describe('saving a document', () => {
+  beforeEach(() => {
+    seed(pdfs(2));
+    (pdfEngine!.merge as jest.Mock).mockResolvedValue({
+      outputUri: 'file:///tmp/merged.pdf',
+      outputDisplayName: 'merged.pdf',
+      pageCount: 8,
+      byteSize: 120_000,
+      elapsedMs: 12,
+    });
+  });
+
+  const mergeAndSave = async () => {
+    await render('merge-pdf');
+    await fireEvent.press(screen.getByRole('button', { name: t('pdf.actions.merge') }));
+    await waitFor(() => expect(usePdfStore.getState().status).toBe('done'));
+    await fireEvent.press(screen.getByRole('button', { name: t('pdf.saveToFiles', { count: 1 }) }));
+  };
+
+  it('does not claim it was saved when the export sheet was cancelled', async () => {
+    (fileGateway.saveToDownloads as jest.Mock).mockResolvedValueOnce([]);
+
+    await mergeAndSave();
+    await waitFor(() => expect(fileGateway.saveToDownloads).toHaveBeenCalled());
+
+    expect(screen.queryByText(t('pdf.savedButton'))).toBeNull();
+    expect(screen.getByRole('button', { name: t('pdf.saveToFiles', { count: 1 }) })).toBeEnabled();
+  });
+
+  it('says saved once the file has actually gone somewhere', async () => {
+    (fileGateway.saveToDownloads as jest.Mock).mockResolvedValueOnce(['file:///Files/merged.pdf']);
+
+    await mergeAndSave();
+
+    expect(await screen.findByText(t('pdf.savedButton'))).toBeOnTheScreen();
   });
 });
 

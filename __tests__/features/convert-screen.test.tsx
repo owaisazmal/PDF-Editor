@@ -9,9 +9,10 @@
  * buttons is exactly the class of bug a store test cannot see.
  */
 
-import { screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
+import { fileGateway } from '@/native';
 import { useConversionStore } from '@/store/conversion';
 import { conversionResult, detectedFile } from '../support/fixtures';
 import { renderScreen, screenProps, t } from '../support/renderScreen';
@@ -86,6 +87,24 @@ describe('after converting', () => {
     // the direction of the change to be worked out from two fragments — and with the
     // unit spelled out, because a screen reader given "%" says "percent sign" on iOS.
     expect(screen.getByLabelText('68 percent smaller')).toBeOnTheScreen();
+  });
+
+  it('does not claim it was saved when the Android 8-9 save picker was backed out of', async () => {
+    (fileGateway.saveToPhotos as jest.Mock).mockResolvedValueOnce(false);
+
+    await render();
+    await fireEvent.press(screen.getByTestId('save-button'));
+    await waitFor(() => expect(fileGateway.saveToPhotos).toHaveBeenCalled());
+
+    expect(screen.queryByText(t('convert.savedToPhotos'))).toBeNull();
+    expect(screen.getByTestId('save-button')).toBeEnabled();
+  });
+
+  it('says saved once the photo has actually gone somewhere', async () => {
+    await render();
+    await fireEvent.press(screen.getByTestId('save-button'));
+
+    expect(await screen.findByText(t('convert.savedToPhotos'))).toBeOnTheScreen();
   });
 });
 

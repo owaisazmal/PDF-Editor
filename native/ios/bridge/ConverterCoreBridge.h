@@ -89,6 +89,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - PDF engine
 
++ (void)installPdfProgressHandler:(void (^)(NSDictionary *))handler;
+
 + (void)inspectPdf:(NSString *)uri
            resolve:(RCTPromiseResolveBlock)resolve
             reject:(RCTPromiseRejectBlock)reject;

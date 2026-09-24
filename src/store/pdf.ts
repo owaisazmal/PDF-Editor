@@ -44,6 +44,8 @@ export type PdfState = {
   images: PdfPageImage[];
   parts: PdfPart[];
   elapsedMs: number;
+  /** Pages (or parts) finished so far while running. Null until native reports any. */
+  progress: { done: number; total: number } | null;
 
   begin: (sources: DetectedFile[]) => Promise<void>;
   /** Moves one document within the merge order. Out-of-range indices are ignored. */
@@ -64,6 +66,7 @@ const empty = (): Pick<
   | 'images'
   | 'parts'
   | 'elapsedMs'
+  | 'progress'
 > => ({
   info: null,
   sessionHandle: '',
@@ -73,6 +76,7 @@ const empty = (): Pick<
   images: [],
   parts: [],
   elapsedMs: 0,
+  progress: null,
 });
 
 export const usePdfStore = create<PdfState>((set, get) => ({
@@ -153,12 +157,17 @@ export const usePdfStore = create<PdfState>((set, get) => ({
    * call, not in the lifecycle: pick, run, show, save.
    */
   async run(work) {
-    set({ status: 'running', errorKey: null });
+    set({ status: 'running', errorKey: null, progress: null });
+    const unsubscribe = pdfClient.onProgress((done, total) => {
+      if (get().status === 'running') set({ progress: { done, total } });
+    });
     try {
       const produced = await work();
       set({ ...produced, status: 'done' });
     } catch (error) {
       set({ status: 'failed', errorKey: errorKeyFor(error) });
+    } finally {
+      unsubscribe();
     }
   },
 

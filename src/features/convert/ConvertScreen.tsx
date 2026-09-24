@@ -25,7 +25,7 @@ import {
   percentageSaved,
 } from '@/utils/format';
 import { CONVERSION_TASKS } from '../home/tasks';
-import { errorKey } from './errors';
+import { errorKey, errorKeyFor, type ErrorKey } from './errors';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Convert'>;
@@ -35,6 +35,8 @@ export function ConvertScreen({ route, navigation }: Props) {
   const theme = useTheme();
   const { phase, source, result, failure, convert, reset } = useConversionStore();
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<ErrorKey | null>(null);
 
   const task = useMemo(
     () => CONVERSION_TASKS.find((candidate) => candidate.id === route.params.taskId),
@@ -57,11 +59,21 @@ export function ConvertScreen({ route, navigation }: Props) {
   }, [convert, task]);
 
   const onSave = useCallback(async () => {
-    if (!result) return;
-    await fileGateway.saveToPhotos([result.outputUri]);
-    setSaved(true);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [result]);
+    if (!result || saving) return;
+    setSaveError(null);
+    setSaving(true);
+    try {
+      // False when the Android 8-9 destination picker is backed out of, which is not a save.
+      if (!(await fileGateway.saveToPhotos([result.outputUri]))) return;
+      setSaved(true);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      // A refused Photos permission used to be an unhandled rejection.
+      setSaveError(errorKeyFor(error));
+    } finally {
+      setSaving(false);
+    }
+  }, [result, saving]);
 
   // Spoken on the outcome, because a conversion finishes without anything being tapped
   // and a screen reader would otherwise say nothing at all.
@@ -86,6 +98,7 @@ export function ConvertScreen({ route, navigation }: Props) {
   const onStartOver = useCallback(() => {
     reset();
     setSaved(false);
+    setSaveError(null);
     navigation.popTo('Home');
   }, [navigation, reset]);
 
@@ -201,6 +214,14 @@ export function ConvertScreen({ route, navigation }: Props) {
         </Card>
       ) : null}
 
+      {saveError ? (
+        <Card style={{ marginTop: theme.space.lg }}>
+          <Text variant="bodySm" color="dangerInk">
+            {t(saveError)}
+          </Text>
+        </Card>
+      ) : null}
+
       <View style={{ marginTop: theme.space['2xl'], gap: theme.space.md }}>
         {phase === 'done' ? (
           <>
@@ -209,6 +230,7 @@ export function ConvertScreen({ route, navigation }: Props) {
               label={saved ? t('convert.savedToPhotos') : t('convert.saveToPhotos')}
               onPress={() => void onSave()}
               disabled={saved}
+              busy={saving}
             />
             <Button label={t('convert.convertAnother')} variant="secondary" onPress={onStartOver} />
           </>
