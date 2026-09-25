@@ -355,6 +355,20 @@ all permissively licensed, all vendored as source and built by CMake in the Andr
 `externalNativeBuild` / an iOS XCFramework. Estimated Android APK growth: ~6 MB per ABI.
 Decision D3 in §9 covers whether you want that trade.
 
+### 3.6 The window belongs to a scene
+
+Built with the iOS 27 SDK, an app that still creates its window in the app delegate does not
+launch: UIKit traps in `_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption` before
+the first frame. iOS 26 only logged it, so every build up to Xcode 26 looked fine. Expo's
+template for SDK 57 still owns the window from `AppDelegate`, so `plugins/withSceneLifecycle.js`
+changes three things on every prebuild: a scene manifest in `Info.plist`, the window block
+removed from `AppDelegate`, and `native/ios/app/SceneDelegate.swift` added to the target.
+
+`SceneDelegate` creates the window and starts React Native in it. Under scenes UIKit stops
+calling the app delegate for opened URLs and lifecycle changes, so the scene delegate forwards
+both, and puts a cold-start URL back into the launch options where `Linking.getInitialURL`
+reads it. Without that, a file opened with the app from cold would be dropped.
+
 ---
 
 ## 4. Design tokens derived from the palette

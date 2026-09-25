@@ -119,6 +119,7 @@
     "couldNotStart": "開始できませんでした",
     "notificationsOff": "通知がオフのため、通知領域には表示されません。アプリを離れても処理は最後まで続きます。",
     "stopped_other": "停止しました。変換済みの {{count}} ファイルは下にあります。残りはそのままです。",
+    "stoppedNone": "ファイルを変換する前に停止しました。何も変更されていません。",
     "cancelling": "キャンセル中…",
     "nothingToConvert": "変換するものがありません",
     "saveAll_other": "{{count}} 件を写真に保存",

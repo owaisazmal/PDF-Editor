@@ -131,6 +131,7 @@
     "stopped_one": "Arrêté. Le {{count}} fichier déjà converti est ci-dessous ; le reste n’a pas été touché.",
     "stopped_many": "Arrêté. Les {{count}} fichiers déjà convertis sont ci-dessous ; le reste n’a pas été touché.",
     "stopped_other": "Arrêté. Les {{count}} fichiers déjà convertis sont ci-dessous ; le reste n’a pas été touché.",
+    "stoppedNone": "Arrêté avant la conversion du premier fichier. Rien n’a été modifié.",
     "cancelling": "Annulation…",
     "nothingToConvert": "Rien à convertir",
     "saveAll_one": "Enregistrer {{count}} dans Photos",

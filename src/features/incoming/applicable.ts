@@ -45,7 +45,9 @@ export function applicableTasks(
     .map(({ task, order }) => ({
       task,
       order,
-      matchCount: files.filter((file) => accepts(task, file)).length,
+      matchCount: task.singleSource
+        ? Math.min(1, files.filter((file) => accepts(task, file)).length)
+        : files.filter((file) => accepts(task, file)).length,
     }))
     // A task that can take none of them is not an option, and a task that needs two
     // documents cannot run on one however well the format matches.
@@ -55,5 +57,7 @@ export function applicableTasks(
 }
 
 /** The files a task would actually act on, in the order they arrived. */
-export const filesFor = (task: ConversionTask, files: DetectedFile[]): DetectedFile[] =>
-  files.filter((file) => accepts(task, file));
+export const filesFor = (task: ConversionTask, files: DetectedFile[]): DetectedFile[] => {
+  const accepted = files.filter((file) => accepts(task, file));
+  return task.singleSource ? accepted.slice(0, 1) : accepted;
+};

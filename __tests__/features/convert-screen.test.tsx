@@ -12,7 +12,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
-import { fileGateway } from '@/native';
+import { fileGateway, rasterCodec } from '@/native';
 import { useConversionStore } from '@/store/conversion';
 import { conversionResult, detectedFile } from '../support/fixtures';
 import { renderScreen, screenProps, t } from '../support/renderScreen';
@@ -54,6 +54,54 @@ describe('before converting', () => {
     // Disabled rather than hidden: the button is the answer to "why can I not convert
     // this", and removing it leaves the question with nowhere to land.
     expect(screen.getByTestId('convert-button')).toBeDisabled();
+  });
+});
+
+describe('the selected file', () => {
+  it('gives a sideways-stored photo its upright size', async () => {
+    useConversionStore.setState({
+      source: detectedFile('heic', { pixelWidth: 4032, pixelHeight: 3024, exifOrientation: 6 }),
+    });
+
+    await render();
+
+    expect(screen.getByLabelText(`${t('convert.dimensions')}: 3,024 × 4,032`)).toBeOnTheScreen();
+  });
+});
+
+describe('a transparent image', () => {
+  it('says it will be flattened onto white when white is the only option', async () => {
+    useConversionStore.setState({ source: detectedFile('webp', { hasAlpha: true }) });
+
+    await renderScreen(<ConvertScreen {...screenProps('Convert', { taskId: 'webp-to-jpg' })} />);
+
+    expect(screen.getByText(t('convert.willFlatten', { format: 'JPEG' }))).toBeOnTheScreen();
+  });
+
+  it('does not claim white after a colour was chosen on the options screen', async () => {
+    useConversionStore.setState({ source: detectedFile('png', { hasAlpha: true }) });
+
+    await renderScreen(<ConvertScreen {...screenProps('Convert', { taskId: 'png-to-jpg' })} />);
+
+    expect(screen.queryByText(t('convert.willFlatten', { format: 'JPEG' }))).toBeNull();
+  });
+});
+
+describe('arriving from the options screen', () => {
+  it('starts converting, since Convert was already pressed there', async () => {
+    await renderScreen(
+      <ConvertScreen {...screenProps('Convert', { taskId: TASK, startNow: true })} />,
+    );
+
+    await waitFor(() => expect(rasterCodec.convert).toHaveBeenCalledTimes(1));
+  });
+
+  it('waits for the button when the user came straight from a picker', async () => {
+    (rasterCodec.convert as jest.Mock).mockClear();
+
+    await render();
+
+    expect(rasterCodec.convert).not.toHaveBeenCalled();
   });
 });
 

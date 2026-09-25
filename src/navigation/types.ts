@@ -3,7 +3,11 @@
 
 export type RootStackParamList = {
   Home: undefined;
-  Convert: { taskId: string };
+  /**
+   * `startNow` when the options screen sent the user here: they pressed Convert there,
+   * and asking a second time on this screen was a tap that did nothing but repeat it.
+   */
+  Convert: { taskId: string; startNow?: boolean };
   Batch: { taskId: string };
   Options: { taskId: string };
   /** Every PDF task shares one screen; the id decides which options it shows. */

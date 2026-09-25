@@ -94,7 +94,7 @@ describe('leaving the screen', () => {
 
     await fireEvent.press(screen.getByTestId('convert-with-options'));
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Convert', { taskId: COMPRESS });
+    expect(navigation.navigate).toHaveBeenCalledWith('Convert', { taskId: COMPRESS, startNow: true });
   });
 
   it('sends several files to the batch screen', async () => {

@@ -131,6 +131,7 @@
     "stopped_one": "Detenido. Abajo está {{count}} archivo ya convertido; el resto quedó intacto.",
     "stopped_many": "Detenido. Los {{count}} de archivos ya convertidos están abajo; el resto quedó intacto.",
     "stopped_other": "Detenido. Los {{count}} archivos ya convertidos están abajo; el resto quedó intacto.",
+    "stoppedNone": "Detenido antes de convertir ningún archivo. No se ha cambiado nada.",
     "cancelling": "Cancelando…",
     "nothingToConvert": "Nada que convertir",
     "saveAll_one": "Guardar {{count}} en Fotos",

@@ -104,3 +104,18 @@ describe('what to offer for files someone sent', () => {
     expect(filesFor(heicTask!.task, mixed).map((f) => f.displayName)).toEqual(['a']);
   });
 });
+
+describe('a task that works on one document', () => {
+  const pdfs = [file('pdf', 'a.pdf'), file('pdf', 'b.pdf')];
+  const offer = (id: string) => applicableTasks(pdfs, capable).find((o) => o.task.id === id);
+
+  it('says it will use one of several PDFs, where merge uses them all', () => {
+    expect(offer('compress-pdf')?.matchCount).toBe(1);
+    expect(offer('merge-pdf')?.matchCount).toBe(2);
+  });
+
+  it('is handed only that one', () => {
+    const compress = offer('compress-pdf')!.task;
+    expect(filesFor(compress, pdfs).map((f) => f.displayName)).toEqual(['a.pdf']);
+  });
+});
