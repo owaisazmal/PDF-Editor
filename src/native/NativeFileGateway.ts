@@ -72,6 +72,12 @@ export interface Spec extends TurboModule {
   /** Deletes the app's temporary working directory. Safe to call at any time. */
   clearTemporaryFiles(): Promise<void>;
 
+  /**
+   * Deletes the app's own copies at these URIs: picked files, received files and
+   * unsaved output. Anything outside the app's storage is ignored.
+   */
+  discardFiles(uris: string[]): Promise<void>;
+
   /* ------------------------------------------------------------ incoming ---- */
 
   /**

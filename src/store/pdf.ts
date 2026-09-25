@@ -12,6 +12,7 @@ import {
 } from '@/engine/pdfClient';
 import { errorKeyFor, type ErrorKey } from '@/features/convert/errors';
 import type { DetectedFile } from '@/native/types';
+import { discardFiles, holdFiles } from './files';
 
 /**
  * One PDF operation, from the files picked to the files produced.
@@ -79,6 +80,19 @@ const empty = (): Pick<
   progress: null,
 });
 
+const outputsOf = (state: Pick<PdfState, 'documents' | 'images' | 'parts'>): string[] =>
+  [...state.documents, ...state.images, ...state.parts].map((output) => output.outputUri);
+
+/** Bumped by every run and reset, so a run the user walked away from knows it. */
+let currentRun = 0;
+
+/** The selection `begin` last inspected, kept across a reorder, which needs no new look. */
+let inspected: DetectedFile[] | null = null;
+
+/** True for a selection the screen has not inspected yet. */
+export const isNewSelection = (sources: DetectedFile[]): boolean =>
+  sources.length > 0 && sources !== inspected;
+
 export const usePdfStore = create<PdfState>((set, get) => ({
   sources: [],
   status: 'idle',
@@ -103,10 +117,12 @@ export const usePdfStore = create<PdfState>((set, get) => ({
     const [moved] = sources.splice(from, 1);
     if (!moved) return;
     sources.splice(to, 0, moved);
+    if (inspected === usePdfStore.getState().sources) inspected = sources;
     set({ sources });
   },
 
   async begin(sources) {
+    inspected = sources;
     set({ sources, status: 'inspecting', ...empty() });
 
     const first = sources[0];
@@ -120,10 +136,13 @@ export const usePdfStore = create<PdfState>((set, get) => ({
       return;
     }
 
+    const run = currentRun;
     try {
       const info = await pdfClient.inspect(first.uri);
+      if (run !== currentRun) return;
       set({ info, status: info.needsPassword ? 'locked' : 'ready' });
     } catch (error) {
+      if (run !== currentRun) return;
       set({ status: 'failed', errorKey: errorKeyFor(error) });
     }
   },
@@ -141,9 +160,15 @@ export const usePdfStore = create<PdfState>((set, get) => ({
     set({ status: 'inspecting', passwordFailed: false, errorKey: null });
     try {
       const sessionHandle = await pdfClient.unlock(source.uri, password);
+      if (get().sources[0] !== source) {
+        pdfClient.closeSession(sessionHandle);
+        return;
+      }
       const info = await pdfClient.inspect(source.uri);
+      if (get().sources[0] !== source) return;
       set({ sessionHandle, info, status: 'ready' });
     } catch (error) {
+      if (get().sources[0] !== source) return;
       // A wrong password is not a failure of the operation, it is a fact about the
       // attempt — the screen stays on the prompt rather than falling into an error state.
       set({ status: 'locked', passwordFailed: true, errorKey: errorKeyFor(error) });
@@ -157,28 +182,44 @@ export const usePdfStore = create<PdfState>((set, get) => ({
    * call, not in the lifecycle: pick, run, show, save.
    */
   async run(work) {
-    set({ status: 'running', errorKey: null, progress: null });
+    const run = ++currentRun;
+    // A new run replaces the last one's files, which are no longer offered for saving.
+    const previous = outputsOf(get());
+    set({ status: 'running', errorKey: null, progress: null, documents: [], images: [], parts: [] });
+    discardFiles(previous);
     const unsubscribe = pdfClient.onProgress((done, total) => {
-      if (get().status === 'running') set({ progress: { done, total } });
+      if (run === currentRun && get().status === 'running') set({ progress: { done, total } });
     });
     try {
       const produced = await work();
+      if (run !== currentRun) {
+        discardFiles(outputsOf({ documents: [], images: [], parts: [], ...produced }));
+        return;
+      }
       set({ ...produced, status: 'done' });
     } catch (error) {
-      set({ status: 'failed', errorKey: errorKeyFor(error) });
+      if (run === currentRun) set({ status: 'failed', errorKey: errorKeyFor(error) });
     } finally {
       unsubscribe();
     }
   },
 
   reset() {
-    const { sessionHandle } = get();
+    currentRun++;
+    inspected = null;
+    const state = get();
     // Released rather than left to a timeout: an unlocked document should not outlive
     // the screen the user unlocked it on.
-    if (sessionHandle) pdfClient.closeSession(sessionHandle);
+    if (state.sessionHandle) pdfClient.closeSession(state.sessionHandle);
     set({ sources: [], status: 'idle', ...empty() });
+    discardFiles([...state.sources.map((source) => source.uri), ...outputsOf(state)]);
   },
 }));
+
+holdFiles(() => {
+  const state = usePdfStore.getState();
+  return [...state.sources.map((source) => source.uri), ...outputsOf(state)];
+});
 
 
 

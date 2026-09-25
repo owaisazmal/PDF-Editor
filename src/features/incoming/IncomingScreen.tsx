@@ -46,17 +46,20 @@ export function IncomingScreen({ navigation }: Props) {
       const usable = filesFor(option.task, files);
       if (blockedReason(option.task, usable)) return;
 
-      // Cleared before navigating: these files now belong to the task's own store, and
-      // leaving them here means coming back to this screen after finishing.
-      clear();
+      // Cleared once the task's store holds them, so only the files it could not use are
+      // deleted. Leaving them here means coming back to this screen after finishing.
       routeToTask(navigation, option.task, usable);
+      clear();
     },
     [options, files, clear, navigation],
   );
 
+  // Back to wherever the share interrupted, rather than to the top, which also closed a
+  // batch still running underneath.
   const dismiss = useCallback(() => {
     clear();
-    navigation.popToTop();
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.popToTop();
   }, [clear, navigation]);
 
   const unreadable = files.filter((file) => file.format === '').length;

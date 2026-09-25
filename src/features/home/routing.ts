@@ -65,10 +65,15 @@ export function routeToTask(
   const first = files[0];
   if (!first) return;
 
+  // Earlier flows are unreachable from here, so their files go. A file left in the
+  // single-file store also used to replace a whole batch on the options screen.
+  usePdfStore.getState().reset();
+  useBatchStore.getState().reset();
+  useConversionStore.getState().reset();
+
   if (task.kind === 'pdf') {
     // Seeded here and inspected by the screen, so a password prompt appears over the
     // screen it belongs to rather than over whatever the user was looking at.
-    usePdfStore.getState().reset();
     usePdfStore.setState({ sources: files, status: 'idle' });
     navigation.navigate('Pdf', { taskId: task.id });
     return;
@@ -82,11 +87,6 @@ export function routeToTask(
     return;
   }
 
-  // The single-file store is cleared too. The options screen reads it first, so a file
-  // left there by an earlier conversion replaced the whole batch: "1 file" on screen, and
-  // the old file converted again instead of the ones just picked.
-  useConversionStore.getState().reset();
-  useBatchStore.getState().reset();
   useBatchStore.setState({ sources: files, status: 'idle' });
   navigation.navigate(task.needsOptions ? 'Options' : 'Batch', { taskId: task.id });
 }

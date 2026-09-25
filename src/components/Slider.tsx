@@ -3,6 +3,7 @@
 
 import { useCallback, useState } from 'react';
 import {
+  I18nManager,
   PanResponder,
   StyleSheet,
   View,
@@ -82,7 +83,8 @@ export function Slider({
       const usable = width - THUMB;
       if (usable <= 0) return fallback;
       const ratio = Math.min(1, Math.max(0, (x - THUMB / 2) / usable));
-      return clampToStep(min + ratio * (max - min));
+      // Right to left, `left` is laid out from the right edge, so the value runs the other way.
+      return clampToStep(min + (I18nManager.isRTL ? 1 - ratio : ratio) * (max - min));
     },
     [clampToStep, min, max, width],
   );

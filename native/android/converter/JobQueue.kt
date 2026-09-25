@@ -107,10 +107,13 @@ public object JobQueue {
       putArray("failures", Arguments.createArray())
     }
 
-  /** Drops a finished job's bookkeeping. Does not touch output files. */
+  /**
+   * Drops a job's bookkeeping. Does not touch output files. One still running is
+   * cancelled, which also ends its foreground service.
+   */
   @JvmStatic
   public fun release(jobId: String) {
-    jobs.remove(jobId)?.shutdown()
+    jobs.remove(jobId)?.cancel {}
   }
 
   private fun emptyProgress(jobId: String): WritableMap = Arguments.createMap().apply {
@@ -293,6 +296,13 @@ public object JobQueue {
     }
 
     fun cancel(onDrained: () -> Unit) {
+      val finished = synchronized(lock) { status == "completed" || status == "cancelled" }
+      if (finished) {
+        // Nothing to stop, and a finished batch must not be relabelled "cancelled".
+        executor.shutdown()
+        onDrained()
+        return
+      }
       cancelling.set(true)
       synchronized(lock) { status = "cancelling" }
 
@@ -329,10 +339,6 @@ public object JobQueue {
       }
       beginForeground()
       enqueue(retryable)
-    }
-
-    fun shutdown() {
-      executor.shutdownNow()
     }
 
     // Snapshots ---------------------------------------------------------------

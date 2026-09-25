@@ -4,6 +4,7 @@
 package com.owaiskhan.converter.core
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -37,7 +38,8 @@ public object BackgroundProgress {
     private const val KEY_ASKED: String = "asked"
 
     @JvmStatic
-    public fun status(context: Context): String {
+    @JvmOverloads
+    public fun status(context: Context, activity: Activity? = null): String {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             // Before Android 13 a notification needed no permission — but the user could
             // always switch notifications off for an app in Settings, and that is a
@@ -55,6 +57,11 @@ public object BackgroundProgress {
         ) == PackageManager.PERMISSION_GRANTED
 
         if (held) return GRANTED
+
+        // A refusal answered in a dialog this app no longer had a callback for.
+        if (activity?.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) == true) {
+            markAsked(context)
+        }
 
         // `shouldShowRequestPermissionRationale` returns false both before the first ask
         // and after a final refusal, so it cannot tell them apart. That one bit is

@@ -51,7 +51,7 @@ export function applicableTasks(
     }))
     // A task that can take none of them is not an option, and a task that needs two
     // documents cannot run on one however well the format matches.
-    .filter(({ task, matchCount }) => matchCount > 0 && !(task.needsMultiple && files.length < 2))
+    .filter(({ task, matchCount }) => matchCount > 0 && !(task.needsMultiple && matchCount < 2))
     .sort((a, b) => b.matchCount - a.matchCount || a.order - b.order)
     .map(({ task, matchCount }) => ({ task, matchCount }));
 }

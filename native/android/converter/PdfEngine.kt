@@ -21,6 +21,7 @@ import com.facebook.react.bridge.WritableMap
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Locale
 import java.util.UUID
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
@@ -340,7 +341,7 @@ public object PdfEngine {
         renderer.openPage(index).use { page ->
           val bitmap = render(page, options.dpi)
           try {
-            val name = FileGateway.sanitise("$stem-%03d".format(index + 1))
+            val name = FileGateway.sanitise(String.format(Locale.US, "%s-%03d", stem, index + 1))
             val output = FileGateway.resolveCollision(directory, "$name.$extension")
 
             FileOutputStream(output).use { stream ->
@@ -725,7 +726,12 @@ public object PdfEngine {
       throw ConversionException.passwordRequired()
     } catch (error: IOException) {
       temporary.delete()
-      throw ConversionException.diskFull()
+      // A damaged source fails here too, and is not a full disk.
+      throw if (FileGateway.freeDiskSpace(context) < 32L * 1024 * 1024) {
+        ConversionException.diskFull()
+      } else {
+        ConversionException.corrupt(error.message ?: "one of the documents")
+      }
     }
   }
 
@@ -772,7 +778,7 @@ public object PdfEngine {
           pages.forEach { part.importPage(source.getPage(it)) }
           if (part.numberOfPages == 0) return@forEachIndexed
 
-          val name = FileGateway.sanitise("$stem-%03d".format(position + 1))
+          val name = FileGateway.sanitise(String.format(Locale.US, "%s-%03d", stem, position + 1))
           val output = FileGateway.resolveCollision(outputDirectory, "$name.pdf")
           part.save(output)
 

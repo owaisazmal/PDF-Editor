@@ -49,18 +49,41 @@ public enum FileGateway {
             var pending = results.enumerated().makeIterator()
             for _ in 0..<6 {
                 guard let (index, result) = pending.next() else { break }
-                group.addTask { (index, try await materialise(result, into: directory)) }
+                group.addTask { (index, try await materialiseOrPlaceholder(result, into: directory)) }
             }
             var collected: [(Int, DetectedFile)] = []
             while let entry = try await group.next() {
                 collected.append(entry)
                 if let (index, result) = pending.next() {
-                    group.addTask { (index, try await materialise(result, into: directory)) }
+                    group.addTask { (index, try await materialiseOrPlaceholder(result, into: directory)) }
                 }
             }
             // The picker reports selection order; preserve it.
             return collected.sorted { $0.0 < $1.0 }.map(\.1)
         }
+    }
+
+    /// One photo that cannot be copied (still in iCloud while offline, say) costs that
+    /// photo, not the whole pick. A full disk still stops it.
+    private static func materialiseOrPlaceholder(_ result: PHPickerResult, into directory: URL) async throws -> DetectedFile {
+        do {
+            return try await materialise(result, into: directory)
+        } catch let error as ConversionError where error.code == "diskFull" {
+            throw error
+        } catch let error as CocoaError where error.code == .fileWriteOutOfSpace {
+            throw ConversionError.diskFull
+        } catch {
+            return unreadable(named: result.itemProvider.suggestedName ?? "file", in: directory)
+        }
+    }
+
+    static func unreadable(named name: String, in directory: URL) -> DetectedFile {
+        var placeholder = DetectedFile(
+            uri: directory.appendingPathComponent(sanitise(name)).absoluteString,
+            displayName: name
+        )
+        placeholder.reason = "This file could not be opened."
+        return placeholder
     }
 
     /// Copies the picked item into the app's temporary directory in its original
@@ -197,6 +220,10 @@ public enum FileGateway {
     public static func clearTemporaryFiles() throws {
         try? FileManager.default.removeItem(at: temporaryDirectory())
         _ = temporaryDirectory()
+        // Names held for files now deleted would push the next one to " (1)".
+        reservationLock.lock()
+        reserved.removeAll()
+        reservationLock.unlock()
 
         // Deleted and immediately recreated: a conversion that starts before this returns
         // would otherwise write into a directory that no longer exists.
@@ -204,6 +231,67 @@ public enum FileGateway {
             try? FileManager.default.removeItem(at: output)
             _ = try? RasterCodec.managedOutputDirectory()
         }
+
+        // Copies the document picker made (tmp/<bundle id>-Inbox).
+        let fileManager = FileManager.default
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        for entry in (try? fileManager.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? []
+        where entry.lastPathComponent.hasSuffix("-Inbox") {
+            try? fileManager.removeItem(at: entry)
+        }
+
+        // Open With copies (Documents/Inbox), which iCloud backs up. One that launched this
+        // process is still waiting to be read, so recent arrivals are kept.
+        let cutoff = processStartDate().addingTimeInterval(-120)
+        let keys: Set<URLResourceKey> = [.addedToDirectoryDateKey, .creationDateKey]
+        for entry in (try? fileManager.contentsOfDirectory(
+            at: documentsInbox(), includingPropertiesForKeys: Array(keys)
+        )) ?? [] {
+            let values = try? entry.resourceValues(forKeys: keys)
+            if (values?.addedToDirectoryDate ?? values?.creationDate ?? Date()) < cutoff {
+                try? fileManager.removeItem(at: entry)
+            }
+        }
+    }
+
+    /// Deletes copies the UI has finished with. Only files inside the app's temporary,
+    /// output and Inbox folders are touched, so a user's original is never at risk.
+    public static func discard(urls: [URL]) {
+        let fileManager = FileManager.default
+        let work = temporaryDirectory().resolvingSymlinksInPath().path
+        var roots = [URL(fileURLWithPath: NSTemporaryDirectory()), documentsInbox()]
+        if let output = try? RasterCodec.managedOutputDirectory() { roots.append(output) }
+        let rootPaths = roots.map { $0.resolvingSymlinksInPath().path + "/" }
+
+        for url in urls where url.isFileURL {
+            let path = url.resolvingSymlinksInPath().path
+            guard rootPaths.contains(where: { path.hasPrefix($0) }) else { continue }
+
+            try? fileManager.removeItem(atPath: path)
+            reservationLock.lock()
+            reserved.remove(url.path)
+            reservationLock.unlock()
+
+            // The folder a pick made goes once its last file does.
+            let parent = (path as NSString).deletingLastPathComponent
+            if (parent as NSString).deletingLastPathComponent == work,
+               (try? fileManager.contentsOfDirectory(atPath: parent))?.isEmpty == true {
+                try? fileManager.removeItem(atPath: parent)
+            }
+        }
+    }
+
+    private static func documentsInbox() -> URL {
+        URL.documentsDirectory.appendingPathComponent("Inbox", isDirectory: true)
+    }
+
+    private static func processStartDate() -> Date {
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        guard sysctl(&mib, u_int(mib.count), &info, &size, nil, 0) == 0 else { return Date() }
+        let started = info.kp_proc.p_un.__p_starttime
+        return Date(timeIntervalSince1970: TimeInterval(started.tv_sec) + TimeInterval(started.tv_usec) / 1_000_000)
     }
 
     public static func freeDiskSpace() -> Int64 {

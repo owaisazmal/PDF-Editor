@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { errorKeyFor, type ErrorKey } from '@/features/convert/errors';
 
 import { jobClient, type BackgroundProgressStatus, type JobStatus } from '@/engine/jobClient';
+import { discardFiles, holdFiles } from './files';
 import type { ConversionOptionsInput } from '@/engine/options';
 import type { ConversionResult, DetectedFile, FileFailure, JobProgress } from '@/native/types';
 
@@ -83,10 +84,17 @@ export type BatchState = {
   namePattern: string;
   setNamePattern: (pattern: string) => void;
 
-  start: (sources: DetectedFile[], options: ConversionOptionsInput) => Promise<void>;
+  /** `namePattern` is passed only by tasks that show the rename field. */
+  start: (
+    sources: DetectedFile[],
+    options: ConversionOptionsInput,
+    namePattern?: string,
+  ) => Promise<void>;
   cancel: () => Promise<void>;
   retryFailed: () => Promise<void>;
   resync: () => Promise<void>;
+  /** Drops the job but keeps the files, so the same selection can run with new settings. */
+  restart: () => void;
   reset: () => void;
 };
 
@@ -115,6 +123,41 @@ function teardown() {
   dropPending();
 }
 
+const noJob = () => ({
+  jobId: null,
+  status: 'idle' as const,
+  progress: emptyProgress(''),
+  results: [],
+  failures: [],
+  submitErrorKey: null,
+  backgroundProgress: null,
+  startedAt: 0,
+  finishedAt: 0,
+});
+
+/** Lets go of a job the screen has left, and deletes the files nothing holds any more. */
+function abandon(jobId: string | null, status: BatchState['status'], uris: string[]) {
+  if (!jobId) {
+    discardFiles(uris);
+    return;
+  }
+  if (!isBatchRunning(status)) {
+    jobClient.release(jobId);
+    discardFiles(uris);
+    return;
+  }
+  // Stopped first, or files still converting would land after the rest were deleted.
+  void Promise.resolve()
+    .then(() => jobClient.cancel(jobId))
+    .then(() => jobClient.getState(jobId))
+    .then((state) => state.results.map((result) => result.outputUri))
+    .catch(() => [] as string[])
+    .then((outputs) => {
+      jobClient.release(jobId);
+      discardFiles([...uris, ...outputs]);
+    });
+}
+
 export const useBatchStore = create<BatchState>((set, get) => ({
   jobId: null,
   sources: [],
@@ -130,7 +173,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
   setNamePattern: (namePattern) => set({ namePattern }),
 
-  async start(sources, options) {
+  async start(sources, options, namePattern = '') {
     teardown();
 
     // Generated here so the UI can correlate events before native has replied.
@@ -170,7 +213,7 @@ export const useBatchStore = create<BatchState>((set, get) => ({
         jobId,
         inputUris: sources.map((source) => source.uri),
         options,
-        namePattern: get().namePattern,
+        namePattern,
       });
     } catch (error) {
       teardown();
@@ -189,7 +232,8 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     await jobClient.cancel(jobId);
     // Cancel resolves only once the queue has drained, so this state is trustworthy.
     await get().resync();
-    teardown();
+    // A new batch may have started during the drain; its listeners are not ours to remove.
+    if (get().jobId === jobId) teardown();
   },
 
   async retryFailed() {
@@ -225,27 +269,34 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     });
   },
 
-  reset() {
-    const { jobId } = get();
+  restart() {
+    const { jobId, status, results } = get();
     teardown();
-    if (jobId) jobClient.release(jobId);
-    set({
-      jobId: null,
-      sources: [],
-      status: 'idle',
-      progress: emptyProgress(''),
-      results: [],
-      failures: [],
-      submitErrorKey: null,
-      backgroundProgress: null,
-      startedAt: 0,
-      finishedAt: 0,
-      // The pattern deliberately survives a reset: it belongs to the settings the user
-      // chose, not to the batch that just finished, and clearing it would silently
-      // undo a rename between one batch and the next.
-    });
+    set(noJob());
+    abandon(
+      jobId,
+      status,
+      results.map((result) => result.outputUri),
+    );
+  },
+
+  reset() {
+    const { jobId, status, sources, results } = get();
+    teardown();
+    // The rename pattern survives: it belongs to the settings the user chose, not to
+    // the batch that just finished.
+    set({ ...noJob(), sources: [] });
+    abandon(jobId, status, [
+      ...sources.map((source) => source.uri),
+      ...results.map((result) => result.outputUri),
+    ]);
   },
 }));
+
+holdFiles(() => {
+  const { sources, results } = useBatchStore.getState();
+  return [...sources.map((source) => source.uri), ...results.map((result) => result.outputUri)];
+});
 
 /** Listens to the current job. A retry calls it again, since completion stops listening. */
 function watch() {

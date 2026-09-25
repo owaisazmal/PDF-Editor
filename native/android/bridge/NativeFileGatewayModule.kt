@@ -20,6 +20,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.module.annotations.ReactModule
 import com.owaiskhan.converter.core.ConversionException
+import com.owaiskhan.converter.core.DetectedFile
 import com.owaiskhan.converter.core.FileGateway
 import com.owaiskhan.converter.core.FormatDetector
 import com.owaiskhan.converter.core.DropTarget
@@ -101,8 +102,20 @@ public class NativeFileGatewayModule(
           val results = Arguments.createArray()
           val directory = FileGateway.pickDirectory(reactContext)
           for (uri in extractUris(data)) {
-            val local = FileGateway.materialise(reactContext, uri, directory)
-            results.pushMap(FormatDetector.detect(local).toWritableMap())
+            // One unreadable file (an offline Drive item, a revoked grant) costs that file,
+            // not the whole pick. A full disk still stops it.
+            val detected = runCatching {
+              FormatDetector.detect(FileGateway.materialise(reactContext, uri, directory))
+            }.getOrElse { error ->
+              if (error is ConversionException && error.code == "diskFull") throw error
+              val name = uri.lastPathSegment ?: "file"
+              DetectedFile(
+                uri = FileGateway.fileUri(File(directory, FileGateway.sanitise(name))),
+                displayName = name,
+                reason = "This file could not be opened.",
+              )
+            }
+            results.pushMap(detected.toWritableMap())
           }
           results
         }
@@ -407,6 +420,15 @@ public class NativeFileGatewayModule(
   override fun clearTemporaryFiles(promise: Promise) {
     executor.execute {
       runCatching { FileGateway.clearTemporaryFiles(reactContext) }
+        .onSuccess { promise.resolve(null) }
+        .onFailure { promise.rejectConversion(it) }
+    }
+  }
+
+  override fun discardFiles(uris: ReadableArray, promise: Promise) {
+    val paths = uris.toStrings()
+    executor.execute {
+      runCatching { FileGateway.discard(reactContext, paths) }
         .onSuccess { promise.resolve(null) }
         .onFailure { promise.rejectConversion(it) }
     }

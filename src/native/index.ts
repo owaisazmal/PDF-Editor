@@ -166,6 +166,13 @@ export const fileGateway = {
   clearTemporaryFiles: (): Promise<void> =>
     require_(NativeFileGateway, 'NativeFileGateway').clearTemporaryFiles(),
 
+  /** A no-op on a native build that predates the method; the next launch still clears. */
+  async discardFiles(uris: string[]): Promise<void> {
+    const native = require_(NativeFileGateway, 'NativeFileGateway');
+    if (uris.length === 0 || typeof native.discardFiles !== 'function') return;
+    await native.discardFiles(uris);
+  },
+
   /**
    * Files handed to the app from outside it, and the queue emptied.
    *

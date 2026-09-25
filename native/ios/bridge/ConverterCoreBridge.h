@@ -183,6 +183,10 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)clearTemporaryFiles:(RCTPromiseResolveBlock)resolve
                      reject:(RCTPromiseRejectBlock)reject;
 
++ (void)discardFiles:(NSArray<NSString *> *)uris
+             resolve:(RCTPromiseResolveBlock)resolve
+              reject:(RCTPromiseRejectBlock)reject;
+
 @end
 
 NS_ASSUME_NONNULL_END

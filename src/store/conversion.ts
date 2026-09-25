@@ -7,6 +7,7 @@ import { formatDetector, rasterCodec } from '@/native';
 import type { ConversionResult, DetectedFile } from '@/native/types';
 import type { ConversionOptionsInput } from '@/engine/options';
 import { ConversionErrorCode } from '@/native/types';
+import { discardFiles, holdFiles } from './files';
 
 export type ConversionPhase = 'idle' | 'picking' | 'ready' | 'converting' | 'done' | 'error';
 
@@ -38,7 +39,15 @@ type ConversionState = {
  * torn out — native has to be authoritative because it keeps running while the
  * JavaScript runtime is suspended.
  */
-export const useConversionStore = create<ConversionState>((set) => ({
+const filesOf = (state: Pick<ConversionState, 'source' | 'result'>): string[] => [
+  ...(state.source ? [state.source.uri] : []),
+  ...(state.result ? [state.result.outputUri] : []),
+];
+
+/** Bumped whenever the file or its run changes, so a stale result knows it is stale. */
+let currentRun = 0;
+
+export const useConversionStore = create<ConversionState>((set, get) => ({
   phase: 'idle',
   source: null,
   result: null,
@@ -46,11 +55,21 @@ export const useConversionStore = create<ConversionState>((set) => ({
 
   setPicking: () => set({ phase: 'picking', failure: null }),
 
-  setSource: (source) => set({ phase: 'ready', source, result: null, failure: null }),
+  setSource: (source) => {
+    currentRun++;
+    const previous = filesOf(get());
+    set({ phase: 'ready', source, result: null, failure: null });
+    discardFiles(previous);
+  },
 
   fail: (failure) => set({ phase: 'error', failure }),
 
-  reset: () => set({ phase: 'idle', source: null, result: null, failure: null }),
+  reset: () => {
+    currentRun++;
+    const previous = filesOf(get());
+    set({ phase: 'idle', source: null, result: null, failure: null });
+    discardFiles(previous);
+  },
 
   convert: async (options, outputUri) => {
     const { source } = useConversionStore.getState();
@@ -62,11 +81,18 @@ export const useConversionStore = create<ConversionState>((set) => ({
       return;
     }
 
+    const run = ++currentRun;
     set({ phase: 'converting', failure: null });
     try {
       const result = await rasterCodec.convert(source.uri, outputUri, options);
+      // The user moved on while it ran; nothing can reach this output now.
+      if (run !== currentRun) {
+        discardFiles([result.outputUri]);
+        return;
+      }
       set({ phase: 'done', result });
     } catch (error) {
+      if (run !== currentRun) return;
       set({
         phase: 'error',
         failure: {
@@ -77,6 +103,8 @@ export const useConversionStore = create<ConversionState>((set) => ({
     }
   },
 }));
+
+holdFiles(() => filesOf(useConversionStore.getState()));
 
 /**
  * Native rejections carry a stable `code` so the UI can show a translated message.

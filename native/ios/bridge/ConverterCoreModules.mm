@@ -310,6 +310,13 @@ RCT_EXPORT_MODULE()
   [ConverterCoreBridge clearTemporaryFiles:resolve reject:reject];
 }
 
+- (void)discardFiles:(NSArray *)uris
+             resolve:(RCTPromiseResolveBlock)resolve
+              reject:(RCTPromiseRejectBlock)reject
+{
+  [ConverterCoreBridge discardFiles:uris resolve:resolve reject:reject];
+}
+
 - (void)takePendingFiles:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject
 {
