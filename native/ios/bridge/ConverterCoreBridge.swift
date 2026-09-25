@@ -613,6 +613,18 @@ public final class ConverterCoreBridge: NSObject {
         }
     }
 
+    @objc(discardFiles:resolve:reject:)
+    public static func discardFiles(
+        _ uris: [String],
+        resolve: @escaping (Any?) -> Void,
+        reject: @escaping (String?, String?, Error?) -> Void
+    ) {
+        run(resolve: resolve, reject: reject) {
+            FileGateway.discard(urls: uris.map(fileURL(from:)))
+            return nil
+        }
+    }
+
     // MARK: - Helpers
 
     /// Accepts both `file://` URLs and bare paths, because the two arrive from

@@ -6,6 +6,7 @@ import { create } from 'zustand';
 
 import { fileGateway, formatDetector } from '@/native';
 import type { DetectedFile } from '@/native/types';
+import { discardFiles, holdFiles } from './files';
 
 /**
  * Files that arrived from outside the app.
@@ -92,10 +93,15 @@ export const useIncomingStore = create<IncomingState>((set, get) => ({
     set((state) => ({ files: [...state.files, ...files] }));
   },
 
+  /** Files a task has taken over are still held by its store, so they are kept. */
   clear() {
+    const { files } = get();
     set({ files: [] });
+    discardFiles(files.map((file) => file.uri));
   },
 }));
+
+holdFiles(() => useIncomingStore.getState().files.map((file) => file.uri));
 
 /**
  * Starts listening for files arriving at a running app.

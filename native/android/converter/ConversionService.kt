@@ -51,10 +51,16 @@ public class ConversionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val incomingJobId = intent?.getStringExtra(EXTRA_JOB_ID).orEmpty()
 
-        instance = this
         createChannel()
 
         if (intent?.action == ACTION_CANCEL) {
+            instance = this
+            // A job that already finished, or died with an earlier process, has nothing to
+            // cancel; redrawing its notification would leave a "Cancelling" one behind.
+            if (activeJobId != incomingJobId) {
+                shutdown()
+                return START_NOT_STICKY
+            }
             synchronized(lock) {
                 jobId = incomingJobId
                 cancelling = true
@@ -82,7 +88,17 @@ public class ConversionService : Service() {
 
         // Claimed before any decision to stand down: Android kills a process that calls
         // `startForegroundService` and does not follow through within five seconds.
-        startInForeground()
+        // Android 15 refuses once the day's dataSync allowance is spent; the batch then
+        // runs while the app is on screen, as it does when the service cannot start.
+        try {
+            startInForeground()
+        } catch (error: Exception) {
+            if (activeJobId == incomingJobId) activeJobId = null
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // Published only now: stop() before startForeground is a crash on Android.
+        instance = this
 
         // The job finished while this service was still starting, or the intent was not
         // ours to begin with.
@@ -93,6 +109,16 @@ public class ConversionService : Service() {
         // Deliberately not sticky. The queue's state lives in memory, so a process the
         // system rebuilt would restore a notification for a batch that no longer exists.
         return START_NOT_STICKY
+    }
+
+    /** Android 15's dataSync allowance ran out mid-batch, and the service must stop now. */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        val current = activeJobId
+        if (current != null) {
+            activeJobId = null
+            JobQueue.cancel(current) {}
+        }
+        shutdown()
     }
 
     /**
@@ -226,6 +252,8 @@ public class ConversionService : Service() {
 
     private fun shutdown() {
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        // Also one render() posted after the foreground had already gone.
+        getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
         stopSelf()
     }
 

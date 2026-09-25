@@ -5,13 +5,18 @@ package com.owaiskhan.converter.core
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import androidx.exifinterface.media.ExifInterface
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -79,6 +84,28 @@ public object FileGateway {
     }
   }
 
+  /**
+   * Deletes copies the UI has finished with. Only files inside the app's own work and
+   * output folders are touched, so a user's original is never at risk.
+   */
+  public fun discard(context: Context, uris: List<String>) {
+    val work = temporaryDirectory(context).canonicalFile
+    val roots = listOf(work, outputDirectory(context).canonicalFile)
+
+    for (uri in uris) {
+      if (uri.startsWith("content:")) continue
+      val given = fileFromUri(uri)
+      val file = runCatching { given.canonicalFile }.getOrNull() ?: continue
+      if (roots.none { file.path.startsWith(it.path + File.separator) }) continue
+
+      file.delete()
+      synchronized(reserved) { reserved.remove(given.absolutePath) }
+      // The folder a pick made goes once its last file does; delete() refuses a non-empty one.
+      val parent = file.parentFile
+      if (parent != null && parent.parentFile == work) parent.delete()
+    }
+  }
+
   private fun processStartMillis(): Long =
     System.currentTimeMillis() -
       (android.os.SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime())
@@ -118,12 +145,53 @@ public object FileGateway {
 
   private fun displayName(context: Context, uri: Uri): String? {
     if (uri.scheme == "file") return uri.lastPathSegment
-    context.contentResolver.query(uri, arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)
-      ?.use { cursor ->
-        if (cursor.moveToFirst()) return cursor.getString(0)
-      }
-    return uri.lastPathSegment
+    val name = queryColumn(context, uri, MediaStore.MediaColumns.DISPLAY_NAME) { getString(it) }
+      ?: uri.lastPathSegment
+    return if (isPhotoPickerUri(uri)) photoPickerName(context, uri, name) else name
   }
+
+  private fun isPhotoPickerUri(uri: Uri): Boolean =
+    uri.authority == MediaStore.AUTHORITY && uri.pathSegments.firstOrNull()?.startsWith("picker") == true
+
+  /**
+   * The photo picker names files by media id ("1115.jpg"); the real name needs a storage
+   * permission this app never asks for, so a photo is named from when it was taken.
+   */
+  private fun photoPickerName(context: Context, uri: Uri, name: String?): String? {
+    val stem = name?.substringBeforeLast('.') ?: return name
+    if (stem.isEmpty() || !stem.all(Char::isDigit)) return name
+    // The camera's own time first: for a photo copied from elsewhere, the picker's date
+    // is when the copy was made.
+    val stamp = exifStamp(context, uri)
+      ?: queryColumn(context, uri, MediaStore.MediaColumns.DATE_TAKEN) { getLong(it) }
+        ?.takeIf { it > 0 }
+        ?.let { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(it)) }
+      ?: return name
+    val ext = name.substringAfterLast('.', "")
+    return if (ext.isEmpty()) "IMG_$stamp" else "IMG_$stamp.$ext"
+  }
+
+  /** The camera's own "2026:09:13 14:03:05", reshaped to "20260913_140305". */
+  private fun exifStamp(context: Context, uri: Uri): String? {
+    val written = runCatching {
+      context.contentResolver.openInputStream(uri)?.use { input ->
+        val exif = ExifInterface(input)
+        exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL) ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
+      }
+    }.getOrNull() ?: return null
+    val (year, month, day, hour, minute, second) =
+      EXIF_DATE.find(written)?.destructured ?: return null
+    return "$year$month${day}_$hour$minute$second"
+  }
+
+  private val EXIF_DATE = Regex("""(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})""")
+
+  private fun <T> queryColumn(context: Context, uri: Uri, column: String, read: Cursor.(Int) -> T): T? =
+    runCatching {
+      context.contentResolver.query(uri, arrayOf(column), null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.read(0) else null
+      }
+    }.getOrNull()
 
   /**
    * Writes converted images into the shared Pictures collection through MediaStore.

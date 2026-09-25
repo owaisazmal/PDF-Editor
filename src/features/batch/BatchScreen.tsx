@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { Alert, FlatList, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
+import { usePreventRemove } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Button, Card, FileRow, ProgressBar, Screen, SectionLabel, StatRow, Text } from '@/components';
@@ -32,7 +33,8 @@ export function BatchScreen({ route, navigation }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
   const batch = useBatchStore();
-  const [saved, setSaved] = useState(false);
+  // By file, so outputs added by a retry are saved without saving the rest twice.
+  const [savedUris, setSavedUris] = useState<ReadonlySet<string>>(() => new Set());
   const [saving, setSaving] = useState(false);
   // A key, not a sentence: the gateway rejects with English written for the console, and
   // that text has no translation to fall back to.
@@ -51,8 +53,24 @@ export function BatchScreen({ route, navigation }: Props) {
   // before the first progress event can arrive.
   useEffect(() => {
     if (!task || batch.status !== 'idle' || batch.sources.length === 0) return;
-    void batch.start(batch.sources, optionsForTask(task));
+    // Only a task that shows the rename field applies the pattern typed there.
+    void batch.start(batch.sources, optionsForTask(task), task.needsOptions ? batch.namePattern : '');
   }, [task, batch]);
+
+  // Nothing leads back to this screen once it is gone, so leaving stops the batch.
+  usePreventRemove(running, ({ data }) => {
+    Alert.alert(t('batch.leaveTitle'), t('batch.leaveBody'), [
+      { text: t('batch.keepConverting'), style: 'cancel' },
+      {
+        text: t('batch.stopAndLeave'),
+        style: 'destructive',
+        onPress: () => {
+          navigation.dispatch(data.action);
+          useBatchStore.getState().restart();
+        },
+      },
+    ]);
+  });
 
   useEffect(() => {
     if (batch.status === 'completed') {
@@ -128,7 +146,11 @@ export function BatchScreen({ route, navigation }: Props) {
   }, [batch.sources, batch.results, batch.failures, t]);
 
   const totals = useMemo(() => {
-    const before = batch.sources.reduce((sum, source) => sum + source.byteSize, 0);
+    // Only the files that were converted, or a stopped batch reads as a huge saving.
+    const before = batch.results.reduce(
+      (sum, result) => sum + (batch.sources[result.sourceIndex]?.byteSize ?? 0),
+      0,
+    );
     const after = batch.results.reduce((sum, result) => sum + result.byteSize, 0);
     const elapsed =
       batch.finishedAt > batch.startedAt && batch.startedAt > 0
@@ -137,25 +159,31 @@ export function BatchScreen({ route, navigation }: Props) {
     return { before, after, elapsed };
   }, [batch.sources, batch.results, batch.startedAt, batch.finishedAt]);
 
+  const unsaved = useMemo(
+    () => batch.results.map((result) => result.outputUri).filter((uri) => !savedUris.has(uri)),
+    [batch.results, savedUris],
+  );
+  const saved = batch.results.length > 0 && unsaved.length === 0;
+
   const onSave = useCallback(async () => {
-    if (saving) return;
+    if (saving || unsaved.length === 0) return;
     setSaveError(null);
     setSaving(true);
     try {
       // False when the Android 8-9 destination picker is backed out of, which is not a save.
-      if (!(await fileGateway.saveToPhotos(batch.results.map((result) => result.outputUri)))) return;
-      setSaved(true);
+      if (!(await fileGateway.saveToPhotos(unsaved))) return;
+      setSavedUris((previous) => new Set([...previous, ...unsaved]));
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       setSaveError(errorKeyFor(error));
     } finally {
       setSaving(false);
     }
-  }, [batch.results, saving]);
+  }, [unsaved, saving]);
 
   const onDone = useCallback(() => {
     batch.reset();
-    setSaved(false);
+    setSavedUris(new Set());
     navigation.popTo('Home');
   }, [batch, navigation]);
 
@@ -328,7 +356,7 @@ export function BatchScreen({ route, navigation }: Props) {
                 label={
                   saved
                     ? t('batch.savedAll', { count: batch.results.length })
-                    : t('batch.saveAll', { count: batch.results.length })
+                    : t('batch.saveAll', { count: unsaved.length })
                 }
                 onPress={() => void onSave()}
                 disabled={saved}

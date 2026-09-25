@@ -27,7 +27,7 @@ import {
 import { pdfClient, type PdfFitMode, type PdfOrientation, type PdfPageSize } from '@/engine/pdfClient';
 import { describePageSelection, expandPageRanges, type PageSelection } from '@/engine/pdfPages';
 import { fileGateway } from '@/native';
-import { isPdfBusy, usePdfStore } from '@/store/pdf';
+import { isNewSelection, isPdfBusy, usePdfStore } from '@/store/pdf';
 import { useTheme } from '@/theme';
 import {
   describeSizeChange,
@@ -309,7 +309,9 @@ export function PdfScreen({ route, navigation }: Props) {
    */
   const sources = pdf.sources;
   useEffect(() => {
-    if (sources.length > 0) void usePdfStore.getState().begin(sources);
+    // Only a fresh selection. Reordering a merge also makes a new array, and inspecting
+    // again wiped the result and the unlock session on every tap.
+    if (isNewSelection(sources)) void usePdfStore.getState().begin(sources);
   }, [sources]);
 
   const goHome = useCallback(() => {

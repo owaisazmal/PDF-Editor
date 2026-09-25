@@ -78,11 +78,11 @@ public class NativeJobQueueModule(
   }
 
   override fun backgroundProgressStatus(promise: Promise) {
-    promise.resolve(BackgroundProgress.status(reactContext))
+    promise.resolve(BackgroundProgress.status(reactContext, reactContext.currentActivity))
   }
 
   override fun requestBackgroundProgress(promise: Promise) {
-    val current = BackgroundProgress.status(reactContext)
+    val current = BackgroundProgress.status(reactContext, reactContext.currentActivity)
     if (current != BackgroundProgress.DENIED) {
       // Already granted, or already refused. Android silently ignores a second ask
       // anyway, and a user experiences a repeated one as nagging.
@@ -98,15 +98,18 @@ public class NativeJobQueueModule(
       return
     }
 
-    // Recorded before the dialog rather than after it, so an activity torn down
-    // mid-prompt cannot leave the app asking again on every batch.
-    BackgroundProgress.markAsked(reactContext)
-
     activity.requestPermissions(
       arrayOf(Manifest.permission.POST_NOTIFICATIONS),
       NOTIFICATION_REQUEST_CODE,
     ) { _, _, results ->
-      val granted = results.isNotEmpty() && results[0] == PackageManager.PERMISSION_GRANTED
+      // Empty results mean the dialog was torn down unanswered, for example when the
+      // user left the app while it showed. That is not an answer, so the next batch asks.
+      if (results.isEmpty()) {
+        promise.resolve(BackgroundProgress.DENIED)
+        return@requestPermissions true
+      }
+      BackgroundProgress.markAsked(reactContext)
+      val granted = results[0] == PackageManager.PERMISSION_GRANTED
       promise.resolve(if (granted) BackgroundProgress.GRANTED else BackgroundProgress.BLOCKED)
       true
     }

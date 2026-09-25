@@ -18,6 +18,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    /// React Native's root, kept for a scene UIKit lets go of and later reconnects while
+    /// the process lives on. Starting React Native again would drop the file that caused it.
+    private static var reactRoot: UIViewController?
+
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
@@ -31,6 +35,16 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         // Code that finds the window through the app delegate keeps finding it.
         appDelegate.window = window
+
+        if let root = Self.reactRoot {
+            window.rootViewController = root
+            window.makeKeyAndVisible()
+            self.scene(scene, openURLContexts: connectionOptions.urlContexts)
+            if let activity = connectionOptions.userActivities.first {
+                self.scene(scene, continue: activity)
+            }
+            return
+        }
 
         // A file opened with the app from cold arrives with the scene, not in the launch
         // options. `Linking.getInitialURL` reads the launch options, so it goes back there;
@@ -47,6 +61,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
 
         factory.startReactNative(withModuleName: "main", in: window, launchOptions: launchOptions)
+        Self.reactRoot = window.rootViewController
+    }
+
+    /// Lets go of React Native's root so the next scene can take it.
+    func sceneDidDisconnect(_ scene: UIScene) {
+        window?.rootViewController = nil
+        window = nil
     }
 
     /// A file opened with the app while it is already running.

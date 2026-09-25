@@ -11,6 +11,7 @@ import { Logo, Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
+import { discardFiles } from '@/store/files';
 import { useHistoryStore } from '@/store/history';
 import { useTheme } from '@/theme';
 import {
@@ -141,6 +142,7 @@ export function HomeScreen({ navigation }: Props) {
 
         const reason = blockedReason(task, picked);
         if (reason) {
+          discardFiles(picked.map((file) => file.uri));
           setBlocked(reason);
           fail({ code: 'unknown', message: reason });
           return;

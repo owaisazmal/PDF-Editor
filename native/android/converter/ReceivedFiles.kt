@@ -48,6 +48,9 @@ public object ReceivedFiles {
   public fun offer(intent: Intent?): Boolean {
     if (intent == null) return false
     if (intent.getBooleanExtra(CONSUMED_EXTRA, false)) return false
+    // Reopened from Recents after the process died: the share was dealt with back then,
+    // and the in-memory mark went with the process.
+    if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return false
 
     val uris = extract(intent)
     // Marked even when empty: an intent with nothing usable in it should be examined

@@ -1,9 +1,11 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
+import ImageIO
 import PDFKit
 import UIKit
 import UniformTypeIdentifiers
+import os
 
 /// Convert without leaving the app you are in.
 ///
@@ -66,6 +68,8 @@ final class ShareViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Whatever an earlier share left, if it was killed before it could tidy up.
+        Self.clearContainer()
         buildInterface()
         loadAttachments()
     }
@@ -172,9 +176,25 @@ final class ShareViewController: UIViewController {
                 // One file per pass, each one released before the next begins. Peak cost
                 // is a single image rather than the whole share.
                 autoreleasepool {
-                    var options = RasterCodec.Options()
-                    options.targetFormat = format
                     do {
+                        if Self.isPdf(source) {
+                            // Every page, as the app's PDF to image task would.
+                            let rendered = try PdfEngine.renderPages(
+                                url: source,
+                                sessionHandle: "",
+                                options: PdfEngine.RenderOptions(dictionary: ["format": format])
+                            )
+                            let pages = rendered["results"] as? [[String: Any]] ?? []
+                            written += pages.compactMap { ($0["outputUri"] as? String).flatMap(URL.init(string:)) }
+                            return
+                        }
+                        var options = RasterCodec.Options()
+                        options.targetFormat = format
+                        if let cap = Self.memorySafeMaxDimension(for: source) {
+                            options.resizeMode = "maxDimension"
+                            options.maxWidth = cap
+                            options.maxHeight = cap
+                        }
                         let result = try RasterCodec.convert(
                             inputURL: source,
                             outputURL: nil,
@@ -196,19 +216,47 @@ final class ShareViewController: UIViewController {
 
         Task.detached(priority: .userInitiated) { [sources] in
             do {
-                let output = FileGateway.resolveCollision(
-                    directory: try RasterCodec.managedOutputDirectory(),
-                    filename: "Shared.pdf"
-                )
+                let directory = try RasterCodec.managedOutputDirectory()
                 var options = PdfEngine.ComposeOptions(dictionary: [:])
                 // "Fit image" rather than A4: a share is usually screenshots or photos,
                 // and putting a screenshot on a letter-sized page is mostly margin.
                 options.pageSize = "fit"
-                _ = try PdfEngine.composeFromImages(
-                    imageURLs: sources,
-                    outputURL: output,
-                    options: options
-                )
+                options.maxImageEdge = Self.memorySafeEmbedEdge() ?? 0
+
+                // Shared PDFs join as they are; each run of images between them becomes
+                // pages of its own, so the order the files were shared in is kept.
+                let scratch = FileManager.default.temporaryDirectory.appendingPathComponent("Shared", isDirectory: true)
+                try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+                var parts: [URL] = []
+                var images: [URL] = []
+                func flushImages() throws {
+                    guard !images.isEmpty else { return }
+                    let part = FileGateway.resolveCollision(directory: scratch, filename: "pages.pdf")
+                    _ = try PdfEngine.composeFromImages(imageURLs: images, outputURL: part, options: options)
+                    parts.append(part)
+                    images.removeAll()
+                }
+                for source in sources {
+                    if Self.isPdf(source) {
+                        try flushImages()
+                        parts.append(source)
+                    } else {
+                        images.append(source)
+                    }
+                }
+                try flushImages()
+
+                let output: URL
+                if parts.count > 1 {
+                    output = FileGateway.resolveCollision(directory: directory, filename: "Shared.pdf")
+                    _ = try PdfEngine.merge(urls: parts, outputURL: output)
+                } else if sources.contains(parts[0]) {
+                    // One PDF shared on its own is already what was asked for.
+                    output = parts[0]
+                } else {
+                    output = FileGateway.resolveCollision(directory: directory, filename: "Shared.pdf")
+                    try FileManager.default.moveItem(at: parts[0], to: output)
+                }
                 await self.offerToSave(output)
             } catch {
                 await self.show(status: L("share.pdfFailed"), isProblem: true)
@@ -254,11 +302,54 @@ final class ShareViewController: UIViewController {
     }
 
     @objc private func cancel() {
+        Self.clearContainer()
         extensionContext?.cancelRequest(withError: NSError(domain: "converter", code: 0))
     }
 
+    /// Called once whatever was made is in Photos or wherever the user sent it.
     private func close() {
+        Self.clearContainer()
         extensionContext?.completeRequest(returningItems: nil)
+    }
+
+    /// The extension keeps nothing between shares: not the copies, not the output.
+    private static func clearContainer() {
+        try? FileManager.default.removeItem(
+            at: FileManager.default.temporaryDirectory.appendingPathComponent("Shared", isDirectory: true)
+        )
+        try? FileGateway.clearTemporaryFiles()
+    }
+
+    nonisolated private static func isPdf(_ url: URL) -> Bool {
+        UTType(filenameExtension: url.pathExtension)?.conforms(to: .pdf) == true
+    }
+
+    /// A conversion holds two full-size bitmaps and the extension is stopped near 120 MB, so
+    /// only a photo that would not fit is scaled down, just enough. Nil when unlimited.
+    nonisolated private static func memorySafeMaxDimension(for url: URL) -> Int? {
+        guard let budget = memoryBudgetPixels(),
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              width > 0, height > 0
+        else { return nil }
+
+        let pixels = Double(width) * Double(height)
+        guard pixels > budget else { return nil }
+        return Int(Double(max(width, height)) * (budget / pixels).squareRoot())
+    }
+
+    /// The same limit for a PDF page's image, which is decoded and then redrawn as sRGB.
+    /// Sized for a 4:3 photo; a square one still fits inside the headroom.
+    nonisolated private static func memorySafeEmbedEdge() -> Int? {
+        memoryBudgetPixels().map { Int(($0 * 4 / 3).squareRoot()) }
+    }
+
+    /// Four bytes a pixel, twice, inside 60% of the memory left. Nil when unlimited.
+    nonisolated private static func memoryBudgetPixels() -> Double? {
+        let available = os_proc_available_memory()
+        return available > 0 ? Double(available) * 0.6 / 8 : nil
     }
 
     // MARK: - Interface

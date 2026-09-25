@@ -35,11 +35,15 @@ extension FileGateway {
             presenter.present(picker, animated: true)
         }
 
-        return try picked.map { url in
+        return picked.map { url in
             // A file still in iCloud has a placeholder on disk; materialise it before
-            // detection, or the header read sees nothing.
-            let local = try ensureLocalSync(url)
-            return try FormatDetector.detect(url: local)
+            // detection, or the header read sees nothing. One that cannot be read costs
+            // that file, not the whole pick.
+            do {
+                return try FormatDetector.detect(url: try ensureLocalSync(url))
+            } catch {
+                return unreadable(named: url.lastPathComponent, in: url.deletingLastPathComponent())
+            }
         }
     }
 
@@ -49,6 +53,9 @@ extension FileGateway {
         private var hasCompleted = false
 
         init(completion: @escaping ([URL]) -> Void) { self.completion = completion }
+
+        /// A picker that was never shown (presentation refused) calls neither method.
+        deinit { finish([]) }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             finish(urls)
@@ -80,8 +87,11 @@ extension FileGateway {
         try FileManager.default.startDownloadingUbiquitousItem(at: url)
 
         let deadline = Date().addingTimeInterval(timeout)
+        var probe = url
         while Date() < deadline {
-            let status = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
+            // Cached otherwise, and the cached value never sees the download finish.
+            probe.removeAllCachedResourceValues()
+            let status = try? probe.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
                 .ubiquitousItemDownloadingStatus
             if status == .current { return url }
             Thread.sleep(forTimeInterval: 0.2)

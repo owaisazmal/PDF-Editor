@@ -133,9 +133,16 @@ export function OptionsScreen({ route, navigation }: Props) {
 
   const onConvert = useCallback(() => {
     const taskId = route.params.taskId;
-    // A batch starts as soon as its screen mounts; a single file now does the same.
-    if (fileCount > 1) navigation.navigate('Batch', { taskId });
-    else navigation.navigate('Convert', { taskId, startNow: true });
+    // A batch starts as soon as its screen mounts; a single file now does the same. Coming
+    // back here after a run and converting again used to show the old result instead.
+    if (fileCount > 1) {
+      useBatchStore.getState().restart();
+      navigation.navigate('Batch', { taskId });
+    } else {
+      const { source } = useConversionStore.getState();
+      if (source) useConversionStore.getState().setSource(source);
+      navigation.navigate('Convert', { taskId, startNow: true });
+    }
   }, [navigation, fileCount, route.params.taskId]);
 
   if (!task || !sample) {

@@ -274,6 +274,9 @@ public enum PdfEngine {
         public var gutterPoints: Double = 12
         public var dpi: Double = 150
         public var backgroundColor: String = "#FFFFFF"
+        /// Longest edge an embedded image may keep; 0 for the usual cap. The share extension
+        /// lowers it to fit its memory limit.
+        public var maxImageEdge: Int = 0
 
         public init(dictionary: [String: Any]) {
             pageSize = dictionary["pageSize"] as? String ?? "a4"
@@ -344,7 +347,8 @@ public enum PdfEngine {
                         )
                         // Pixels the frame can show at the chosen density, capped at the source.
                         let needed = max(frame.width, frame.height) / 72 * options.dpi
-                        let longest = min(needed, max(shape.1.width, shape.1.height))
+                        var longest = min(needed, max(shape.1.width, shape.1.height))
+                        if options.maxImageEdge > 0 { longest = min(longest, Double(options.maxImageEdge)) }
                         guard let jpeg = embeddableJpeg(
                             url: shape.0,
                             maxPixelSize: Int(longest.rounded(.up)),

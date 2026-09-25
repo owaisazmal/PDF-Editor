@@ -113,11 +113,13 @@ public final class JobQueue: @unchecked Sendable {
         ]
     }
 
-    /// Drops a finished job's bookkeeping. Does not touch output files.
+    /// Drops a job's bookkeeping. Does not touch output files. One still running is
+    /// cancelled, so it cannot carry on unseen holding a background task.
     public func release(jobId: String) {
         lock.lock()
-        jobs.removeValue(forKey: jobId)
+        let job = jobs.removeValue(forKey: jobId)
         lock.unlock()
+        job?.cancel(completion: {})
     }
 
     // MARK: - Event dispatch
@@ -156,6 +158,7 @@ public final class JobQueue: @unchecked Sendable {
         private var currentDisplayName: String = ""
         private var lastEmit: Date = .distantPast
         private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+        private var continueInBackground = false
 
         /// Progress is weighted by input byte size, not file count. A batch of one
         /// 80-megapixel RAW and forty thumbnails is not 2.5% done after the first file.
@@ -173,14 +176,8 @@ public final class JobQueue: @unchecked Sendable {
             emit: @escaping (Event) -> Void
         ) {
             queue.maxConcurrentOperationCount = concurrency
-
-            if continueInBackground {
-                // Without this the OS suspends the process at the next opportunity and
-                // a long batch simply stops, which users read as the app losing their work.
-                backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "converter.job") { [weak self] in
-                    self?.cancel(completion: {})
-                }
-            }
+            self.continueInBackground = continueInBackground
+            beginBackgroundTask()
 
             lock.lock()
             status = "running"
@@ -298,6 +295,12 @@ public final class JobQueue: @unchecked Sendable {
 
         func cancel(completion: @escaping () -> Void) {
             lock.lock()
+            // Nothing to stop, and a finished batch must not be relabelled "cancelled".
+            if status == "completed" || status == "cancelled" {
+                lock.unlock()
+                completion()
+                return
+            }
             status = "cancelling"
             lock.unlock()
 
@@ -305,12 +308,13 @@ public final class JobQueue: @unchecked Sendable {
 
             // Draining off the caller's thread keeps a cancel tap responsive even when
             // several large files are mid-encode.
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                self?.queue.waitUntilAllOperationsAreFinished()
-                self?.lock.lock()
-                self?.status = "cancelled"
-                self?.lock.unlock()
-                self?.endBackgroundTask()
+            // Strong: a released job has no other owner, and its background task must end.
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.queue.waitUntilAllOperationsAreFinished()
+                self.lock.lock()
+                self.status = "cancelled"
+                self.lock.unlock()
+                self.endBackgroundTask()
                 completion()
             }
         }
@@ -333,13 +337,31 @@ public final class JobQueue: @unchecked Sendable {
                 finish(emit: emit)
                 return
             }
+            beginBackgroundTask()
             enqueue(retryable, emit: emit)
         }
 
+        /// Without this the OS suspends the process at the next opportunity and a long batch
+        /// simply stops, which users read as the app losing their work.
+        private func beginBackgroundTask() {
+            guard continueInBackground else { return }
+            lock.lock()
+            defer { lock.unlock() }
+            guard backgroundTask == .invalid else { return }
+            // Ended inside the handler, or iOS terminates the app. The batch is not
+            // cancelled: it pauses with the app and carries on when the user returns.
+            backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "converter.job") { [weak self] in
+                self?.endBackgroundTask()
+            }
+        }
+
         private func endBackgroundTask() {
-            guard backgroundTask != .invalid else { return }
-            UIApplication.shared.endBackgroundTask(backgroundTask)
+            lock.lock()
+            let task = backgroundTask
             backgroundTask = .invalid
+            lock.unlock()
+            guard task != .invalid else { return }
+            UIApplication.shared.endBackgroundTask(task)
         }
 
         // MARK: Snapshots
