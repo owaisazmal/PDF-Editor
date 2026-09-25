@@ -14,6 +14,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { PdfScreen } from '@/features/pdf/PdfScreen';
 import { fileGateway, pdfEngine } from '@/native';
+import { useHistoryStore } from '@/store/history';
 import { usePdfStore } from '@/store/pdf';
 import { detectedFile } from '../support/fixtures';
 import { renderScreen, screenProps, t } from '../support/renderScreen';
@@ -149,6 +150,26 @@ describe('saving a document', () => {
       pageCount: 8,
       byteSize: 120_000,
       elapsedMs: 12,
+    });
+  });
+
+  it('writes the merge to history, like any other conversion', async () => {
+    useHistoryStore.getState().clear();
+
+    await render('merge-pdf');
+    await fireEvent.press(screen.getByRole('button', { name: t('pdf.actions.merge') }));
+    await waitFor(() => expect(usePdfStore.getState().status).toBe('done'));
+
+    const entries = useHistoryStore.getState().entries;
+    expect(entries).toHaveLength(1);
+    // A merge is not about size, so it records none, and adds nothing to "Saved".
+    expect(entries[0]).toMatchObject({
+      taskId: 'merge-pdf',
+      targetFormat: 'pdf',
+      fileCount: 1,
+      bytesBefore: 0,
+      bytesAfter: 0,
+      outputNames: ['merged.pdf'],
     });
   });
 

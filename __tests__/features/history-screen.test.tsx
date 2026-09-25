@@ -111,3 +111,29 @@ describe('what an entry is allowed to hold', () => {
     );
   });
 });
+
+describe('work that is not about size', () => {
+  beforeEach(() => {
+    useHistoryStore.setState({
+      entries: [
+        entry({
+          taskId: 'merge-pdf',
+          targetFormat: 'pdf',
+          fileCount: 1,
+          bytesBefore: 0,
+          bytesAfter: 0,
+          outputNames: ['merged.pdf'],
+        }),
+      ],
+    });
+  });
+
+  it('shows no percentage and no before-and-after when expanded', async () => {
+    await render();
+    await fireEvent.press(screen.getByRole('button', { name: /merged|Merge/ }));
+
+    expect(screen.queryByText(/%/)).toBeNull();
+    expect(screen.queryByLabelText(new RegExp(`^${t('common.before')}:`))).toBeNull();
+    expect(screen.getByText(t('history.names', { names: 'merged.pdf' }))).toBeOnTheScreen();
+  });
+});

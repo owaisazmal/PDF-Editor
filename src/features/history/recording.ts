@@ -8,6 +8,15 @@ import type { ConversionResult, DetectedFile } from '@/native/types';
 import type { ConversionTask } from '@/features/home/tasks';
 
 /**
+ * What history needs from an output. Narrower than `ConversionResult` so a PDF operation,
+ * whose documents, parts and page images are different shapes, can be recorded too.
+ * `sourceIndex`, when present, is the output's position in what the user picked.
+ */
+export type RecordableResult = Pick<ConversionResult, 'outputUri' | 'outputDisplayName' | 'byteSize'> & {
+  sourceIndex?: number;
+};
+
+/**
  * The shape stored: what was done, not what it was done to.
  *
  * The before-size comes from the sources rather than the results, because a result
@@ -16,7 +25,7 @@ import type { ConversionTask } from '@/features/home/tasks';
 export function summarise(
   task: ConversionTask,
   sources: DetectedFile[],
-  results: ConversionResult[],
+  results: RecordableResult[],
   /** A count rather than the failures themselves: the batch and single-file paths carry
    * different failure shapes, and history only ever shows how many. */
   failedCount: number,
@@ -42,16 +51,27 @@ export function summarise(
  * many times after a batch finishes — a save, a haptic, a navigation animation — and a
  * plain effect would write a row on each, turning one conversion into a dozen identical
  * entries.
+ *
+ * A retry finishes the same batch a second time with its earlier results still in the
+ * list, so only outputs not yet recorded count. Recording the whole list again wrote a
+ * second "10 files" row for a retry that converted nothing.
  */
 export function useRecordConversion(
   task: ConversionTask | undefined,
   finished: boolean,
   sources: DetectedFile[],
-  results: ConversionResult[],
+  results: RecordableResult[],
   failedCount: number,
+  /**
+   * False for work that is not about size: merging, splitting, rendering pages. A page
+   * image is meant to be bigger than the PDF it came from, and "+1,373%" beside it, or
+   * that growth folded into the all-time "Saved" figure, would misreport what happened.
+   */
+  comparesSize = true,
 ): void {
   const record = useHistoryStore((state) => state.record);
   const recorded = useRef(false);
+  const recordedOutputs = useRef(new Set<string>());
 
   useEffect(() => {
     if (!finished) {
@@ -60,9 +80,22 @@ export function useRecordConversion(
       recorded.current = false;
       return;
     }
-    if (recorded.current || !task || results.length === 0) return;
+    if (recorded.current || !task) return;
     recorded.current = true;
 
-    record(summarise(task, sources, results, failedCount));
-  }, [finished, task, sources, results, failedCount, record]);
+    const fresh = results.filter((result) => !recordedOutputs.current.has(result.outputUri));
+    if (fresh.length === 0) return;
+    fresh.forEach((result) => recordedOutputs.current.add(result.outputUri));
+
+    // The sources those outputs came from, so the before-size is theirs alone. A result
+    // without a position (the single-file path) belongs to the one source there is.
+    const freshSources = fresh.every(
+      (result) => result.sourceIndex !== undefined && sources[result.sourceIndex] !== undefined,
+    )
+      ? fresh.map((result) => sources[result.sourceIndex!]!)
+      : sources;
+
+    const entry = summarise(task, freshSources, fresh, failedCount);
+    record(comparesSize ? entry : { ...entry, bytesBefore: 0, bytesAfter: 0 });
+  }, [finished, task, sources, results, failedCount, comparesSize, record]);
 }

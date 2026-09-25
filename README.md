@@ -273,10 +273,11 @@ assets/
   brand/       the logo files: SVG mark and lockup per scheme, and the layers the app tints
 native/
   ios/ConverterCore/    Swift: ImageIO, PDFKit, vImage
+  ios/app/              SceneDelegate.swift, the window's owner (see withSceneLifecycle)
   ios/generated/        Tokens.swift, FormatTable.swift
   android/converter/    Kotlin: ImageDecoder, PdfRenderer, PDFBox
   android/generated/    Tokens.kt, FormatTable.kt
-plugins/       Expo config plugins: native sources, share extension, localisations
+plugins/       Expo config plugins: native sources, scene lifecycle, share extension, localisations
 scripts/       generators and CI gates
   brand/       the mark's geometry, the rasteriser, and the TrueType outline reader
 __tests__/     unit and integration

@@ -39,6 +39,7 @@ import {
 import { CONVERSION_TASKS } from '../home/tasks';
 import { errorKeyFor, type ErrorKey } from '../convert/errors';
 import { useAnnouncement } from '@/utils/useAnnouncement';
+import { useRecordConversion, type RecordableResult } from '../history/recording';
 import {
   DPI_VALUES,
   FIT_MODE_VALUES,
@@ -165,6 +166,26 @@ export function PdfScreen({ route, navigation }: Props) {
 
   // A merge or an export can run for a while with nothing focused, so the outcome is
   // announced rather than left to be discovered.
+  // Every output, without positions: a page image's index is a page, not a picked file,
+  // so the before-size is always the whole selection.
+  const outputs = useMemo<RecordableResult[]>(
+    () =>
+      [...pdf.documents, ...pdf.parts, ...pdf.images].map(
+        ({ outputUri, outputDisplayName, byteSize }) => ({ outputUri, outputDisplayName, byteSize }),
+      ),
+    [pdf.documents, pdf.parts, pdf.images],
+  );
+  // PDF work belongs in history as much as a photo does; six of the ten tiles were missing.
+  // Only Compress is about size; see `comparesSize`.
+  useRecordConversion(
+    task,
+    pdf.status === 'done',
+    pdf.sources,
+    outputs,
+    0,
+    task?.pdfOperation === 'compress',
+  );
+
   useAnnouncement(
     pdf.status === 'done'
       ? t('pdf.announceFinished')

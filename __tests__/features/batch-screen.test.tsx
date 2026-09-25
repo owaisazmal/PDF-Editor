@@ -172,3 +172,21 @@ describe('when some files fail', () => {
     expect(screen.queryByText('raw developer string')).toBeNull();
   });
 });
+
+describe('when it was stopped', () => {
+  it('says nothing was converted, rather than "the 0 files already converted are below"', async () => {
+    useBatchStore.setState({ status: 'cancelled', results: [], progress: progress({ completedCount: 0 }) });
+
+    await render();
+
+    expect(screen.getByText(t('batch.stoppedNone'))).toBeOnTheScreen();
+  });
+
+  it('points at the files it did convert', async () => {
+    useBatchStore.setState({ status: 'cancelled', results: [conversionResult({ sourceIndex: 0 })] });
+
+    await render();
+
+    expect(screen.getByText(t('batch.stopped', { count: 1 }))).toBeOnTheScreen();
+  });
+});

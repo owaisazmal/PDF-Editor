@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Owais Khan
 // Licensed under the Apache License, Version 2.0
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
@@ -57,6 +57,17 @@ export function ConvertScreen({ route, navigation }: Props) {
         : Haptics.NotificationFeedbackType.Error,
     );
   }, [convert, task]);
+
+  // Arriving from the options screen, Convert has already been pressed once. Started
+  // here rather than there so this screen is mounted before the result can arrive, which
+  // is the same reason a batch starts on its own screen.
+  const startNow = route.params.startNow === true;
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!startNow || autoStarted.current || phase !== 'ready') return;
+    autoStarted.current = true;
+    void onConvert();
+  }, [startNow, phase, onConvert]);
 
   const onSave = useCallback(async () => {
     if (!result || saving) return;
@@ -117,7 +128,9 @@ export function ConvertScreen({ route, navigation }: Props) {
   const sourceSpec = source.format ? FORMATS[source.format] : null;
   const targetSpec = FORMATS[task.targetFormat];
   const sourceLabel = sourceSpec?.label ?? t('common.unrecognised');
-  const willFlatten = needsBackgroundChoice(source.hasAlpha, task.targetFormat);
+  // Only where white is the only option. A task with an options screen shows the colour
+  // choice there, and this note said "white" after the user had picked black.
+  const willFlatten = !task.needsOptions && needsBackgroundChoice(source.hasAlpha, task.targetFormat);
 
   // Negative when the output grew, which happens legitimately — a smooth gradient or
   // flat artwork encodes far smaller in HEVC than in JPEG. The row below reports that
@@ -148,7 +161,14 @@ export function ConvertScreen({ route, navigation }: Props) {
           <StatRow label={t('convert.format')} value={sourceLabel} />
           <StatRow
             label={t('convert.dimensions')}
-            value={formatDimensions(source.pixelWidth, source.pixelHeight)}
+            value={
+              // Upright, as the photo is seen and as it will be written. Orientations 5
+              // to 8 turn it a quarter, and the stored size read "3,000 × 2,000" for a
+              // portrait photo that comes out 2,000 × 3,000.
+              source.exifOrientation >= 5 && source.exifOrientation <= 8
+                ? formatDimensions(source.pixelHeight, source.pixelWidth)
+                : formatDimensions(source.pixelWidth, source.pixelHeight)
+            }
           />
           <StatRow label={t('common.size')} value={formatBytes(source.byteSize)} />
         </View>

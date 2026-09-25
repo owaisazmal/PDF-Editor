@@ -114,6 +114,7 @@
       "react-native-edge-to-edge",
       "./plugins/withOfflineRelease",
       "./plugins/withConverterCore",
+      "./plugins/withSceneLifecycle",
       "./plugins/withLocalizations",
       "./plugins/withShareExtension",
       "./plugins/withConverterCoreAndroid",

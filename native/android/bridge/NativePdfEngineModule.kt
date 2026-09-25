@@ -161,10 +161,12 @@ public class NativePdfEngineModule(
     val parsed = PdfEngine.CompressOptions.from(options)
     executor.execute {
       runCatching {
+        val input = resolve(uri)
         PdfEngine.compress(
           reactApplicationContext,
-          resolve(uri),
-          output(outputUri, "compressed"),
+          input,
+          // Named after the document: every compressed file used to be "compressed.pdf".
+          output(outputUri, "${input.nameWithoutExtension.ifEmpty { "document" }}-compressed"),
           "",
           parsed,
           progress(),

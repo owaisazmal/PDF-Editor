@@ -11,6 +11,8 @@
  * behaviour the two native copies have to match.
  */
 
+import { FORMATS, type FormatId } from './formats';
+
 export type NameToken = {
   /** The literal typed into the pattern. Never translated: `expandName` matches it. */
   token: string;
@@ -91,10 +93,14 @@ export function previewNames(
   today: Date,
   limit = 3,
 ): string[] {
+  // The extension the engines write, not the format id: `{format}` expands to "jpeg" on
+  // both platforms, but the file itself is ".jpg". Using the id here previewed names that
+  // no file ever had.
+  const extension = FORMATS[format as FormatId]?.extensions[0] ?? format;
   return sourceNames
     .slice(0, limit)
     .map((sourceName, index) =>
-      `${expandName(pattern, { sourceName, index, format, today })}.${format}`,
+      `${expandName(pattern, { sourceName, index, format, today })}.${extension}`,
     );
 }
 

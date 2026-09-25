@@ -51,6 +51,12 @@ export type ConversionTask = {
   picker?: 'photos' | 'documents';
   /** True when the task is meaningless with one file. */
   needsMultiple?: boolean;
+  /**
+   * True when the task works on exactly one document. The screen only ever read the first,
+   * so a second pick or a second shared file was silently ignored; now the picker takes
+   * one, and a share says how many of its files the task will use.
+   */
+  singleSource?: boolean;
 };
 
 export const CONVERSION_TASKS: readonly ConversionTask[] = [
@@ -109,6 +115,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     kind: 'pdf',
     pdfOperation: 'render',
     picker: 'documents',
+    singleSource: true,
   },
   {
     id: 'merge-pdf',
@@ -132,6 +139,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     kind: 'pdf',
     pdfOperation: 'split',
     picker: 'documents',
+    singleSource: true,
   },
   {
     id: 'compress-pdf',
@@ -143,6 +151,7 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     kind: 'pdf',
     pdfOperation: 'compress',
     picker: 'documents',
+    singleSource: true,
   },
   {
     id: 'png-to-jpg',
@@ -151,6 +160,9 @@ export const CONVERSION_TASKS: readonly ConversionTask[] = [
     sourceFormats: ['png'],
     targetFormat: 'jpeg',
     phase: 2,
+    // The background colour is the point of this tile, and it is chosen on the options
+    // screen. Without this the tile promised a choice that nothing could reach.
+    needsOptions: true,
   },
 ];
 

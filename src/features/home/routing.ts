@@ -82,6 +82,10 @@ export function routeToTask(
     return;
   }
 
+  // The single-file store is cleared too. The options screen reads it first, so a file
+  // left there by an earlier conversion replaced the whole batch: "1 file" on screen, and
+  // the old file converted again instead of the ones just picked.
+  useConversionStore.getState().reset();
   useBatchStore.getState().reset();
   useBatchStore.setState({ sources: files, status: 'idle' });
   navigation.navigate(task.needsOptions ? 'Options' : 'Batch', { taskId: task.id });

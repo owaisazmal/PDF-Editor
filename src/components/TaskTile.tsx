@@ -40,12 +40,22 @@ export function TaskTile({
   const theme = useTheme();
   const { t } = useTranslation();
 
+  // Format names read the same in every language, but "any" and "image" are words. Their
+  // translations were in all nine catalogues and never reached the screen.
+  const badge = (value: string): string => {
+    if (value === 'ANY') return t('tasks.badge.any');
+    if (value === 'IMG') return t('tasks.badge.img');
+    return value;
+  };
+  const fromLabel = badge(from);
+  const toLabel = badge(to);
+
   return (
     <Card
       onPress={enabled ? onPress : undefined}
       testID={testID}
       accessibilityLabel={t('a11y.labelledDetail', { label: title, detail: subtitle })}
-      accessibilityHint={enabled ? t('tasks.hint', { from, to }) : t('tasks.unavailableHint')}
+      accessibilityHint={enabled ? t('tasks.hint', { from: fromLabel, to: toLabel }) : t('tasks.unavailableHint')}
       style={StyleSheet.flatten([styles.tile, !enabled && styles.disabled])}
     >
       <View style={[styles.pair, { marginBottom: theme.space.md }]}>
@@ -58,7 +68,7 @@ export function TaskTile({
           }}
         >
           <Text variant="mono" color="textOnAccent">
-            {from}
+            {fromLabel}
           </Text>
         </View>
         {/*
@@ -81,7 +91,7 @@ export function TaskTile({
           }}
         >
           <Text variant="mono" color="textSecondary">
-            {to}
+            {toLabel}
           </Text>
         </View>
       </View>

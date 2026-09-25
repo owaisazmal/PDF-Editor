@@ -235,7 +235,9 @@ export function BatchScreen({ route, navigation }: Props) {
         // what happened, and that the finished files are still here, is the difference
         // between a deliberate stop and an apparent malfunction.
         <Text variant="bodySm" color="textSecondary" style={{ marginTop: theme.space.md }}>
-          {t('batch.stopped', { count: batch.results.length })}
+          {batch.results.length === 0
+            ? t('batch.stoppedNone')
+            : t('batch.stopped', { count: batch.results.length })}
         </Text>
       ) : null}
 

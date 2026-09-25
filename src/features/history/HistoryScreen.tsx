@@ -160,8 +160,13 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
 
       {expanded ? (
         <View style={{ marginTop: theme.space.md }}>
-          <StatRow label={t('common.before')} value={formatBytes(entry.bytesBefore)} />
-          <StatRow label={t('common.after')} value={formatBytes(entry.bytesAfter)} />
+          {/* Nothing to compare for work that is not about size, such as a merge. */}
+          {entry.bytesBefore > 0 ? (
+            <>
+              <StatRow label={t('common.before')} value={formatBytes(entry.bytesBefore)} />
+              <StatRow label={t('common.after')} value={formatBytes(entry.bytesAfter)} />
+            </>
+          ) : null}
 
           {entry.outputNames.length > 0 ? (
             <Text variant="caption" color="textTertiary" style={{ marginTop: theme.space.sm }}>

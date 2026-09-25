@@ -94,10 +94,16 @@ describe('warning about a pattern that collides', () => {
 describe('previewing what a batch will be called', () => {
   it('shows the first few names with the new extension', () => {
     expect(previewNames('{name}', ['a.heic', 'b.heic', 'c.heic', 'd.heic'], 'jpeg', today)).toEqual([
-      'a.jpeg',
-      'b.jpeg',
-      'c.jpeg',
+      'a.jpg',
+      'b.jpg',
+      'c.jpg',
     ]);
+  });
+
+  /** `JobSpec.kt` and `JobSpec.swift` write the first extension, and put the id in the token. */
+  it('ends in the extension the engines write, while {format} stays the format id', () => {
+    expect(previewNames('{name}-{format}', ['a.heic'], 'jpeg', today)).toEqual(['a-jpeg.jpg']);
+    expect(previewNames('{name}', ['a.heic'], 'tiff', today)).toEqual(['a.tif']);
   });
 
   it('numbers across the batch rather than restarting per file', () => {

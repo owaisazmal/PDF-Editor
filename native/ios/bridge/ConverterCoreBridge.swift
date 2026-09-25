@@ -396,9 +396,15 @@ public final class ConverterCoreBridge: NSObject {
         reject: @escaping (String?, String?, Error?) -> Void
     ) {
         run(resolve: resolve, reject: reject) {
-            try PdfEngine.compress(
-                url: fileURL(from: uri),
-                outputURL: try pdfOutputURL(outputUri, fallbackName: "compressed"),
+            let input = fileURL(from: uri)
+            // Named after the document: every compressed file used to be "compressed.pdf".
+            let stem = input.deletingPathExtension().lastPathComponent
+            return try PdfEngine.compress(
+                url: input,
+                outputURL: try pdfOutputURL(
+                    outputUri,
+                    fallbackName: "\(stem.isEmpty ? "document" : stem)-compressed"
+                ),
                 options: PdfEngine.CompressOptions(dictionary: options),
                 progress: pdfProgress()
             )

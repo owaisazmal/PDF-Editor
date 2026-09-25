@@ -14,6 +14,7 @@
 import { fireEvent, screen } from '@testing-library/react-native';
 
 import { HomeScreen } from '@/features/home/HomeScreen';
+import { fileGateway } from '@/native';
 import { CONVERSION_TASKS, isTaskAvailable } from '@/features/home/tasks';
 import { useHistoryStore } from '@/store/history';
 import { useCapabilitiesStore } from '@/store/capabilities';
@@ -163,5 +164,22 @@ describe('a build that cannot do something', () => {
     const tile = screen.getByTestId('task-heic-to-jpg');
     expect(tile).toHaveProp('accessible', true);
     expect(tile.props.accessibilityLabel).toContain(t('home.unavailable.device'));
+  });
+});
+
+describe('picking documents', () => {
+  it('lets Merge take several PDFs', async () => {
+    await render();
+    await fireEvent.press(screen.getByTestId('task-merge-pdf'));
+
+    expect(fileGateway.pickDocuments).toHaveBeenLastCalledWith(expect.anything(), true);
+  });
+
+  /** Compress, Split and PDF to JPG read one document; a second pick was silently ignored. */
+  it('takes one PDF for a task that works on one document', async () => {
+    await render();
+    await fireEvent.press(screen.getByTestId('task-compress-pdf'));
+
+    expect(fileGateway.pickDocuments).toHaveBeenLastCalledWith(expect.anything(), false);
   });
 });

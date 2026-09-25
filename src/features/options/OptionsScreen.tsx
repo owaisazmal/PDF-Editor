@@ -132,7 +132,10 @@ export function OptionsScreen({ route, navigation }: Props) {
   }, [savePreset, presetName, options]);
 
   const onConvert = useCallback(() => {
-    navigation.navigate(fileCount > 1 ? 'Batch' : 'Convert', { taskId: route.params.taskId });
+    const taskId = route.params.taskId;
+    // A batch starts as soon as its screen mounts; a single file now does the same.
+    if (fileCount > 1) navigation.navigate('Batch', { taskId });
+    else navigation.navigate('Convert', { taskId, startNow: true });
   }, [navigation, fileCount, route.params.taskId]);
 
   if (!task || !sample) {

@@ -126,7 +126,7 @@ export function HomeScreen({ navigation }: Props) {
         // Composing one is the exception: its inputs are photos.
         const picked =
           task.picker === 'documents'
-            ? await fileGateway.pickDocuments(PDF_PICKER_TYPES, true)
+            ? await fileGateway.pickDocuments(PDF_PICKER_TYPES, !task.singleSource)
             : // 0 is unlimited. The batch is the normal case; a single file is just the
               // smallest one, and it gets the detail screen because there is room to
               // show before-and-after properly.

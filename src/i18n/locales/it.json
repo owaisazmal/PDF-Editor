@@ -131,6 +131,7 @@
     "stopped_one": "Interrotto. Il {{count}} file già convertito è qui sotto; il resto è rimasto intatto.",
     "stopped_many": "Interrotto. I {{count}} di file già convertiti sono qui sotto; il resto è rimasto intatto.",
     "stopped_other": "Interrotto. I {{count}} file già convertiti sono qui sotto; il resto è rimasto intatto.",
+    "stoppedNone": "Interrotto prima di convertire qualsiasi file. Non è stato modificato nulla.",
     "cancelling": "Annullamento…",
     "nothingToConvert": "Niente da convertire",
     "saveAll_one": "Salva {{count}} in Foto",

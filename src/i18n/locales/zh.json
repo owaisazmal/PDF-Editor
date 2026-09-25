@@ -119,6 +119,7 @@
     "couldNotStart": "无法开始",
     "notificationsOff": "通知已关闭，因此不会出现在通知栏中。即使离开应用，转换仍会完成。",
     "stopped_other": "已停止。已转换的 {{count}} 个文件在下方，其余未做处理。",
+    "stoppedNone": "在转换任何文件之前已停止。没有做任何更改。",
     "cancelling": "正在取消…",
     "nothingToConvert": "没有可转换的内容",
     "saveAll_other": "保存 {{count}} 个到照片",
