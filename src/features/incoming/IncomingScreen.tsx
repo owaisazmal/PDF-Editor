@@ -2,12 +2,13 @@
 // Licensed under the Apache License, Version 2.0
 
 import { useCallback, useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Button, Card, FileRow, Screen, SectionLabel, TaskTile, Text } from '@/components';
 import { FORMATS } from '@/engine/formats';
+import { isBatchRunning, useBatchStore } from '@/store/batch';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useIncomingStore } from '@/store/incoming';
 import { useTheme } from '@/theme';
@@ -46,12 +47,28 @@ export function IncomingScreen({ navigation }: Props) {
       const usable = filesFor(option.task, files);
       if (blockedReason(option.task, usable)) return;
 
-      // Cleared once the task's store holds them, so only the files it could not use are
-      // deleted. Leaving them here means coming back to this screen after finishing.
-      routeToTask(navigation, option.task, usable);
-      clear();
+      const go = () => {
+        // Stopped before the pop, so the batch screen underneath lets it through.
+        useBatchStore.getState().reset();
+        // The task replaces this screen and whatever the share interrupted, so Back leads
+        // home rather than to an emptied handover or a screen whose files are gone.
+        navigation.popTo('Home');
+        routeToTask(navigation, option.task, usable);
+        // Cleared once the task's store holds them, so only the files it could not use
+        // are deleted.
+        clear();
+      };
+
+      if (isBatchRunning(useBatchStore.getState().status)) {
+        Alert.alert(t('batch.leaveTitle'), t('batch.leaveBody'), [
+          { text: t('batch.keepConverting'), style: 'cancel' },
+          { text: t('batch.stopAndLeave'), style: 'destructive', onPress: go },
+        ]);
+        return;
+      }
+      go();
     },
-    [options, files, clear, navigation],
+    [options, files, clear, navigation, t],
   );
 
   // Back to wherever the share interrupted, rather than to the top, which also closed a

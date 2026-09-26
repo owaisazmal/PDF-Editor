@@ -10,9 +10,11 @@
  * at it.
  */
 
-import { fireEvent, screen } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 
 import { IncomingScreen } from '@/features/incoming/IncomingScreen';
+import { useBatchStore } from '@/store/batch';
 import { useIncomingStore } from '@/store/incoming';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import type { FormatId } from '@/engine/formats';
@@ -101,5 +103,39 @@ describe('choosing what to do', () => {
     // leaving them here means landing back on this screen after finishing.
     expect(useIncomingStore.getState().files).toHaveLength(0);
     expect(navigation.navigate).toHaveBeenCalled();
+  });
+
+  it('replaces the screens the share interrupted, so Back leads home', async () => {
+    const navigation = stubNavigation();
+    useIncomingStore.setState({ files: [detectedFile('heic')] });
+
+    await render(navigation);
+    await fireEvent.press(screen.getByText(t('tasks.heic-to-jpg.title')));
+
+    expect(navigation.popTo).toHaveBeenCalledWith('Home');
+    expect(navigation.popTo.mock.invocationCallOrder[0]).toBeLessThan(
+      navigation.navigate.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it('asks before a new task stops a batch still running underneath', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const navigation = stubNavigation();
+    useBatchStore.setState({ jobId: 'running-job', status: 'running' });
+    useIncomingStore.setState({ files: [detectedFile('heic')] });
+
+    await render(navigation);
+    await fireEvent.press(screen.getByText(t('tasks.heic-to-jpg.title')));
+
+    expect(alert).toHaveBeenCalledWith(t('batch.leaveTitle'), t('batch.leaveBody'), expect.any(Array));
+    expect(navigation.navigate).not.toHaveBeenCalled();
+    expect(useBatchStore.getState().status).toBe('running');
+
+    const buttons = alert.mock.calls[0]![2]!;
+    await act(async () => buttons.find((button) => button.style === 'destructive')!.onPress!());
+
+    expect(useBatchStore.getState().jobId).toBeNull();
+    expect(navigation.navigate).toHaveBeenCalled();
+    alert.mockRestore();
   });
 });

@@ -59,6 +59,11 @@ export function BatchScreen({ route, navigation }: Props) {
 
   // Nothing leads back to this screen once it is gone, so leaving stops the batch.
   usePreventRemove(running, ({ data }) => {
+    // Stopped since the last render, by a share that started another task.
+    if (!isBatchRunning(useBatchStore.getState().status)) {
+      navigation.dispatch(data.action);
+      return;
+    }
     Alert.alert(t('batch.leaveTitle'), t('batch.leaveBody'), [
       { text: t('batch.keepConverting'), style: 'cancel' },
       {

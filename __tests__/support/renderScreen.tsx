@@ -70,6 +70,7 @@ export async function renderScreen(element: ReactElement): Promise<RenderResult>
 export type StubNavigation = {
   navigate: jest.Mock;
   goBack: jest.Mock;
+  popTo: jest.Mock;
   replace: jest.Mock;
   setOptions: jest.Mock;
   addListener: jest.Mock;
@@ -79,6 +80,7 @@ export function stubNavigation(): StubNavigation {
   return {
     navigate: jest.fn(),
     goBack: jest.fn(),
+    popTo: jest.fn(),
     replace: jest.fn(),
     setOptions: jest.fn(),
     // Returns an unsubscribe, because screens call this inside an effect and React
