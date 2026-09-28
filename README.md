@@ -352,8 +352,22 @@ permissions and behaviour, but it is signed with the debug key and prints a bann
 so. That matters because the template it replaces did the same thing silently: Play rejects
 a debug-signed upload, and the rejection is the first anyone hears about it.
 
-iOS signing belongs to the developer account and is done by Xcode or a build service. An
-upload is the one step here that a person has to do.
+iOS signing belongs to the developer account and is done by Xcode or a build service.
+
+### Tester builds
+
+The **Release** workflow (Actions › Release › Run workflow) uploads to TestFlight and to
+Play's internal testing track. It reads these secrets from the `release` environment:
+
+    APPLE_TEAM_ID
+    ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8     App Store Connect API key, Admin role
+    IOS_DEV_CERT_P12_BASE64, IOS_DEV_CERT_PASSWORD
+    ANDROID_UPLOAD_KEYSTORE_BASE64
+    KITEFOLD_STORE_PASSWORD, KITEFOLD_KEY_ALIAS, KITEFOLD_KEY_PASSWORD
+    PLAY_SERVICE_ACCOUNT_JSON
+
+Play accepts an app's first bundle only through the Console: download it from the run's
+`kitefold-release-aab` artifact and upload it by hand once.
 
 ### Screenshots
 

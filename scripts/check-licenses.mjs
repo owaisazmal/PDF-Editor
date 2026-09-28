@@ -201,6 +201,13 @@ for (const [nameAndVersion, info] of Object.entries(report)) {
 
   const expression = String(info.licenses ?? 'UNKNOWN');
   const { ok, reason, chosen } = verdict(expression);
+  if (!ok) violations.push({ nameAndVersion, expression, reason });
+
+  // Per-platform binaries (os/cpu set) differ between machines; checked but not listed.
+  const manifest = await readFile(join(info.path ?? '', 'package.json'), 'utf8')
+    .then(JSON.parse)
+    .catch(() => ({}));
+  if (manifest.os || manifest.cpu) continue;
 
   rows.push({
     name,
@@ -210,7 +217,6 @@ for (const [nameAndVersion, info] of Object.entries(report)) {
     chosen: chosen !== expression ? chosen : '',
     repository: info.repository ?? '',
   });
-  if (!ok) violations.push({ nameAndVersion, expression, reason });
 }
 
 rows.sort((a, b) => a.name.localeCompare(b.name));

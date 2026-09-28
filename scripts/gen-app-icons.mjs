@@ -35,6 +35,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { pngPixels } from './brand/png.mjs';
 import { markAndroidVector, markLayers, markShapes, markSvg, markSvgPaths } from './brand/mark.mjs';
 import { render } from './brand/raster.mjs';
 import { layoutText, loadTrueType, textPathData } from './brand/wordmark.mjs';
@@ -336,20 +337,24 @@ for (const part of ['face', 'flapLeft', 'flapRight', 'tail']) {
   }
 }
 
+// PNGs compare by pixels: zlib's compressed bytes differ between CPU architectures.
+const same = (relPath, a, b) =>
+  a.equals(b) || (relPath.endsWith('.png') && pngPixels(a).equals(pngPixels(b)));
+
 let stale = 0;
 for (const [relPath, buffer] of outputs) {
   const absolute = join(ROOT, relPath);
   const existing = await readFile(absolute).catch(() => null);
 
   if (CHECK_ONLY) {
-    if (!existing || !existing.equals(buffer)) {
+    if (!existing || !same(relPath, existing, buffer)) {
       stale += 1;
       console.error(existing ? `stale     ${relPath}` : `missing   ${relPath}`);
     }
     continue;
   }
 
-  if (existing && existing.equals(buffer)) {
+  if (existing && same(relPath, existing, buffer)) {
     console.log(`unchanged ${relPath}`);
     continue;
   }

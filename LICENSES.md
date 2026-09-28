@@ -9,7 +9,7 @@ Every production dependency and its licence. The same data backs the in-app
 **Settings › Open Source Licenses** screen, so the two cannot disagree. Attribution
 required by Apache 2.0 and the other notice-bearing licences is in `NOTICE`.
 
-581 packages. Where a package is dual-licensed, the **Relied on** column names
+580 packages. Where a package is dual-licensed, the **Relied on** column names
 the alternative this project takes.
 
 | Package | Version | Declared | Relied on | Repository |
@@ -387,7 +387,6 @@ the alternative this project takes.
 | `leven` | 3.1.0 | MIT | — | https://github.com/sindresorhus/leven |
 | `lighthouse-logger` | 1.4.2 | Apache-2.0 | — |  |
 | `lightningcss` | 1.33.0 | MPL-2.0 | — | https://github.com/parcel-bundler/lightningcss |
-| `lightningcss-darwin-arm64` | 1.33.0 | MPL-2.0 | — | https://github.com/parcel-bundler/lightningcss |
 | `locate-path` | 5.0.0 | MIT | — | https://github.com/sindresorhus/locate-path |
 | `lodash.debounce` | 4.0.8 | MIT | — | https://github.com/lodash/lodash |
 | `lodash.throttle` | 4.1.1 | MIT | — | https://github.com/lodash/lodash |
