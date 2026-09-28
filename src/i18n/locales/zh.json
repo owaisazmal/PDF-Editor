@@ -142,7 +142,7 @@
     "measuredOn": "基于 {{name}} 实测",
     "each": "每个 {{size}}",
     "aimForSize": "指定文件大小",
-    "aimForSizeHint": "寻找刚好低于上限的画质",
+    "aimForSizeHint": "寻找刚好低于上限的画质，仅靠画质达不到时会缩小图片",
     "maximumSize": "大小上限",
     "quality": "画质",
     "size": "尺寸",

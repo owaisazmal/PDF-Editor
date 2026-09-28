@@ -70,7 +70,7 @@ public object ReceivedFiles {
    */
   @JvmStatic
   public fun offer(uris: List<Uri>): Boolean {
-    val usable = uris.filter { it.scheme == "content" || it.scheme == "file" }.distinct()
+    val usable = uris.filter { it.scheme == "content" }.distinct()
     if (usable.isEmpty()) return false
     queue.addAll(usable)
     return true
@@ -93,12 +93,7 @@ public object ReceivedFiles {
       // A file that cannot be read is dropped rather than failing the whole share: one
       // unreadable item out of twelve should cost that item, not the other eleven.
       val detected = runCatching {
-        val file = if (uri.scheme == "content") {
-          FileGateway.materialise(context, uri)
-        } else {
-          FileGateway.fileFromUri(uri.toString())
-        }
-        FormatDetector.detect(file)
+        FormatDetector.detect(FileGateway.materialise(context, uri))
       }.getOrNull() ?: continue
 
       files.pushMap(detected.toWritableMap())
@@ -144,7 +139,9 @@ public object ReceivedFiles {
       }
     }
   }
-    .filter { it.scheme == "content" || it.scheme == "file" }
+    // Content only: a file:// path from another app is unreadable without a storage
+    // permission, and one into this app's own storage would open its private files.
+    .filter { it.scheme == "content" }
     .distinct()
 
   @Suppress("DEPRECATION")

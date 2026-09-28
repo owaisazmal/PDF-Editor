@@ -17,6 +17,8 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Decode, transform, encode.
@@ -183,16 +185,16 @@ public object RasterCodec {
       val output = requestedOutput ?: nextAvailableOutput(outputDirectory, input, options.targetFormat)
       ensureSpace(output, transformed)
 
-      val qualityUsed = encodeAtomically(transformed, output, compressFormat, options)
+      val encoded = encodeAtomically(transformed, output, compressFormat, options)
       copyMetadata(input, output, options)
 
       Result(
         outputFile = output,
         format = options.targetFormat,
         byteSize = output.length(),
-        pixelWidth = transformed.width,
-        pixelHeight = transformed.height,
-        qualityUsed = qualityUsed,
+        pixelWidth = encoded.width,
+        pixelHeight = encoded.height,
+        qualityUsed = encoded.quality,
         elapsedMs = (System.nanoTime() - started) / 1_000_000.0,
       )
     } finally {
@@ -362,57 +364,81 @@ public object RasterCodec {
     output: File,
     format: Bitmap.CompressFormat,
     options: Options,
-  ): Int {
+  ): Encoded {
     val temporary = File(output.parentFile, ".${output.name}.partial")
     try {
-      val quality = writeSearchingForQuality(bitmap, temporary, format, options)
+      val encoded = writeSearchingForQuality(bitmap, temporary, format, options)
 
       // The rename is the commit point: until it succeeds, `output` does not exist, so
       // a crash cannot leave a truncated file where a finished one should be.
       if (output.exists()) output.delete()
       if (!temporary.renameTo(output)) throw ConversionException.diskFull()
-      return quality
+      return encoded
     } finally {
       if (temporary.exists()) temporary.delete()
     }
   }
 
+  private data class Encoded(val quality: Int, val width: Int, val height: Int)
+
   /**
    * Encodes once at the requested quality, or binary-searches when a target size is
    * set. Bounded to eight probes: past that the size gain is below what anyone notices
-   * and the wait is not.
+   * and the wait is not. When even the lowest quality is too big, the image is scaled
+   * down until it fits.
    */
   private fun writeSearchingForQuality(
     bitmap: Bitmap,
     file: File,
     format: Bitmap.CompressFormat,
     options: Options,
-  ): Int {
+  ): Encoded {
     if (options.targetByteSize <= 0 || !isLossy(options.targetFormat)) {
       write(bitmap, file, format, options.quality)
-      return options.quality
+      return Encoded(options.quality, bitmap.width, bitmap.height)
     }
 
-    var low = 1
-    var high = 100
-    var best: Int? = null
-
-    repeat(8) {
-      if (low > high) return@repeat
-      val mid = (low + high) / 2
-      write(bitmap, file, format, mid)
-      if (file.length() <= options.targetByteSize) {
-        best = mid
-        low = mid + 1
-      } else {
-        high = mid - 1
+    var image = bitmap
+    try {
+      for (attempt in 0 until 6) {
+        write(image, file, format, 1)
+        val smallest = file.length()
+        if (smallest <= options.targetByteSize || minOf(image.width, image.height) <= 16) break
+        // Area shrinks roughly with bytes; a little extra so one pass usually fits.
+        val scale = sqrt(options.targetByteSize.toDouble() / smallest) * 0.9
+        val smaller = Bitmap.createScaledBitmap(
+          image,
+          maxOf((image.width * scale).roundToInt(), 1),
+          maxOf((image.height * scale).roundToInt(), 1),
+          true,
+        )
+        if (image !== bitmap) image.recycle()
+        image = smaller
       }
-    }
 
-    // Re-encode at the best quality found, since the last probe may have overshot.
-    val quality = best ?: 1
-    write(bitmap, file, format, quality)
-    return quality
+      var low = 1
+      var high = 100
+      var best: Int? = null
+
+      repeat(8) {
+        if (low > high) return@repeat
+        val mid = (low + high) / 2
+        write(image, file, format, mid)
+        if (file.length() <= options.targetByteSize) {
+          best = mid
+          low = mid + 1
+        } else {
+          high = mid - 1
+        }
+      }
+
+      // Re-encode at the best quality found, since the last probe may have overshot.
+      val quality = best ?: 1
+      write(image, file, format, quality)
+      return Encoded(quality, image.width, image.height)
+    } finally {
+      if (image !== bitmap) image.recycle()
+    }
   }
 
   private fun write(bitmap: Bitmap, file: File, format: Bitmap.CompressFormat, quality: Int) {
