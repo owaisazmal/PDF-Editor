@@ -22,9 +22,9 @@ jobs:
     name: Types, lint, tests, generated files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -71,9 +71,9 @@ jobs:
     name: Licence and privacy gates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -91,19 +91,20 @@ jobs:
       - name: LICENSES.md is current
         run: |
           npm run license:report
-          if ! git diff --quiet -- LICENSES.md; then
+          if ! git diff --quiet -- LICENSES.md src/generated/licenses.json; then
             echo "::error::LICENSES.md is out of date. Run: npm run license:report"
-            git diff -- LICENSES.md
+            git diff -- LICENSES.md src/generated/licenses.json
             exit 1
           fi
 
   ios:
     name: iOS build
-    runs-on: macos-15
+    # Xcode 26.4+ (Swift 6.3) compiles expo-modules-jsi's `weak let` unpatched.
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -151,6 +152,7 @@ jobs:
 
       - name: Build
         run: |
+          set -o pipefail
           cd ios
           xcodebuild build \
             -workspace Kitefold.xcworkspace \
@@ -159,20 +161,27 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty && exit ${PIPESTATUS[0]}
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" \
+            | xcbeautify --renderer github-actions
+
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: xcodebuild-log
+          path: ${{ runner.temp }}/xcodebuild.log
 
   android:
     name: Android build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'

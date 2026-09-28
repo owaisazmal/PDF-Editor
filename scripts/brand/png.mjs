@@ -10,7 +10,7 @@
  * anyone would notice.
  */
 
-import { deflateSync } from 'node:zlib';
+import { deflateSync, inflateSync } from 'node:zlib';
 
 let crcTable = null;
 
@@ -57,4 +57,16 @@ export function encodePng(width, height, rgba) {
     chunk('IDAT', deflateSync(raw, { level: 9 })),
     chunk('IEND', Buffer.alloc(0)),
   ]);
+}
+
+/** IHDR plus inflated IDAT: equal for equal images, whichever zlib build compressed them. */
+export function pngPixels(buffer) {
+  const parts = [];
+  for (let at = 8; at + 8 <= buffer.length;) {
+    const length = buffer.readUInt32BE(at);
+    const type = buffer.toString('ascii', at + 4, at + 8);
+    if (type === 'IHDR' || type === 'IDAT') parts.push(buffer.subarray(at + 8, at + 8 + length));
+    at += length + 12;
+  }
+  return Buffer.concat([parts[0], inflateSync(Buffer.concat(parts.slice(1)))]);
 }
