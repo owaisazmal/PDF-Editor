@@ -172,7 +172,7 @@ public enum RasterCodec {
         try ensureSpaceAvailable(for: outputURL, estimatedBytes: Int64(transformed.width * transformed.height * 4))
 
         let metadata = metadataDictionary(from: properties, options: options)
-        let qualityUsed = try encodeAtomically(
+        let encoded = try encodeAtomically(
             image: transformed,
             to: outputURL,
             type: destinationType,
@@ -187,9 +187,9 @@ public enum RasterCodec {
             outputURL: outputURL,
             format: options.targetFormat,
             byteSize: byteSize,
-            pixelWidth: transformed.width,
-            pixelHeight: transformed.height,
-            qualityUsed: qualityUsed,
+            pixelWidth: encoded.width,
+            pixelHeight: encoded.height,
+            qualityUsed: encoded.quality,
             elapsedMs: elapsedMs
         )
     }
@@ -388,13 +388,13 @@ public enum RasterCodec {
         type: UTType,
         metadata: [CFString: Any],
         options: Options
-    ) throws -> Int {
+    ) throws -> Encoded {
         let temporaryURL = outputURL.deletingLastPathComponent()
             .appendingPathComponent(".\(UUID().uuidString).partial")
 
         defer { try? FileManager.default.removeItem(at: temporaryURL) }
 
-        let quality = try writeSearchingForQuality(
+        let encoded = try writeSearchingForQuality(
             image: image,
             to: temporaryURL,
             type: type,
@@ -406,22 +406,48 @@ public enum RasterCodec {
         // so a crash cannot leave a truncated file where a finished one should be.
         try? FileManager.default.removeItem(at: outputURL)
         try FileManager.default.moveItem(at: temporaryURL, to: outputURL)
-        return quality
+        return encoded
+    }
+
+    private struct Encoded {
+        let quality: Int
+        let width: Int
+        let height: Int
     }
 
     /// Encodes once at the requested quality, or binary-searches when a target size is
     /// set. The search is bounded to eight probes: past that the byte-size gain is
     /// below what a user would notice and the wait is not.
+    ///
+    /// Apple's encoder stops shrinking near quality 15, so when even the lowest quality
+    /// is too big the image is scaled down until it fits.
     private static func writeSearchingForQuality(
         image: CGImage,
         to url: URL,
         type: UTType,
         metadata: [CFString: Any],
         options: Options
-    ) throws -> Int {
+    ) throws -> Encoded {
         guard options.targetByteSize > 0, isLossy(options.targetFormat) else {
             try write(image: image, to: url, type: type, metadata: metadata, quality: options.quality, lossless: options.lossless)
-            return options.quality
+            return Encoded(quality: options.quality, width: image.width, height: image.height)
+        }
+
+        func sizeOnDisk() -> Int {
+            (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)??.intValue ?? .max
+        }
+
+        var image = image
+        for _ in 0..<6 {
+            try write(image: image, to: url, type: type, metadata: metadata, quality: 1, lossless: false)
+            let smallest = sizeOnDisk()
+            if smallest > options.targetByteSize, min(image.width, image.height) > 16 {
+                // Area shrinks roughly with bytes; a little extra so one pass usually fits.
+                let scale = (Double(options.targetByteSize) / Double(smallest)).squareRoot() * 0.9
+                image = try scaled(image, by: scale)
+                continue
+            }
+            break
         }
 
         var low = 1
@@ -431,9 +457,8 @@ public enum RasterCodec {
         for _ in 0..<8 where low <= high {
             let mid = (low + high) / 2
             try write(image: image, to: url, type: type, metadata: metadata, quality: mid, lossless: false)
-            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)??.intValue ?? .max
 
-            if size <= options.targetByteSize {
+            if sizeOnDisk() <= options.targetByteSize {
                 bestQuality = mid
                 low = mid + 1
             } else {
@@ -444,7 +469,28 @@ public enum RasterCodec {
         // Re-encode at the best quality found, since the last probe may have overshot.
         let quality = bestQuality ?? 1
         try write(image: image, to: url, type: type, metadata: metadata, quality: quality, lossless: false)
-        return quality
+        return Encoded(quality: quality, width: image.width, height: image.height)
+    }
+
+    private static func scaled(_ image: CGImage, by scale: Double) throws -> CGImage {
+        let width = max(Int((Double(image.width) * scale).rounded()), 1)
+        let height = max(Int((Double(image.height) * scale).rounded()), 1)
+        let opaque = [.none, .noneSkipFirst, .noneSkipLast].contains(image.alphaInfo)
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: (opaque ? CGImageAlphaInfo.noneSkipLast : .premultipliedLast).rawValue
+        ) else {
+            throw ConversionError.outOfMemory
+        }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let output = context.makeImage() else { throw ConversionError.outOfMemory }
+        return output
     }
 
     private static func write(

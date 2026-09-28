@@ -30,8 +30,12 @@ const consumed = new Set<string>();
 
 const isFileUrl = (url: string): boolean => url.startsWith('file://');
 
-async function detectOne(url: string): Promise<DetectedFile | null> {
-  if (!isFileUrl(url) || consumed.has(url)) return null;
+/**
+ * `fresh` for a URL event, which is always a new hand-over: iOS reuses an Inbox name once
+ * the earlier copy was discarded, so the same URL can arrive again.
+ */
+async function detectOne(url: string, fresh = false): Promise<DetectedFile | null> {
+  if (!isFileUrl(url) || (!fresh && consumed.has(url))) return null;
   consumed.add(url);
   try {
     return await formatDetector.detect(url);
@@ -106,9 +110,8 @@ holdFiles(() => useIncomingStore.getState().files.map((file) => file.uri));
 /**
  * Starts listening for files arriving at a running app.
  *
- * Returns an unsubscribe. All three hooks are installed unconditionally — the native
- * event never fires on iOS and the linking event never carries a file URL on Android, so
- * neither needs a platform check to be correct.
+ * Returns an unsubscribe. The native event never fires on iOS; the linking event is
+ * read on iOS only.
  *
  * The third is the one that makes this reliable. An event can be missed: a host activity
  * may consume the intent before the listener sees it, and a JavaScript bundle can reload
@@ -125,7 +128,9 @@ export function watchIncomingFiles(): () => void {
   const nativeSubscription = fileGateway.onFilesReceived(collect);
 
   const linkingSubscription = Linking.addEventListener('url', ({ url }) => {
-    void detectOne(url).then((detected) => {
+    // Android also sends an Open With's file:// data here, which would reach private files.
+    if (Platform.OS !== 'ios') return;
+    void detectOne(url, true).then((detected) => {
       if (detected) useIncomingStore.getState().add([detected]);
     });
   });

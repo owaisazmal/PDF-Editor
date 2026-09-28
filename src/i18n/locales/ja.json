@@ -142,7 +142,7 @@
     "measuredOn": "{{name}} で計測",
     "each": "各 {{size}}",
     "aimForSize": "ファイルサイズを指定",
-    "aimForSizeHint": "上限をわずかに下回る画質を探します",
+    "aimForSizeHint": "上限をわずかに下回る画質を探し、画質だけで届かない場合は画像を縮小します",
     "maximumSize": "最大サイズ",
     "quality": "画質",
     "size": "サイズ",

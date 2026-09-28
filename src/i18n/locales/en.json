@@ -153,7 +153,7 @@
     "measuredOn": "Measured on {{name}}",
     "each": "{{size}} each",
     "aimForSize": "Aim for a file size",
-    "aimForSizeHint": "Searches for the quality that lands just under your limit",
+    "aimForSizeHint": "Searches for the quality that lands just under your limit, and scales the image down if quality alone can’t get there",
     "maximumSize": "Maximum size",
     "quality": "Quality",
     "size": "Size",
