@@ -22,7 +22,11 @@ public enum FileGateway {
     // MARK: - Photo picker
 
     @MainActor
-    public static func pickPhotos(limit: Int, presenter: UIViewController) async throws -> [DetectedFile] {
+    public static func pickPhotos(
+        limit: Int,
+        presenter: UIViewController,
+        progress: @escaping (Int, Int) -> Void = { _, _ in }
+    ) async throws -> [DetectedFile] {
         var configuration = PHPickerConfiguration(photoLibrary: .shared())
         configuration.selectionLimit = limit
         configuration.preferredAssetRepresentationMode = .current  // never transcode
@@ -40,6 +44,8 @@ public enum FileGateway {
             presenter.present(picker, animated: true)
         }
 
+        if !results.isEmpty { progress(0, results.count) }
+
         return try await withThrowingTaskGroup(of: (Int, DetectedFile).self) { group in
             // A folder per pick, so picking the same photo again keeps its name.
             let directory = temporaryDirectory().appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -54,6 +60,7 @@ public enum FileGateway {
             var collected: [(Int, DetectedFile)] = []
             while let entry = try await group.next() {
                 collected.append(entry)
+                progress(collected.count, results.count)
                 if let (index, result) = pending.next() {
                     group.addTask { (index, try await materialiseOrPlaceholder(result, into: directory)) }
                 }

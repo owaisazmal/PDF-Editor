@@ -429,6 +429,32 @@ public final class ConverterCoreBridge: NSObject {
 
     // MARK: - NativeFileGateway
 
+    private static let importProgressLock = NSLock()
+    nonisolated(unsafe) private static var importProgressHandler: (([String: Any]) -> Void)?
+
+    /// Set once by the TurboModule, which forwards to `onImportProgress`.
+    @objc(installImportProgressHandler:)
+    public static func installImportProgressHandler(_ handler: @escaping ([String: Any]) -> Void) {
+        importProgressLock.lock()
+        importProgressHandler = handler
+        importProgressLock.unlock()
+    }
+
+    /// A file counter for one pick: the first and last always, the rest ten a second.
+    private static func importProgress() -> (Int, Int) -> Void {
+        importProgressLock.lock()
+        let handler = importProgressHandler
+        importProgressLock.unlock()
+        guard let handler else { return { _, _ in } }
+        var last: UInt64 = 0
+        return { done, total in
+            let now = DispatchTime.now().uptimeNanoseconds
+            guard done == 0 || done >= total || now - last >= 100_000_000 else { return }
+            last = now
+            handler(["done": done, "total": total])
+        }
+    }
+
     @objc(pickPhotos:resolve:reject:)
     public static func pickPhotos(
         _ limit: Double,
@@ -441,7 +467,11 @@ public final class ConverterCoreBridge: NSObject {
                 return
             }
             do {
-                let picked = try await FileGateway.pickPhotos(limit: Int(limit), presenter: presenter)
+                let picked = try await FileGateway.pickPhotos(
+                    limit: Int(limit),
+                    presenter: presenter,
+                    progress: importProgress()
+                )
                 resolve(picked.map(\.dictionaryRepresentation))
             } catch let error as ConversionError {
                 reject(error.code, error.errorDescription ?? error.code, error)
@@ -492,7 +522,8 @@ public final class ConverterCoreBridge: NSObject {
                 let picked = try await FileGateway.pickDocuments(
                     contentTypes: types,
                     allowMultiple: allowMultiple,
-                    presenter: presenter
+                    presenter: presenter,
+                    progress: importProgress()
                 )
                 resolve(picked.map(\.dictionaryRepresentation))
             } catch let error as ConversionError {

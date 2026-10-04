@@ -51,32 +51,15 @@ jobs:
       - name: Install pods
         run: cd ios && pod install --repo-update
 
-      # Archive signs for development; export re-signs for the App Store with a
-      # cloud-managed distribution certificate, which needs an Admin API key.
-      - name: Install signing certificate and API key
+      # The archive is unsigned; export signs it with a cloud-managed distribution
+      # certificate, which needs an Admin API key and no registered device.
+      - name: Install API key
         env:
-          CERT_P12_BASE64: ${{ secrets.IOS_DEV_CERT_P12_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.IOS_DEV_CERT_PASSWORD }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        run: |
-          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
-          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/dev.p12"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security import "$RUNNER_TEMP/dev.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
-          rm "$RUNNER_TEMP/dev.p12"
-          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+        run: printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
 
       - name: Archive
-        env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -o pipefail
           cd ios
@@ -86,12 +69,7 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Kitefold.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             2>&1 | xcbeautify --renderer github-actions
 
       - name: Upload to TestFlight
@@ -125,11 +103,9 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             2>&1 | xcbeautify --renderer github-actions
 
-      - name: Remove signing material
+      - name: Remove API key
         if: always()
-        run: |
-          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
-          rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
 
   android:
     name: Play internal testing

@@ -553,5 +553,16 @@
     "native": "Integradas ao mecanismo do Android",
     "entry": "{{version}} · {{license}}",
     "open": "Licenças de código aberto"
+  },
+  "loader": {
+    "gettingFiles": "Preparando seus arquivos…",
+    "converting": "Convertendo…",
+    "reading": "Lendo o documento…",
+    "working": "Trabalhando nisso…",
+    "saving": "Salvando…",
+    "remaining": "Faltam cerca de {{time}}",
+    "estimating": "Calculando o tempo…",
+    "elapsed": "{{time}} até agora",
+    "progress": "{{done}} de {{total}} concluídos."
   }
 }

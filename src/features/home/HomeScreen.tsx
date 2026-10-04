@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Logo, Screen, Text, TaskTile } from '@/components';
+import { LoaderOverlay, Logo, Screen, Text, TaskTile } from '@/components';
 import { fileGateway } from '@/native';
 import { useCapabilitiesStore } from '@/store/capabilities';
 import { useConversionStore } from '@/store/conversion';
@@ -78,6 +78,8 @@ export function HomeScreen({ navigation }: Props) {
     if (!capabilities.isLoaded) void capabilities.load();
   }, [capabilities]);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  // Files copied in so far, once the picker has closed. Null while nothing is arriving.
+  const [importing, setImporting] = useState<{ done: number; total: number } | null>(null);
 
   /**
    * Why the last tap went nowhere.
@@ -110,6 +112,7 @@ export function HomeScreen({ navigation }: Props) {
     useCallback(() => {
       pickInFlight.current = false;
       setBusyTaskId(null);
+      setImporting(null);
     }, []),
   );
 
@@ -122,6 +125,10 @@ export function HomeScreen({ navigation }: Props) {
       setBlocked(null);
       setBusyTaskId(task.id);
       setPicking();
+      // Copying a large pick takes a while, and the grid looked frozen until it ended.
+      const stopListening = fileGateway.onImportProgress((done, total) =>
+        setImporting({ done, total }),
+      );
       try {
         // A PDF is never in the photo library, so a PDF task opens the document picker.
         // Composing one is the exception: its inputs are photos.
@@ -158,34 +165,59 @@ export function HomeScreen({ navigation }: Props) {
         setBlocked(key);
         fail({ code: 'unknown', message: key });
       } finally {
+        stopListening();
         pickInFlight.current = false;
         setBusyTaskId(null);
+        setImporting(null);
       }
     },
     [navigation, setPicking, fail],
   );
 
   return (
-    <Screen scroll>
-      <View style={{ marginBottom: theme.space['3xl'] }}>
-        {/*
+    <>
+      <Screen scroll>
+        <View style={{ marginBottom: theme.space['3xl'] }}>
+          {/*
           A masthead: the mark on one side, the actions on the other, and the title on its
           own line beneath. The mark is not put beside the title because the title is a
           verb, and "Konvertieren" with a kite in front of it and two pills after it does
           not fit a phone.
         */}
-        <View style={styles.header}>
-          <Logo size={28} testID="home-logo" />
+          <View style={styles.header}>
+            <Logo size={28} testID="home-logo" />
 
-          <View style={styles.headerActions}>
-            {/* Only once there is something to look at. An empty history behind a
+            <View style={styles.headerActions}>
+              {/* Only once there is something to look at. An empty history behind a
                 permanent button is a dead end offered on every launch. */}
-            {historyCount > 0 ? (
+              {historyCount > 0 ? (
+                <Pressable
+                  testID="open-history"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.historyLabel', { count: historyCount })}
+                  onPress={() => navigation.navigate('History')}
+                  style={({ pressed }) => [
+                    styles.headerAction,
+                    {
+                      backgroundColor: theme.color.bgSunken,
+                      borderRadius: theme.radius.pill,
+                      opacity: pressed ? 0.75 : 1,
+                    },
+                  ]}
+                >
+                  <Text variant="label" color="textSecondary" heading>
+                    {t('home.history')}
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {/* Always present, unlike History: it is where the appearance setting lives,
+                and a setting nobody can reach is a setting nobody has. */}
               <Pressable
-                testID="open-history"
+                testID="open-settings"
                 accessibilityRole="button"
-                accessibilityLabel={t('home.historyLabel', { count: historyCount })}
-                onPress={() => navigation.navigate('History')}
+                accessibilityLabel={t('settings.title')}
+                onPress={() => navigation.navigate('Settings')}
                 style={({ pressed }) => [
                   styles.headerAction,
                   {
@@ -196,79 +228,68 @@ export function HomeScreen({ navigation }: Props) {
                 ]}
               >
                 <Text variant="label" color="textSecondary" heading>
-                  {t('home.history')}
+                  {t('settings.title')}
                 </Text>
               </Pressable>
-            ) : null}
-
-            {/* Always present, unlike History: it is where the appearance setting lives,
-                and a setting nobody can reach is a setting nobody has. */}
-            <Pressable
-              testID="open-settings"
-              accessibilityRole="button"
-              accessibilityLabel={t('settings.title')}
-              onPress={() => navigation.navigate('Settings')}
-              style={({ pressed }) => [
-                styles.headerAction,
-                {
-                  backgroundColor: theme.color.bgSunken,
-                  borderRadius: theme.radius.pill,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
-            >
-              <Text variant="label" color="textSecondary" heading>
-                {t('settings.title')}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-        <Text variant="display" style={{ marginTop: theme.space.md }}>
-          {t('home.title')}
-        </Text>
-        <Text variant="body" color="textSecondary" style={{ marginTop: theme.space.sm }}>
-          {t('home.promise')}
-        </Text>
-
-        {blocked ? (
-          <Text
-            testID="home-blocked"
-            variant="bodySm"
-            color="warningInk"
-            // Announced without needing focus: the tap that caused this was on a tile
-            // somewhere else on the grid, and nothing moves focus here.
-            accessibilityLiveRegion="polite"
-            style={{ marginTop: theme.space.md }}
-          >
-            {t(blocked)}
-          </Text>
-        ) : null}
-      </View>
-
-      <View style={styles.grid}>
-        {CONVERSION_TASKS.map((task) => {
-          // Two different reasons a tile can be closed, and the user is told which:
-          // "not built yet" is a promise, "your device cannot" is a fact.
-          const reason = unavailableReason(task, capabilities);
-          return (
-            <View
-              key={task.id}
-              style={[{ width: `${100 / columns}%` }, { padding: theme.space.sm }]}
-            >
-              <TaskTile
-                testID={`task-${task.id}`}
-                title={t(`tasks.${task.id}.title`)}
-                subtitle={reason ? t(`home.unavailable.${reason}`) : t(`tasks.${task.id}.subtitle`)}
-                from={task.from}
-                to={task.to}
-                enabled={isTileInteractive(task, busyTaskId, capabilities)}
-                onPress={() => void startTask(task)}
-              />
             </View>
-          );
-        })}
-      </View>
-    </Screen>
+          </View>
+          <Text variant="display" style={{ marginTop: theme.space.md }}>
+            {t('home.title')}
+          </Text>
+          <Text variant="body" color="textSecondary" style={{ marginTop: theme.space.sm }}>
+            {t('home.promise')}
+          </Text>
+
+          {blocked ? (
+            <Text
+              testID="home-blocked"
+              variant="bodySm"
+              color="warningInk"
+              // Announced without needing focus: the tap that caused this was on a tile
+              // somewhere else on the grid, and nothing moves focus here.
+              accessibilityLiveRegion="polite"
+              style={{ marginTop: theme.space.md }}
+            >
+              {t(blocked)}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.grid}>
+          {CONVERSION_TASKS.map((task) => {
+            // Two different reasons a tile can be closed, and the user is told which:
+            // "not built yet" is a promise, "your device cannot" is a fact.
+            const reason = unavailableReason(task, capabilities);
+            return (
+              <View
+                key={task.id}
+                style={[{ width: `${100 / columns}%` }, { padding: theme.space.sm }]}
+              >
+                <TaskTile
+                  testID={`task-${task.id}`}
+                  title={t(`tasks.${task.id}.title`)}
+                  subtitle={
+                    reason ? t(`home.unavailable.${reason}`) : t(`tasks.${task.id}.subtitle`)
+                  }
+                  from={task.from}
+                  to={task.to}
+                  enabled={isTileInteractive(task, busyTaskId, capabilities)}
+                  onPress={() => void startTask(task)}
+                />
+              </View>
+            );
+          })}
+        </View>
+      </Screen>
+      {importing ? (
+        <LoaderOverlay
+          testID="import-loader"
+          title={t('loader.gettingFiles')}
+          done={importing.done}
+          total={importing.total}
+        />
+      ) : null}
+    </>
   );
 }
 

@@ -194,6 +194,17 @@ export const fileGateway = {
     const subscription = native.onFilesReceived(() => listener());
     return () => subscription.remove();
   },
+
+  /** Files copied in so far after a pick. Returns an unsubscribe; a no-op on older builds. */
+  onImportProgress(listener: (done: number, total: number) => void): () => void {
+    const native = NativeFileGateway;
+    if (native?.onImportProgress == null) return () => {};
+    const subscription = native.onImportProgress((raw) => {
+      const payload = (raw ?? {}) as Record<string, unknown>;
+      listener(Number(payload.done) || 0, Number(payload.total) || 0);
+    });
+    return () => subscription.remove();
+  },
 };
 
 /* ---------------------------------------------------------- queue and PDF (P2/P3) -- */

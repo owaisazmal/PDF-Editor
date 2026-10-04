@@ -553,5 +553,16 @@
     "native": "Integrate nel motore Android",
     "entry": "{{version}} · {{license}}",
     "open": "Licenze open source"
+  },
+  "loader": {
+    "gettingFiles": "Preparazione dei file…",
+    "converting": "Conversione…",
+    "reading": "Lettura del documento…",
+    "working": "Elaborazione in corso…",
+    "saving": "Salvataggio…",
+    "remaining": "Circa {{time}} rimanenti",
+    "estimating": "Calcolo del tempo…",
+    "elapsed": "{{time}} finora",
+    "progress": "{{done}} di {{total}} completati."
   }
 }

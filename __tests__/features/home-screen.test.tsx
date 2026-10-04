@@ -11,7 +11,7 @@
  * settings, and a rule test is green either way.
  */
 
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { fileGateway } from '@/native';
@@ -181,5 +181,34 @@ describe('picking documents', () => {
     await fireEvent.press(screen.getByTestId('task-compress-pdf'));
 
     expect(fileGateway.pickDocuments).toHaveBeenLastCalledWith(expect.anything(), false);
+  });
+});
+
+describe('copying a pick in', () => {
+  /** Forty-five photos took a minute to copy, and the grid sat there looking frozen. */
+  it('shows how far along it is until the files are ready', async () => {
+    let report: (done: number, total: number) => void = () => {};
+    (fileGateway.onImportProgress as jest.Mock).mockImplementationOnce((listener) => {
+      report = listener;
+      return () => {};
+    });
+    let finish: (files: never[]) => void = () => {};
+    (fileGateway.pickDocuments as jest.Mock).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+
+    await render();
+    await fireEvent.press(screen.getByTestId('task-merge-pdf'));
+    // Nothing while the picker is still open.
+    expect(screen.queryByTestId('import-loader')).toBeNull();
+
+    await act(async () => report(9, 45));
+    expect(screen.getByText(t('loader.gettingFiles'))).toBeOnTheScreen();
+    expect(screen.getByText(t('batch.progressCount', { done: '9', total: '45' }))).toBeOnTheScreen();
+
+    await act(async () => finish([]));
+    expect(screen.queryByTestId('import-loader')).toBeNull();
   });
 });

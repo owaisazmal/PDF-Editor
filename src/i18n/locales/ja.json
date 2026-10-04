@@ -483,5 +483,16 @@
     "native": "Android エンジンに組み込み",
     "entry": "{{version}} · {{license}}",
     "open": "オープンソースライセンス"
+  },
+  "loader": {
+    "gettingFiles": "ファイルを準備中…",
+    "converting": "変換中…",
+    "reading": "書類を読み込み中…",
+    "working": "処理中…",
+    "saving": "保存中…",
+    "remaining": "残り約{{time}}",
+    "estimating": "残り時間を計算中…",
+    "elapsed": "経過 {{time}}",
+    "progress": "{{total}}件中{{done}}件完了。"
   }
 }

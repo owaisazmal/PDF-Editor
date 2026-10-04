@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Button, Card, Screen, SectionLabel, StatRow, Text } from '@/components';
+import { Button, Card, Loader, Screen, SectionLabel, StatRow, Text } from '@/components';
 import { FORMATS } from '@/engine/formats';
 import { needsBackgroundChoice } from '@/engine/options';
 import { fileGateway } from '@/native';
@@ -194,6 +194,14 @@ export function ConvertScreen({ route, navigation }: Props) {
           </Text>
         ) : null}
       </Card>
+
+      {phase === 'converting' || saving ? (
+        <Loader
+          testID="convert-loader"
+          title={saving ? t('loader.saving') : t('loader.converting')}
+          style={{ marginTop: theme.space.lg }}
+        />
+      ) : null}
 
       {phase === 'done' && result && change ? (
         <Card style={{ marginTop: theme.space.lg }} elevation="md">

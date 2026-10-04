@@ -40,6 +40,7 @@ export function createNativeMock() {
       clearTemporaryFiles: jest.fn().mockResolvedValue(undefined),
       discardFiles: jest.fn().mockResolvedValue(undefined),
       freeDiskSpace: jest.fn().mockResolvedValue(1_000_000_000),
+      onImportProgress: jest.fn(() => () => {}),
     },
 
     jobQueue: null,

@@ -89,6 +89,9 @@ export interface Spec extends TurboModule {
    */
   readonly onFilesReceived: EventEmitter<UnsafeObject>;
 
+  /** `{ done, total }` while picked files are copied in; the first has `done` 0. */
+  readonly onImportProgress: EventEmitter<UnsafeObject>;
+
   /**
    * Takes whatever arrived before JavaScript was listening, and empties the queue.
    *

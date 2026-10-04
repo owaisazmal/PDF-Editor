@@ -361,7 +361,6 @@ Play's internal testing track. It reads these secrets from the `release` environ
 
     APPLE_TEAM_ID
     ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8     App Store Connect API key, Admin role
-    IOS_DEV_CERT_P12_BASE64, IOS_DEV_CERT_PASSWORD
     ANDROID_UPLOAD_KEYSTORE_BASE64
     KITEFOLD_STORE_PASSWORD, KITEFOLD_KEY_ALIAS, KITEFOLD_KEY_PASSWORD
     PLAY_SERVICE_ACCOUNT_JSON

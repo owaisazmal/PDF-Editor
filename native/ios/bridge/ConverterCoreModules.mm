@@ -231,6 +231,9 @@ RCT_EXPORT_MODULE()
     [ConverterCoreBridge installIncomingFilesHandler:^{
       [weakSelf emitOnFilesReceived:@{}];
     }];
+    [ConverterCoreBridge installImportProgressHandler:^(NSDictionary *value) {
+      [weakSelf emitOnImportProgress:value];
+    }];
   }
   return self;
 }
