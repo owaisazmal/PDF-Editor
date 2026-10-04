@@ -70,7 +70,7 @@
           }
         ]
       },
-      "buildNumber": "1",
+      "buildNumber": "2",
       "icon": {
         "light": "./assets/icon.png",
         "dark": "./assets/icon-dark.png",
@@ -91,7 +91,7 @@
         "backgroundColor": "#D47E30",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
-      "versionCode": 1,
+      "versionCode": 2,
       "allowBackup": false
     },
     "plugins": [
@@ -129,7 +129,10 @@
             "minSdkVersion": 26,
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0"
+            "buildToolsVersion": "36.0.0",
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.owaiskhan.converter.** { *; }\n-keep class com.tom_roush.** { *; }\n-keep class org.bouncycastle.** { *; }\n-dontwarn com.tom_roush.**\n-dontwarn org.bouncycastle.**\n-dontwarn javax.naming.**"
           }
         }
       ]

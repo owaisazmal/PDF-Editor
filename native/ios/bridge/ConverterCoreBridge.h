@@ -180,6 +180,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (void)installIncomingFilesHandler:(void (^)(void))handler;
 
++ (void)installImportProgressHandler:(void (^)(NSDictionary *))handler;
+
 + (void)clearTemporaryFiles:(RCTPromiseResolveBlock)resolve
                      reject:(RCTPromiseRejectBlock)reject;
 
