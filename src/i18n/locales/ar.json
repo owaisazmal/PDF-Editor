@@ -658,5 +658,16 @@
     "native": "مدمجة في محرّك أندرويد",
     "entry": "{{version}} · {{license}}",
     "open": "تراخيص المصادر المفتوحة"
+  },
+  "loader": {
+    "gettingFiles": "جارٍ تجهيز ملفاتك…",
+    "converting": "جارٍ التحويل…",
+    "reading": "جارٍ قراءة المستند…",
+    "working": "جارٍ العمل…",
+    "saving": "جارٍ الحفظ…",
+    "remaining": "يتبقى نحو {{time}}",
+    "estimating": "جارٍ تقدير الوقت…",
+    "elapsed": "{{time}} حتى الآن",
+    "progress": "اكتمل {{done}} من {{total}}."
   }
 }

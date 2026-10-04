@@ -20,7 +20,8 @@ extension FileGateway {
     public static func pickDocuments(
         contentTypes: [UTType],
         allowMultiple: Bool,
-        presenter: UIViewController
+        presenter: UIViewController,
+        progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async throws -> [DetectedFile] {
         let picked: [URL] = await withCheckedContinuation { continuation in
             let picker = UIDocumentPickerViewController(
@@ -35,7 +36,13 @@ extension FileGateway {
             presenter.present(picker, animated: true)
         }
 
+        if !picked.isEmpty { progress(0, picked.count) }
+        var done = 0
         return picked.map { url in
+            defer {
+                done += 1
+                progress(done, picked.count)
+            }
             // A file still in iCloud has a placeholder on disk; materialise it before
             // detection, or the header read sees nothing. One that cannot be read costs
             // that file, not the whole pick.

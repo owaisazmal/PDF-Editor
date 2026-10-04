@@ -9,6 +9,7 @@ export { Card, type CardProps } from './Card';
 export { TaskTile, type TaskTileProps } from './TaskTile';
 export { StatRow, type StatRowProps } from './StatRow';
 export { ProgressBar, type ProgressBarProps } from './ProgressBar';
+export { Loader, LoaderOverlay, useWaitLabel, type LoaderProps } from './Loader';
 export { FileRow, type FileRowProps, type FileRowState } from './FileRow';
 export { Slider, type SliderProps } from './Slider';
 export { SegmentedControl, type SegmentedControlProps, type Segment } from './SegmentedControl';

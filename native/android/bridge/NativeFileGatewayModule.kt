@@ -27,7 +27,9 @@ import com.owaiskhan.converter.core.DropTarget
 import com.owaiskhan.converter.core.FormatMatcher
 import com.owaiskhan.converter.core.ReceivedFiles
 import java.io.File
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -62,6 +64,9 @@ public class NativeFileGatewayModule(
   }
 
   private val executor = Executors.newFixedThreadPool(4)
+
+  /** Its own pool: the pick waits on these from an `executor` thread. */
+  private val importPool = Executors.newFixedThreadPool(4)
 
   /** At most one picker can be open, so a single slot is the whole state machine. */
   private val pending = AtomicReference<Promise?>(null)
@@ -101,19 +106,37 @@ public class NativeFileGatewayModule(
         runCatching {
           val results = Arguments.createArray()
           val directory = FileGateway.pickDirectory(reactContext)
-          for (uri in extractUris(data)) {
-            // One unreadable file (an offline Drive item, a revoked grant) costs that file,
-            // not the whole pick. A full disk still stops it.
-            val detected = runCatching {
-              FormatDetector.detect(FileGateway.materialise(reactContext, uri, directory))
-            }.getOrElse { error ->
-              if (error is ConversionException && error.code == "diskFull") throw error
-              val name = uri.lastPathSegment ?: "file"
-              DetectedFile(
-                uri = FileGateway.fileUri(File(directory, FileGateway.sanitise(name))),
-                displayName = name,
-                reason = "This file could not be opened.",
-              )
+          val uris = extractUris(data)
+          val report = importProgress()
+          report(0, uris.size)
+          val done = AtomicInteger(0)
+          // A few copies at a time: one after another, a large pick took a minute.
+          val detections = uris.map { uri ->
+            importPool.submit<DetectedFile> {
+              // One unreadable file (an offline Drive item, a revoked grant) costs that file,
+              // not the whole pick. A full disk still stops it.
+              val detected = runCatching {
+                FormatDetector.detect(FileGateway.materialise(reactContext, uri, directory))
+              }.getOrElse { error ->
+                if (error is ConversionException && error.code == "diskFull") throw error
+                val name = uri.lastPathSegment ?: "file"
+                DetectedFile(
+                  uri = FileGateway.fileUri(File(directory, FileGateway.sanitise(name))),
+                  displayName = name,
+                  reason = "This file could not be opened.",
+                )
+              }
+              report(done.incrementAndGet(), uris.size)
+              detected
+            }
+          }
+          // Read back in the order picked, whatever order they finished in.
+          for (future in detections) {
+            val detected = try {
+              future.get()
+            } catch (error: ExecutionException) {
+              detections.forEach { it.cancel(true) }
+              throw error.cause ?: error
             }
             results.pushMap(detected.toWritableMap())
           }
@@ -166,6 +189,28 @@ public class NativeFileGatewayModule(
     reactContext.addLifecycleEventListener(lifecycleListener)
   }
 
+
+  /** A file counter for one pick: the first and last always, the rest ten a second. */
+  private fun importProgress(): (Int, Int) -> Unit {
+    val lock = Any()
+    var last = 0L
+    var sent = -1
+    return { done, total ->
+      synchronized(lock) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (done > sent && (done == 0 || done >= total || now - last >= 100)) {
+          last = now
+          sent = done
+          emitOnImportProgress(
+            Arguments.createMap().apply {
+              putInt("done", done)
+              putInt("total", total)
+            },
+          )
+        }
+      }
+    }
+  }
 
   private fun extractUris(data: Intent): List<Uri> {
     val clip = data.clipData
@@ -453,6 +498,7 @@ public class NativeFileGatewayModule(
   override fun invalidate() {
     reactContext.removeActivityEventListener(activityListener)
     executor.shutdownNow()
+    importPool.shutdownNow()
     super.invalidate()
   }
 }

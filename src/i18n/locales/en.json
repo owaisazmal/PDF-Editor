@@ -518,5 +518,16 @@
     "native": "Built into the Android engine",
     "entry": "{{version}} · {{license}}",
     "open": "Open source licences"
+  },
+  "loader": {
+    "gettingFiles": "Getting your files ready…",
+    "converting": "Converting…",
+    "reading": "Reading the document…",
+    "working": "Working on it…",
+    "saving": "Saving…",
+    "remaining": "About {{time}} left",
+    "estimating": "Working out how long…",
+    "elapsed": "{{time}} so far",
+    "progress": "{{done}} of {{total}} done."
   }
 }

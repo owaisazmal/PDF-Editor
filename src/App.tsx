@@ -12,6 +12,7 @@ import {
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
+import { useTranslation } from 'react-i18next';
 import {
   useFonts,
   Manrope_400Regular,
@@ -21,6 +22,7 @@ import {
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
 
+import { LoaderOverlay } from '@/components';
 import { BatchScreen } from '@/features/batch/BatchScreen';
 import { ConvertScreen } from '@/features/convert/ConvertScreen';
 import { HomeScreen } from '@/features/home/HomeScreen';
@@ -155,9 +157,28 @@ function Root() {
   return (
     <>
       <Navigation />
+      <ReceivingLoader />
       {opened ? null : <LaunchOverlay onDone={finishOpening} />}
     </>
   );
+}
+
+/** Shown once a share is slow enough to notice; most checks find nothing at once. */
+function ReceivingLoader() {
+  const { t } = useTranslation();
+  const checking = useIncomingStore((state) => state.isChecking);
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    if (!checking) return;
+    const timer = setTimeout(() => setSlow(true), 400);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [checking]);
+
+  return slow ? <LoaderOverlay title={t('loader.gettingFiles')} /> : null;
 }
 
 export function App() {

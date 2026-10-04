@@ -518,5 +518,16 @@
     "native": "In die Android-Engine eingebaut",
     "entry": "{{version}} · {{license}}",
     "open": "Open-Source-Lizenzen"
+  },
+  "loader": {
+    "gettingFiles": "Dateien werden vorbereitet…",
+    "converting": "Wird konvertiert…",
+    "reading": "Dokument wird gelesen…",
+    "working": "Wird bearbeitet…",
+    "saving": "Wird gespeichert…",
+    "remaining": "Noch etwa {{time}}",
+    "estimating": "Dauer wird berechnet…",
+    "elapsed": "Bisher {{time}}",
+    "progress": "{{done}} von {{total}} fertig."
   }
 }

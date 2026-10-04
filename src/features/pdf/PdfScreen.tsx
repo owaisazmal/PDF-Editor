@@ -12,7 +12,7 @@ import {
   Card,
   ChipRow,
   FileRow,
-  ProgressBar,
+  Loader,
   Screen,
   SectionLabel,
   SegmentedControl,
@@ -474,23 +474,20 @@ export function PdfScreen({ route, navigation }: Props) {
           </Card>
         ) : null}
 
-        {pdf.status === 'running' && pdf.progress && pdf.progress.total > 1 ? (
-          // Long composes and compresses show a page count rather than only a spinner.
-          <Card style={{ marginBottom: theme.space.lg }}>
-            <ProgressBar
-              fraction={pdf.progress.done / pdf.progress.total}
-              accessibilityLabel={t('batch.converting', {
-                done: formatNumber(pdf.progress.done),
-                total: formatNumber(pdf.progress.total),
-              })}
-            />
-            <Text variant="mono" color="textSecondary" style={{ marginTop: theme.space.md }}>
-              {t('batch.progressCount', {
-                done: formatNumber(pdf.progress.done),
-                total: formatNumber(pdf.progress.total),
-              })}
-            </Text>
-          </Card>
+        {busy || saving ? (
+          // Pages counted where the engine reports them; time spent where it does not.
+          <Loader
+            testID="pdf-loader"
+            title={
+              saving
+                ? t('loader.saving')
+                : pdf.status === 'inspecting'
+                  ? t('loader.reading')
+                  : t('loader.working')
+            }
+            {...(pdf.status === 'running' && pdf.progress ? pdf.progress : {})}
+            style={{ marginBottom: theme.space.lg }}
+          />
         ) : null}
 
         {/* Above the options, not below them. A run that finishes while the screen is

@@ -483,5 +483,16 @@
     "native": "内置于 Android 引擎",
     "entry": "{{version}} · {{license}}",
     "open": "开源许可"
+  },
+  "loader": {
+    "gettingFiles": "正在准备文件…",
+    "converting": "正在转换…",
+    "reading": "正在读取文档…",
+    "working": "正在处理…",
+    "saving": "正在保存…",
+    "remaining": "大约还需 {{time}}",
+    "estimating": "正在估算时间…",
+    "elapsed": "已用 {{time}}",
+    "progress": "已完成 {{done}}/{{total}}。"
   }
 }

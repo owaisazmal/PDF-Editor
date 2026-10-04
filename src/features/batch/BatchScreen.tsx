@@ -8,7 +8,18 @@ import { useTranslation } from 'react-i18next';
 import { usePreventRemove } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { Button, Card, FileRow, ProgressBar, Screen, SectionLabel, StatRow, Text } from '@/components';
+import {
+  Button,
+  Card,
+  FileRow,
+  Loader,
+  ProgressBar,
+  Screen,
+  SectionLabel,
+  StatRow,
+  Text,
+  useWaitLabel,
+} from '@/components';
 import { FORMATS } from '@/engine/formats';
 import { fileGateway } from '@/native';
 import { isBatchFinished, isBatchRunning, useBatchStore } from '@/store/batch';
@@ -25,6 +36,7 @@ import { CONVERSION_TASKS } from '../home/tasks';
 import { errorKey, errorKeyFor, type ErrorKey } from '../convert/errors';
 import { useRecordConversion } from '../history/recording';
 import { useAnnouncement } from '@/utils/useAnnouncement';
+import { useProgressClock } from '@/utils/useProgressClock';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Batch'>;
@@ -48,6 +60,7 @@ export function BatchScreen({ route, navigation }: Props) {
 
   const running = isBatchRunning(batch.status);
   const finished = isBatchFinished(batch.status);
+  const wait = useWaitLabel(useProgressClock(running, batch.progress.fraction), true);
 
   // Submitted here rather than in the picker so the screen is mounted and listening
   // before the first progress event can arrive.
@@ -246,6 +259,12 @@ export function BatchScreen({ route, navigation }: Props) {
           </Text>
         </View>
 
+        {running && batch.status !== 'cancelling' ? (
+          <Text testID="batch-wait" variant="caption" color="textSecondary" style={{ marginTop: theme.space.sm }}>
+            {wait}
+          </Text>
+        ) : null}
+
         {running && progress.currentDisplayName ? (
           <Text
             variant="caption"
@@ -319,6 +338,10 @@ export function BatchScreen({ route, navigation }: Props) {
             {t(batch.submitErrorKey)}
           </Text>
         </Card>
+      ) : null}
+
+      {saving ? (
+        <Loader testID="save-loader" title={t('loader.saving')} style={{ marginTop: theme.space.lg }} />
       ) : null}
 
       {saveError ? (
